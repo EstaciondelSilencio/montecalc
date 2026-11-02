@@ -1,16 +1,13 @@
-# MonteCalc — Monte Carlo simulation for LibreOffice Calc
+# MonteCalc — Monte Carlo simulation for LibreOffice Calc (MC FLO workflow)
 
-MonteCalc is a LibreOffice Calc extension, written in C++, for Monte Carlo
-simulation inside a spreadsheet. You describe uncertain inputs with spreadsheet
-functions, mark the results you care about and run thousands of iterations. Then
-you analyse the distributions in a result workbook or with result functions.
+MonteCalc is a LibreOffice Calc extension written in C++. It implements the
+workflow, ribbon functions and spreadsheet functions described in the *MC FLO*
+user guide (July 2026), using MC FLO's function names (`FLOsimula_…`, `fMC_…`)
+and variable conventions (`FLO_i_`, `FLO_c_`, `FLO_o_`, `FLO_r_`).
 
-Its workflow follows the one described in the *MC FLO* user guide for Excel
-(July 2026): inputs as functions, correlations, outputs, scenarios, a result
-workbook, tornado charts and replaying single iterations. It is an independent
-implementation written from that published description. It contains no MC FLO
-code and is not affiliated with MC FLOsim. Function names and signatures are
-MonteCalc's own (see [Differences](#differences-from-mc-flo)).
+It is an independent implementation written from the published guide. It
+contains no MC FLO code and is not affiliated with MC FLOsim; "MC FLO" is
+named only to describe compatibility with the guide.
 
 ## Quick start
 
@@ -19,137 +16,185 @@ make            # builds build/MonteCalc.oxt (needs the LibreOffice SDK)
 make install    # unopkg add (run as a normal user)
 ```
 
-Then open `examples/business_case.ods` and choose **MonteCalc → Run simulation…**
+Open `examples/business_case.ods`, then use the **MonteCalc** menu (or toolbar):
 
-1. **Inputs.** Put an uncertain value in a cell as a function, for example
-   `=MC_TRIANGULAR("Volume"; 80; 100; 140)`. Between runs the cell shows the
-   distribution's expected value, so the model stays readable.
-2. **Correlations (optional).** For example, `=MC_CORRELATE("Volume"; "Price"; -0.5)`.
-3. **Outputs.** For example, `=MC_OUTPUT("NPV"; B30)`. This returns B30 unchanged
-   and records it in every iteration.
-4. **Run.** Use **MonteCalc → Run simulation…**. Settings (iterations, seed,
-   scenario quantiles, histogram bins) are saved with the document.
-5. **Analyse.**
-   - The **result workbook** has four sheets: Summary, Charts (histogram and
-     cumulative curve per variable), Sensitivity (a tornado chart per output)
-     and Data (every iteration, write-protected).
-   - **Result functions** work anywhere in the model, for example
-     `=MCR_PERCENTILE("NPV"; 0.05)`, `=MCR_TOPDRIVER("NPV"; 1)` or
-     `=MCR_BAYES("NPV"; ">"; 0; "Price"; ">="; 25)`.
-   - **Analyse iteration…** loads the values of one iteration into the model so
-     you can trace the calculation. **Show expected values** switches back.
+1. **Model → Choose Wizard…** pick a distribution, press *Show*, read values
+   off the draggable **magic stripe**, then *Save into the selected cell*.
+   *Fit distribution* fits historical data instead.
+2. **Model → Insert correlation… / Insert output variable…** writes
+   `=FLOsimula_Correlation("Volume";"Price";-0.6;0)` or `=B30+FLOsimula_output("NPV")`.
+3. **Model → Register variables** names unnamed inputs (from the label to the
+   left), creates the `FLO_i_ / FLO_c_ / FLO_o_` named ranges and colours the
+   cells.
+4. **Simulation → Settings** (`# iterations`, seed, worst/real/best levels,
+   Memory Calculation), then **Start**. The result window opens for the
+   selected output.
+5. Analyse in the result window, the result workbook (*Store results*), the
+   `fMC_` functions, the influence diagram or the AI mentor.
 
-## Features
+## What is implemented
 
-| Area | Implemented |
-|---|---|
-| Continuous distributions | Uniform, Triangular, PERT, Normal, Truncated normal, Lognormal, Beta, Gumbel, Gamma, Exponential, Weibull, Chi-square, Student-t, Pareto, F, Arcsine, Cauchy, Fréchet, Logistic, Custom (raw data, histogram table or quantile table) |
-| Discrete distributions | Uniform, Bernoulli, Binomial, Poisson, Negative binomial (Pascal), Geometric, Hypergeometric, Custom (values and probabilities) |
-| Distribution options | Lower and upper bounds (exact truncation), compound `Count` (sum of n draws per iteration) |
-| Time series | AR(1), MA(1), ARMA(1,1), ARCH(1), Wiener process / geometric Brownian motion, simulated over *n* periods |
-| Correlations | Spearman rank correlation through Gaussian, Student-t (4 d.o.f.), Clayton, rotated Clayton, Gumbel and rotated Gumbel copulas. An inconsistent correlation matrix is repaired automatically, with a warning |
-| Engine | Registration pass, seeded runs (reproducible), status-bar progress, optional visualised run, lock/unlock an input at its expected value, replay any iteration, random preview mode, reset |
-| Scenarios | Worst / real / best quantiles (configurable) |
-| Result workbook | Summary (moments, CI of the mean, scenarios, percentiles 1–99 %), histograms with cumulative curves, tornado charts, protected Data sheet. Runs above 1,000,000 iterations go to CSV |
-| Result functions | 38 `MCR_` functions: mean, min, max, sum, count, stdev, var, skewness, kurtosis, CV, percentile, percent rank, probability between, semivariances, expected gain and loss, expected shortfall, mode, density, value per iteration, sorted value, worst/real/best, Pearson/Spearman, regression, dynamic sensitivity, conditional probability, top drivers, bootstrap CI, Anderson-Darling, sample and histogram arrays |
-| Data tools | Pearson, Spearman, sorted value, Anderson-Darling, bootstrap CI and the Newcomb-Benford test on cell ranges |
+**Model functions (`FLOsimula_`):**
+- Every distribution and process on the guide's specification page: 19
+  continuous distributions plus UserDefined, 7 discrete plus
+  DiscreteUserDefined, and AR(1), MA(1), ARMA(1,1), ARCH(1) and the Wiener
+  process.
+- The options Min / Max (truncation), Round and Number (compound sums, or time
+  periods for processes).
+- `FLOsimula_Bounded`, `FLOsimula_output` and `FLOsimula_Correlation`.
 
-The full list of 83 functions is in **[docs/FUNCTIONS.md](docs/FUNCTIONS.md)**.
-The function wizard shows the same descriptions.
+**Correlations:** normal, Student-t, Clayton, r-Clayton, Gumbel, r-Gumbel,
+asy. Gumbel, asy. Fréchet and asy. Triangular. Each is calibrated to the
+requested rank correlation. Inconsistent matrices are repaired with a warning,
+and the guide's rule that Archimedean copulas are bivariate is enforced.
 
-### Not implemented yet (from the guide)
+**Registration (as in the guide):**
+- `FLO_i_` / `FLO_c_` / `FLO_o_` names and cell colours.
+- Unnamed inputs such as `FLOsimula_DiscreteUniform(300;500)`.
+- *Register variables*, *Show*, *Lock/Unlock* (red cells) and *Multiple
+  simulation* (Variant / Value / Reference rows, grey cells).
 
-- **Graphical wizard:** distribution preview with the draggable "magic stripe"
-  for quantiles.
-- **Interactive result windows:** threshold bars, spider diagram, decision
-  matrix, scatter plots and the interactive dynamic-sensitivity view. The result
-  workbook covers histograms, cumulative curves and tornado charts.
-- **Fitting:** distribution and time-series fitting (KS/AIC, Theil's U),
-  Holt-Winters forecasting, the forecast tool and `Batch` functions.
-- **Variants:** multiple simulation of variants or options.
-- **Bayesian tools:** MCMC posteriors, the Bayes classifier, Bayesian
-  regression, kernel density functions, portfolio/matrix functions, Markov
-  chains and the last-digit test.
-- **Model tools:** influence diagram, AI mentor, model-context sheet,
-  hide/load formulas, model check, correlogram, saving results as cell comments.
-- **Asymmetric copulas:** asymmetric Gumbel, triangular and Fréchet.
-- **Memory Calculation:** the in-memory engine that skips spreadsheet
-  recalculation.
+**Simulation:**
+- *Start*, *Reset*, the `# iterations` and *Seed* settings (seed −1 =
+  preview mode), *Visualize simulation* and worst/real/best scenarios.
+- **Memory Calculation**: an in-memory formula engine, about 5× faster on the
+  test model, that falls back to spreadsheet recalculation when a function
+  isn't supported.
 
-## How it works
+**Result window:**
+- Histogram with magic stripe (drag it, or enter `x` or `;p`), thresholds and
+  confidence, worst/best markers.
+- Cumulative curve, tornado (click a bar for details), spider (isolated and
+  cumulative), scatter with tail highlighting and regression line, dynamic
+  sensitivity.
+- Variant comparison, decision matrix (target, ambition level, probability,
+  most urgent control effect) and a statistics grid.
+- Navigation between variables.
+- *Store results*, *Export image*, and *Store as comment*, which saves the
+  diagram as the cell comment's background image.
 
-Every distribution samples by inversion (its quantile function), so any
-dependence structure is applied the same way, through correlated uniforms from
-a copula. A run has three stages:
+**Result workbook:**
+- Data (write-protected), Summary (scenarios, 5% steps, 1% extremes, ±3% around
+  the real case), Statistics (histogram, cumulative curve, worst/best and
+  0-limit, CI of the mean), Sensitivity (tornado) and Variants sheets.
+- *Change histogram* (set bins).
+- *Correlation and sensitivities*: an X/Y regression sheet whose new X goes in
+  **I4**, giving the estimate in **I5** and the 95% forecast interval in
+  **K5/L5**, plus correlation by 10% quantile of Y and LINEST output from
+  **D52**.
+- *Analyse selected iteration*, which writes an iteration's input values into
+  the model and restores the formulas afterwards.
+- *Close and save results* (`<model>_dd_mm_yyyy_hh_mm_ss_MC_FLO.ods`).
 
-1. **Register.** The engine recalculates the document once. Each `MC_` input,
-   `MC_OUTPUT` and `MC_CORRELATE` call registers itself by name in a shared
-   in-process state (`core/simulation.cpp`).
-2. **Prepare.** Correlated uniforms are generated for every input and
-   iteration (`core/copula.cpp`).
-3. **Simulate.** For each iteration the engine recalculates the document. Each
-   input turns its uniform into a value of its distribution, whose parameters
-   may themselves reference other uncertain cells, and records it. Each output
-   records the value it receives.
+**Fitting and forecasting:**
+- *Fit distribution*: least squares against the empirical CDF, with KS test,
+  the AIC window, *prefer higher values* (beta) and *Insert formula into
+  current cell*.
+- *Fit time series*: AR / MA / ARMA / ARCH / Wiener ranked by AIC, Theil's U,
+  a simulated path with forecast band, and a Holt-Winters comparison.
+- *Forecast-Tool*, the `fMC_Batch_Time` / `fMC_Batch_HW_D/M/Q_Time` markers and
+  *Start Batch*, which writes the estimated history plus forecasts and adds a
+  comment with date and U-test.
 
-Because inputs are identified by name rather than by cell, formulas can be
-copied, moved or combined with other spreadsheet functions inside their
-arguments.
+**Tool functions (`fMC_`):** all tool, regression, Bayesian (`fMC_Bayes`,
+`fMC_Bayes4/4V`, MCMC/MCMCA/V/AV, `…V_Robust`, BayesCombine, BayesPrediction,
+Kernel/Kernel2, BayesClassifier, BayesFactor, the Bayesian regression family)
+and matrix functions listed in the guide. That's 132 functions in total, listed
+in **[docs/FUNCTIONS.md](docs/FUNCTIONS.md)**.
+
+**Other tools:** Sort asc/des, Excel-Check (a model check workbook covering
+volatile and lookup functions, non-principal FLO formulas, constants in
+formulas, empty references, unnamed inputs, duplicate names and unknown
+correlation partners), Use DIP (`FLO_r_` arrays), Correlogram and Hide/Load
+formulas.
+
+**Influence diagram:**
+- Nodes for inputs, relationships and outputs, with arrows derived from the
+  formulas (traced through intermediate cells).
+- Select, hover tooltip, drag with reflow, double-click to jump to the cell.
+- Context menu and the shortcuts F5, Ctrl+R/L/S/E/F/T/G/D/I/H/K/J, Ctrl+Shift+C
+  and Ctrl+M.
+- Distributions inside nodes, sensitivity-weighted arrows, focus on selection,
+  group view (`Event_1…n` → module), orthogonal arrows.
+- Export as PNG/JPEG/BMP at twice screen resolution.
+- Formula editor in Edit mode: move a reference by columns/rows, or retype the
+  formula.
+- A Results tab with overlaid histograms and cumulative curves, a probe and a
+  statistics grid.
+
+**FLO_Context sheet:** the guide's columns, with Depends On traced through
+intermediate cells.
+
+**AI mentor:**
+- A chat window that sends Claude the model's structure and statistics (not the
+  cells).
+- Uses `claude-opus-5-5` through the Anthropic Messages API, with the
+  server-side refusal fallback enabled.
+- The API key is read from `Documents/MC_FLO_API.txt`.
+- Copy the conversation, or export it to HTML, Word or PDF.
+
+## Where the guide is not specific: MonteCalc's choices
+
+| Topic | Guide | MonteCalc |
+|---|---|---|
+| Names of most distribution functions | only `FLOsimula_DiscreteUniform`, `_UserDefined`, `_Bounded`, `_output` are spelled out | `FLOsimula_` + the spec-page name: `Triangle`, `PERT`, `Chi2`, `StudentT`, `ArcSin`, `Pascal`, `HyperGeometric`, `TruncatedNormal`, `WienerProcess`, `AR1`, `MA1`, `ARMA11`, `ARCH1` |
+| Argument order | name, parameters, options Min/Max/Round, Number | `([Name;] parameters…; [Min]; [Max]; [Round]; [Number])`; Name is detected as text, so `FLOsimula_DiscreteUniform(300;500)` works as in the guide. UserDefined keeps the guide's `(Data; NumberOfColumns; Name)` |
+| Correlation formula and type codes | names 8 types (0–7) without a formula name | `FLOsimula_Correlation(Name1; Name2; Coefficient; [Type])`, types 0–8 (the r- variants of Clayton and Gumbel get their own codes) |
+| Asymmetric copulas | named only | asy. Gumbel and asy. Triangular = Khoudraji asymmetrisations of Gumbel and Clayton; asy. Fréchet = Marshall–Olkin |
+| `FLOsimula_Bounded` | "can be resembled by bounds" | limits the value to the barriers; use Min/Max for exact truncation |
+| `fMC_BayesV` | referenced, not specified | `(Name1; Name2; Comparison2; Value2; Percentile)` |
+| `fMC_BayesPrediction` | Count, tolerable unsuccessful Attempts | negative-binomial predictive per posterior draw; values above Attempts are reported as Attempts+1 |
+| `fMC_BayesMCMC*` | prior + "new data of the same type" | target density ∝ product of the two kernel-estimated densities |
+| Bayesian regression | prior from a small subsample, bootstrap likelihood | Bayesian bootstrap (Dirichlet-weighted least squares) pooled over `kfolds` random subsets |
+| `fMC_PortfolioMatrix` Compare arguments | not described | ignored |
+| Volatile `…V` functions | recalculate on every change | aliases (Calc recalculates dependent cells anyway). Deterministic data functions are cached on their arguments, because Calc recalculates every formula in every iteration |
+| `_MC` function variants | not listed | Memory Calculation is a run setting instead |
+| Fit: "Degree of freedom", "increment" | grid for the fit | not used: all parameters are fitted by Nelder–Mead |
+| "Always on top" (influence diagram) | menu toggle | windows always stay in front of their Calc window |
+| Random data tools | — | fixed seed, so results don't change between recalculations |
+
+The guide's `fMC_GetOuputName` typo is kept as written; `fMC_GetOutputName`
+is provided too. UNO IDL forbids identifiers that start with a lower-case
+letter and contain `_`, so the programmatic names are capitalised internally
+(`FMC_Average`). The function wizard shows the guide's spelling, and Calc
+matches function names case-insensitively.
+
+## Architecture
 
 ```
-core/   plain C++17, no LibreOffice dependency: distributions, copulas, time series,
-        statistics, simulation state (unit-tested in tests/core_tests.cpp)
-uno/    Calc add-in (addin.cpp), protocol handler with the menu commands (engine.cpp),
-        result workbook (report.cpp), dialogs (ui.cpp)
-tools/  gen_functions.py: a single table that generates the UNO IDL, C++ declarations,
-        bodies, wizard metadata and docs/FUNCTIONS.md for all functions
-ext/    extension descriptors, menu/toolbar (Addons.xcu), protocol handler config
+core/   C++17, no LibreOffice dependency (1400 unit-test checks)
+        distributions, copulas, time series, statistics, fitting (Nelder-Mead, KS/AIC,
+        Theil's U, Holt-Winters), Bayesian tools, flofuncs (FLOsimula_ semantics shared by
+        the add-in and the memory engine), formula (parser/evaluator), simulation state
+uno/    addin (132 functions, generated), engine (all commands), model (cell scanning,
+        named ranges), report (result workbook), deps (variable dependencies), painter/
+        charts/canvaswin (drawing, modeless windows), windows (result window, wizard,
+        fitting, correlogram, variable list, context), influence (diagram), mentor (Claude)
+tools/  gen_functions.py: one table generating IDL, C++, wizard metadata and docs
+tests/  core_tests.cpp, integration_test.py (headless LibreOffice, run as a normal user)
 ```
 
-## Differences from MC FLO
+A run works in four steps:
 
-- **Function names and signatures.** Inputs start with `MC_` and take the
-  variable name as their first argument. Result functions start with `MCR_`.
-- **Outputs.** `MC_OUTPUT("Name"; value)` wraps the value. MC FLO's form is
-  `=cell + FLOsimula_output("Name")`.
-- **Correlation type codes.** These are MonteCalc's own: 0 Gaussian,
-  1 Student-t, 2 Clayton, 3 rotated Clayton, 4 Gumbel, 5 rotated Gumbel.
-- **Scenarios.** Worst, real and best are quantiles of each variable. The
-  defaults are 5 %, 50 % and 95 %, which suits "higher is better" outputs; swap
-  them in the settings for cost-type outputs.
-- **Time series.** `Periods` simulates *n* steps from the last observed value in
-  every iteration.
-- **Geometric distribution.** It counts failures before the first success
-  (support 0, 1, 2, …).
-- **Lognormal.** It takes the mean and standard deviation of the variable
-  itself.
-- **Before the first run.** Result functions return −1, as in the guide. An
-  unknown variable name gives a cell error.
+1. **Register.** One recalculation registers the named inputs, outputs and
+   correlations, and the engine scans the cells for `FLOsimula_` formulas.
+2. **Prepare.** Correlated uniforms are generated per named input.
+3. **Simulate.** Each iteration either recalculates Calc or evaluates the model
+   in memory, then records the values of all input and output cells. That is
+   why an MC FLO function must be the principal function of its cell, as the
+   guide says.
+4. **Finish.** The results are stored as a result set, one per variant.
 
-## Building
-
-Requirements: the LibreOffice SDK (`libreoffice-dev` on Debian/Ubuntu), g++ ≥ 9,
-Python 3 and zip.
+## Building and testing
 
 ```bash
-make            # extension: build/MonteCalc.oxt (Linux x86_64)
-make test       # core unit tests (1335 checks)
-make itest      # end-to-end test in headless LibreOffice (run as a normal user, not root)
+make && make test      # extension + core unit tests
+make itest             # end-to-end test in headless LibreOffice (as a normal user)
 ```
 
-The current build targets **Linux x86_64**. Windows and macOS need a native
-build against the LibreOffice SDK on those platforms, because the C++ ABI
-differs (MSVC on Windows). The sources are portable C++17 plus the UNO API,
-and the Makefile is the reference for the build steps.
+Requirements: the LibreOffice SDK (`libreoffice-dev`), g++ ≥ 9, Python 3 and
+zip. The AI mentor needs libcurl at run time; it is loaded on demand.
 
-## Performance
-
-The engine recalculates the whole document once per iteration, just as an Excel
-add-in recalculates the workbook. Measured in headless LibreOffice 24.2:
-
-- a tiny model: about 0.03 ms per iteration
-- a model with 200 ordinary formulas: about 0.2 ms per iteration
-
-Avoid large array formulas such as `MCR_SAMPLES` over thousands of cells on the
-simulated sheet. Calc has to re-spread them on every iteration; put them in the
-result workbook or another document instead.
+The current build targets **Linux x86_64**. Windows and macOS need native
+builds against their LibreOffice SDKs. The mentor's run-time loading of
+libcurl is POSIX-only and would need WinHTTP on Windows.

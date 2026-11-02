@@ -567,12 +567,9 @@ void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>
         else if (cmd == "SortDesc") cmdSort(false);
         else if (cmd == "Wizard") openWizard(ctx_, frame_);
         else if (cmd == "Fit") openFitWindow(ctx_, frame_);
-        else if (cmd == "Results") {
-            std::string v = argText(args, "Variable");
-            openResultWindow(ctx_, frame_, v);
-        }
+        else if (cmd == "Results") openResultWindow(ctx_, frame_, argText(args, "Variable"), argText(args, "View"), argText(args, "ExportTo"));
         else if (cmd == "Correlogram") openCorrelogram(ctx_, frame_);
-        else if (cmd == "InfluenceDiagram") openInfluenceDiagram(ctx_, frame_);
+        else if (cmd == "InfluenceDiagram") openInfluenceDiagram(ctx_, frame_, argText(args, "Options"), argText(args, "ExportTo"));
         else if (cmd == "Mentor") openMentor(ctx_, frame_);
         else if (cmd == "Show") openVariableList(ctx_, frame_);
         else message("MonteCalc", "Unknown command: " + cmd, true);

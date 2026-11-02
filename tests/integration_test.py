@@ -322,6 +322,24 @@ def run_tests(ctx):
     cmd("Start", Iterations=4000, Seed=5, Report=False)
     check(near(val("D5"), 0.4, 0.07), f"asy. Gumbel correlation: {val('D5')}")
 
+    print("windows (exported images) and context sheet")
+    outdir = tempfile.mkdtemp()
+    for view in ["Histogram", "Tornado", "Spider", "Scatter", "Decision", "Statistics"]:
+        cmd("Results", Variable="Revenue", View=view, ExportTo=f"file://{outdir}/{view}.png")
+    for name, opt in [("diagram", ""), ("dist", "dist,sens"), ("group", "group,ortho"), ("results", "results")]:
+        cmd("InfluenceDiagram", Options=opt, ExportTo=f"file://{outdir}/id_{name}.png")
+    sizes = {f: os.path.getsize(os.path.join(outdir, f)) for f in os.listdir(outdir)}
+    check(len(sizes) == 10 and min(sizes.values()) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
+    shutil.rmtree(outdir, ignore_errors=True)
+    cmd("WriteContext")
+    ctxs = doc.Sheets.getByName("FLO_Context") if doc.Sheets.hasByName("FLO_Context") else None
+    check(ctxs is not None and [ctxs.getCellByPosition(c, 3).getString() for c in (0, 1, 12)] == ["Variable", "Kind", "Depends On"],
+          "FLO_Context sheet with the manual's columns")
+    if ctxs is not None:
+        rows = {ctxs.getCellByPosition(0, r).getString(): ctxs.getCellByPosition(12, r).getString() for r in range(4, 20)}
+        check("Volume" in rows.get("Revenue", "") and "Price" in rows.get("Revenue", ""), f"dependencies traced through intermediate cells: {rows.get('Revenue')}")
+        doc.Sheets.removeByName("FLO_Context")
+
     print("save / reload")
     path = tempfile.mktemp(suffix=".ods")
     doc.storeToURL("file://" + path, (prop("FilterName", "calc8"),))

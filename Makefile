@@ -14,7 +14,7 @@ CXX     ?= g++
 CXXFLAGS ?= -O2 -g0
 CXXFLAGS += -std=c++17 -fPIC -fvisibility=hidden -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers \
             -DLINUX -DUNX -DCPPU_ENV=gcc3 -I/usr/include/libreoffice -I$(SDK)/include -I$(INC) -I$(GEN)
-LDLIBS  := -L$(LO)/program -L$(SDK)/lib -luno_cppuhelpergcc3 -luno_cppu -luno_sal
+LDLIBS  := -L$(LO)/program -L$(SDK)/lib -luno_cppuhelpergcc3 -luno_cppu -luno_sal -ldl -lpthread
 SDKENV  := LD_LIBRARY_PATH=$(LO)/program
 
 CORE_SRC := $(wildcard core/*.cpp)

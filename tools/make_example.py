@@ -17,17 +17,17 @@ ROWS = [
     ("Product launch business case", None, None),
     ("", None, None),
     ("Uncertain inputs", None, None),
-    ("Market size (units / year)", '=MC_PERT("MarketSize";200000;250000;350000)', "PERT: min, most likely, max"),
-    ("Market share", '=MC_TRIANGULAR("Share";0.05;0.08;0.12)', "Triangular"),
-    ("Price per unit", '=MC_NORMAL("Price";25;2;18;32)', "Normal, truncated to 18..32"),
-    ("Unit cost", '=MC_TRIANGULAR("UnitCost";12;14;18)', "Triangular"),
-    ("Investment", '=MC_LOGNORMAL("Investment";400000;60000)', "Lognormal (mean, std dev)"),
-    ("Launch delayed (1 = yes)", '=MC_BERNOULLI("Delay";0.2)', "20% risk: no sales in year 1"),
-    ("Annual market growth", '=MC_NORMAL("Growth";0.03;0.02)', "Normal"),
+    ("Market size (units / year)", '=FLOsimula_PERT("MarketSize";200000;250000;350000)', "FLOsimula_PERT: min, most likely, max"),
+    ("Market share", '=FLOsimula_Triangle("Share";0.05;0.08;0.12)', "Triangular"),
+    ("Price per unit", '=FLOsimula_Normal("Price";25;2;18;32)', "Normal, truncated to 18..32"),
+    ("Unit cost", '=FLOsimula_Triangle("UnitCost";12;14;18)', "Triangular"),
+    ("Investment", '=FLOsimula_Lognormal("Investment";400000;60000)', "Lognormal (mean, std dev)"),
+    ("Launch delayed (1 = yes)", '=FLOsimula_Bernoulli("Delay";0.2)', "20% risk: no sales in year 1"),
+    ("Annual market growth", '=FLOsimula_Normal("Growth";0.03;0.02)', "Normal"),
     ("", None, None),
     ("Correlations", None, None),
-    ("Share vs price", '=MC_CORRELATE("Share";"Price";-0.6)', "Higher price, lower share"),
-    ("Unit cost vs market size", '=MC_CORRELATE("UnitCost";"MarketSize";-0.4)', "Economies of scale"),
+    ("Share vs price", '=FLOsimula_Correlation("Share";"Price";-0.6)', "Higher price, lower share"),
+    ("Unit cost vs market size", '=FLOsimula_Correlation("UnitCost";"MarketSize";-0.4)', "Economies of scale"),
     ("", None, None),
     ("Fixed assumptions", None, None),
     ("Fixed costs per year", 120000, None),
@@ -68,22 +68,22 @@ def build(ctx):
     sh.getCellByPosition(0, last + 1).setString("Net present value")
     sh.getCellByPosition(1, last + 1).setFormula(f"=NPV($B$18;F{first}:F{last})-$B$8")
     sh.getCellByPosition(0, last + 2).setString("Output: NPV")
-    sh.getCellByPosition(1, last + 2).setFormula(f'=MC_OUTPUT("NPV";B{last + 2})')
+    sh.getCellByPosition(1, last + 2).setFormula(f'=B{last + 2}+FLOsimula_output("NPV")')
     sh.getCellByPosition(0, last + 3).setString("Output: total cash flow")
-    sh.getCellByPosition(1, last + 3).setFormula(f'=MC_OUTPUT("TotalCash";SUM(F{first}:F{last}))')
+    sh.getCellByPosition(1, last + 3).setFormula(f'=SUM(F{first}:F{last})+FLOsimula_output("TotalCash")')
 
     res = last + 5
-    sh.getCellByPosition(0, res).setString("Results (filled after MonteCalc > Run simulation)")
+    sh.getCellByPosition(0, res).setString("Results (filled after MonteCalc > Simulation > Start)")
     results = [
-        ("Expected NPV", '=MCR_MEAN("NPV")'),
-        ("Standard deviation", '=MCR_STDEV("NPV")'),
-        ("Worst case (5%)", '=MCR_WORST("NPV")'),
-        ("Best case (95%)", '=MCR_BEST("NPV")'),
-        ("Probability NPV > 0", '=IF(MCR_ITERATIONS()>0;1-MCR_PERCENTRANK("NPV";0);"")'),
-        ("Expected shortfall (5%)", '=MCR_SHORTFALL("NPV";0.05)'),
-        ("Main driver", '=MCR_TOPDRIVER("NPV";1)'),
-        ("Its rank correlation", '=MCR_TOPDRIVERCORR("NPV";1)'),
-        ("P(NPV > 0 | price >= 25)", '=MCR_BAYES("NPV";">";0;"Price";">=";25)'),
+        ("Expected NPV", '=fMC_Average("NPV")'),
+        ("Standard deviation", '=fMC_StdS("NPV")'),
+        ("Worst case (5%)", '=fMC_Percentile("NPV";fMC_Worst())'),
+        ("Best case (95%)", '=fMC_Percentile("NPV";fMC_Best())'),
+        ("Probability NPV > 0", '=IF(fMC_Iterations()>0;1-fMC_PercentileValue("NPV";0);"")'),
+        ("Expected shortfall (5%)", '=fMC_ExpectedShortfall("NPV";0.05)'),
+        ("Main driver", '=fMC_CorrRankN("NPV";1)'),
+        ("Its correlation", '=fMC_CorrRank("NPV";1)'),
+        ("P(NPV > 0 | price >= 25)", '=fMC_Bayes("NPV";">";0;"Price";">=";25)'),
     ]
     for i, (label, f) in enumerate(results):
         sh.getCellByPosition(0, res + 1 + i).setString(label)
@@ -108,11 +108,12 @@ def build(ctx):
     # settings stored with the document (read by MonteCalc > Run simulation)
     udp = doc.DocumentProperties.UserDefinedProperties
     for k, v in [("Iterations", 5000.0), ("Seed", 2026.0), ("Worst", 0.05), ("Real", 0.5), ("Best", 0.95),
-                 ("Bins", 20.0), ("Visualize", 0.0), ("Report", 1.0)]:
+                 ("Bins", 20.0), ("Visualize", 0.0), ("Report", 0.0), ("Memory", 1.0)]:
         udp.addProperty("MonteCalc." + k, 128, v)  # 128 = REMOVABLE
     disp = smgr.createInstanceWithContext("com.sun.star.frame.DispatchHelper", ctx)
     frame = doc.CurrentController.Frame
-    disp.executeDispatch(frame, "org.montecalc:Run", "", 0,
+    disp.executeDispatch(frame, "org.montecalc:Register", "", 0, (it.prop("Silent", True),))
+    disp.executeDispatch(frame, "org.montecalc:Start", "", 0,
                          (it.prop("Iterations", 5000), it.prop("Seed", 2026), it.prop("Silent", True), it.prop("Report", False)))
     npv = sh.getCellByPosition(1, res + 1).getValue()
     print(f"example simulated: expected NPV {npv:,.0f}, P(NPV>0) {sh.getCellByPosition(1, res + 5).getValue():.1%}, "
