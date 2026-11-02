@@ -1,0 +1,3 @@
+build/
+*.oxt
+__pycache__/
