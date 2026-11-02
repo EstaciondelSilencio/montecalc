@@ -188,13 +188,17 @@ A run works in four steps:
 ## Building and testing
 
 ```bash
-make && make test      # extension + core unit tests
+make && make test      # extension + core unit tests (Linux, Makefile)
+cmake -S . -B build && cmake --build build && ctest --test-dir build   # any platform
 make itest             # end-to-end test in headless LibreOffice (as a normal user)
 ```
 
 Requirements: the LibreOffice SDK (`libreoffice-dev`), g++ ≥ 9, Python 3 and
 zip. The AI mentor needs libcurl at run time; it is loaded on demand.
 
-The current build targets **Linux x86_64**. Windows and macOS need native
-builds against their LibreOffice SDKs. The mentor's run-time loading of
-libcurl is POSIX-only and would need WinHTTP on Windows.
+**Windows:** see **[docs/WINDOWS.md](docs/WINDOWS.md)** for installation and
+building. `CMakeLists.txt` builds with Visual Studio against the official
+LibreOffice SDK for Windows, and the GitHub Actions workflow
+(`.github/workflows/build.yml`) produces `MonteCalc-windows_x86_64.oxt` and
+`MonteCalc-linux_x86_64.oxt` on every push. On Windows the AI mentor uses
+WinHTTP; elsewhere it loads libcurl at run time.

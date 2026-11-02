@@ -379,7 +379,7 @@ std::string createReport(const Reference<uno::XComponentContext>& ctx, bool hidd
         auto sh = sheetNamed(doc, "Data");
         const int maxRows = 1000000;
         if (r.n > maxRows) {
-            std::string path = std::string(std::getenv("HOME") ? std::getenv("HOME") : "/tmp") + "/MonteCalc_data.csv";
+            std::string path = homeDir() + "/MonteCalc_data.csv";
             std::ofstream f(path);
             f << "Iteration";
             for (auto& a : r.names) f << "," << a;

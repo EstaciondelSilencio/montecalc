@@ -413,13 +413,13 @@ bool CanvasWindow::exportImage(const std::string& url, const std::string& mime, 
 }
 
 bool CanvasWindow::storeAsComment(const Reference<frame::XModel>& model, int sheet, int col, int row, const std::string& text) {
-    std::string base = std::string(std::getenv("TMPDIR") ? std::getenv("TMPDIR") : "/tmp") + "/montecalc_comment";
+    std::string base = tempDir() + "/montecalc_comment";
     int w = 640, h = 400;
-    if (!exportImage("file://" + base + ".png", "image/png", w, h)) return false;
+    if (!exportImage(fileUrl(base + ".png"), "image/png", w, h)) return false;
     Reference<graphic::XGraphicProvider> gp = graphic::GraphicProvider::create(ctx_);
     beans::PropertyValue url;
     url.Name = "URL";
-    url.Value <<= ou("file://" + base + ".png");
+    url.Value <<= ou(fileUrl(base + ".png"));
     Reference<graphic::XGraphic> g = gp->queryGraphic(seq<beans::PropertyValue>({url}));
     Reference<sheet::XSpreadsheetDocument> doc(model, UNO_QUERY_THROW);
     Reference<container::XIndexAccess> ia(doc->getSheets(), UNO_QUERY_THROW);

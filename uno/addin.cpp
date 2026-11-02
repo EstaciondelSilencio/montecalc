@@ -20,6 +20,7 @@
 #include <cppuhelper/supportsservice.hxx>
 
 #include <algorithm>
+#include <bitset>
 #include <cmath>
 #include <cstdio>
 #include <map>
@@ -986,7 +987,7 @@ AnyMatrix portfolioMatrix(const AnyMatrix& names, const Any& asInput) {
         size_t total = (size_t(1) << n.size()) - 1;
         std::vector<size_t> masks;
         for (size_t m = 1; m <= total; ++m) masks.push_back(m);
-        std::stable_sort(masks.begin(), masks.end(), [](size_t a, size_t b) { return __builtin_popcountll(a) < __builtin_popcountll(b); });
+        std::stable_sort(masks.begin(), masks.end(), [](size_t a, size_t b) { return std::bitset<64>(a).count() < std::bitset<64>(b).count(); });
         for (size_t m : masks) {
             std::string f = "=", label;
             for (size_t i = 0; i < n.size(); ++i)

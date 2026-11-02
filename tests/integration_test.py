@@ -7,6 +7,7 @@ Usage: integration_test.py build/MonteCalc.oxt
 """
 import math
 import os
+import pathlib
 import shutil
 import subprocess
 import sys
@@ -18,8 +19,10 @@ from com.sun.star.beans import PropertyValue
 
 OXT = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "build/MonteCalc.oxt")
 PROFILE = tempfile.mkdtemp(prefix="montecalc-profile-")
-PROFILE_URL = "file://" + PROFILE
+PROFILE_URL = pathlib.Path(PROFILE).as_uri()
 PORT = 2099
+SOFFICE = os.environ.get("SOFFICE", "soffice")
+UNOPKG = os.environ.get("UNOPKG", "unopkg")
 failures = []
 
 
@@ -41,14 +44,14 @@ def prop(name, value):
 
 def main():
     env = dict(os.environ, SAL_USE_VCLPLUGIN="svp")
-    r = subprocess.run(["unopkg", "add", "--force", f"-env:UserInstallation={PROFILE_URL}", OXT],
+    r = subprocess.run([UNOPKG, "add", "--force", f"-env:UserInstallation={PROFILE_URL}", OXT],
                        capture_output=True, text=True, env=env)
     check(r.returncode == 0, "extension installs with unopkg " + (r.stderr.strip()[:300] if r.returncode else ""))
     if r.returncode:
         return
 
     office = subprocess.Popen(
-        ["soffice", f"-env:UserInstallation={PROFILE_URL}", "--headless", "--invisible", "--norestore",
+        [SOFFICE, f"-env:UserInstallation={PROFILE_URL}", "--headless", "--invisible", "--norestore",
          "--nologo", f"--accept=socket,host=localhost,port={PORT};urp;"],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=env)
     try:
@@ -325,9 +328,9 @@ def run_tests(ctx):
     print("windows (exported images) and context sheet")
     outdir = tempfile.mkdtemp()
     for view in ["Histogram", "Tornado", "Spider", "Scatter", "Decision", "Statistics"]:
-        cmd("Results", Variable="Revenue", View=view, ExportTo=f"file://{outdir}/{view}.png")
+        cmd("Results", Variable="Revenue", View=view, ExportTo=pathlib.Path(outdir, f"{view}.png").as_uri())
     for name, opt in [("diagram", ""), ("dist", "dist,sens"), ("group", "group,ortho"), ("results", "results")]:
-        cmd("InfluenceDiagram", Options=opt, ExportTo=f"file://{outdir}/id_{name}.png")
+        cmd("InfluenceDiagram", Options=opt, ExportTo=pathlib.Path(outdir, f"id_{name}.png").as_uri())
     sizes = {f: os.path.getsize(os.path.join(outdir, f)) for f in os.listdir(outdir)}
     check(len(sizes) == 10 and min(sizes.values()) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
     shutil.rmtree(outdir, ignore_errors=True)
@@ -342,8 +345,8 @@ def run_tests(ctx):
 
     print("save / reload")
     path = tempfile.mktemp(suffix=".ods")
-    doc.storeToURL("file://" + path, (prop("FilterName", "calc8"),))
-    doc2 = desktop.loadComponentFromURL("file://" + path, "_blank", 0, (prop("Hidden", True),))
+    doc.storeToURL(pathlib.Path(path).as_uri(), (prop("FilterName", "calc8"),))
+    doc2 = desktop.loadComponentFromURL(pathlib.Path(path).as_uri(), "_blank", 0, (prop("Hidden", True),))
     c = doc2.Sheets.getByIndex(0).getCellRangeByName("B1")
     check(c.getError() == 0 and near(c.getValue(), 320 / 3, 1e-9), f"formulas survive save/reload: {c.getFormula()}")
     doc2.close(True)

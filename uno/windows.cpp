@@ -458,11 +458,11 @@ public:
         repaint();
     }
     void exportDialog() {
-        std::vector<FormField> f = {{"File (URL or path)", std::string(std::getenv("HOME") ? std::getenv("HOME") : "/tmp") + "/montecalc_chart.png"},
+        std::vector<FormField> f = {{"File (URL or path)", homeDir() + "/montecalc_chart.png"},
                                     {"Format", "PNG"}};
         f[1].options = {"PNG", "JPEG", "BMP"};
         if (!showForm(ctx_, "Export image", f)) return;
-        std::string url = f[0].value.rfind("file://", 0) == 0 ? f[0].value : "file://" + f[0].value;
+        std::string url = fileUrl(f[0].value);
         std::string mime = f[1].value == "JPEG" ? "image/jpeg" : f[1].value == "BMP" ? "image/bmp" : "image/png";
         int w, h;
         canvasSize(w, h);
@@ -994,10 +994,10 @@ public:
     void button(const std::string& b) override {
         if (b == "close") close();
         if (b == "export") {
-            std::string path = std::string(std::getenv("HOME") ? std::getenv("HOME") : "/tmp") + "/montecalc_correlogram.png";
+            std::string path = homeDir() + "/montecalc_correlogram.png";
             int w, h;
             canvasSize(w, h);
-            if (exportImage("file://" + path, "image/png", w, h, 2.0)) message("Saved " + path);
+            if (exportImage(fileUrl(path), "image/png", w, h, 2.0)) message("Saved " + path);
         }
     }
 

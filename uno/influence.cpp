@@ -588,10 +588,10 @@ public:
     }
 
     void exportDialog() {
-        std::vector<FormField> f = {{"File", std::string(std::getenv("HOME") ? std::getenv("HOME") : "/tmp") + "/influence_diagram.png"}, {"Format", "PNG"}};
+        std::vector<FormField> f = {{"File", homeDir() + "/influence_diagram.png"}, {"Format", "PNG"}};
         f[1].options = {"PNG", "JPEG", "BMP"};
         if (!showForm(ctx_, "Export image", f)) return;
-        std::string url = f[0].value.rfind("file://", 0) == 0 ? f[0].value : "file://" + f[0].value;
+        std::string url = fileUrl(f[0].value);
         std::string mime = f[1].value == "JPEG" ? "image/jpeg" : f[1].value == "BMP" ? "image/bmp" : "image/png";
         int w, h;
         canvasSize(w, h);

@@ -119,7 +119,7 @@ def build(ctx):
     print(f"example simulated: expected NPV {npv:,.0f}, P(NPV>0) {sh.getCellByPosition(1, res + 5).getValue():.1%}, "
           f"driver {sh.getCellByPosition(1, res + 7).getString()}")
     it.check(abs(npv) > 0 and sh.getCellByPosition(1, res + 1).getError() == 0, "example model simulates")
-    doc.storeToURL("file://" + OUT, (it.prop("FilterName", "calc8"),))
+    doc.storeToURL(__import__("pathlib").Path(OUT).as_uri(), (it.prop("FilterName", "calc8"),))
     doc.close(True)
     print("wrote", OUT)
 

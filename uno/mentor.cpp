@@ -19,7 +19,7 @@
 #include <com/sun/star/util/XCloseable.hpp>
 #include <cppuhelper/implbase1.hxx>
 
-#include <dlfcn.h>
+#include "http.hpp"
 
 #include <atomic>
 #include <cstdio>
@@ -173,73 +173,8 @@ std::string jsonEscape(const std::string& s) {
 }
 
 // ---------------------------------------------------------------- libcurl (loaded at run time)
-struct Curl {
-    void* lib = nullptr;
-    void* (*init)() = nullptr;
-    int (*setopt)(void*, int, ...) = nullptr;
-    int (*perform)(void*) = nullptr;
-    void (*cleanup)(void*) = nullptr;
-    void* (*slistAppend)(void*, const char*) = nullptr;
-    void (*slistFree)(void*) = nullptr;
-    int (*getinfo)(void*, int, ...) = nullptr;
-    const char* (*strerror)(int) = nullptr;
-    bool load() {
-        if (lib) return true;
-        for (const char* n : {"libcurl.so.4", "libcurl-gnutls.so.4", "libcurl.so", "libcurl.4.dylib", "libcurl.dylib"})
-            if ((lib = dlopen(n, RTLD_NOW))) break;
-        if (!lib) return false;
-        init = reinterpret_cast<void* (*)()>(dlsym(lib, "curl_easy_init"));
-        setopt = reinterpret_cast<int (*)(void*, int, ...)>(dlsym(lib, "curl_easy_setopt"));
-        perform = reinterpret_cast<int (*)(void*)>(dlsym(lib, "curl_easy_perform"));
-        cleanup = reinterpret_cast<void (*)(void*)>(dlsym(lib, "curl_easy_cleanup"));
-        slistAppend = reinterpret_cast<void* (*)(void*, const char*)>(dlsym(lib, "curl_slist_append"));
-        slistFree = reinterpret_cast<void (*)(void*)>(dlsym(lib, "curl_slist_free_all"));
-        getinfo = reinterpret_cast<int (*)(void*, int, ...)>(dlsym(lib, "curl_easy_getinfo"));
-        strerror = reinterpret_cast<const char* (*)(int)>(dlsym(lib, "curl_easy_strerror"));
-        return init && setopt && perform && cleanup && slistAppend && slistFree && getinfo;
-    }
-};
-
-size_t writeCb(char* data, size_t size, size_t n, void* user) {
-    static_cast<std::string*>(user)->append(data, size * n);
-    return size * n;
-}
-
-// POST JSON; returns the HTTP status (0 on transport error, message in `err`)
-long httpPost(const std::string& url, const std::vector<std::string>& headers, const std::string& body, std::string& out, std::string& err) {
-    static Curl curl;
-    if (!curl.load()) { err = "libcurl was not found on this system; the AI mentor needs it to reach the API"; return 0; }
-    void* h = curl.init();
-    if (!h) { err = "could not initialise libcurl"; return 0; }
-    void* list = nullptr;
-    for (auto& hd : headers) list = curl.slistAppend(list, hd.c_str());
-    const int URL = 10002, POSTFIELDS = 10015, HTTPHEADER = 10023, WRITEFUNCTION = 20011, WRITEDATA = 10001, TIMEOUT = 13,
-              POSTFIELDSIZE = 60, CAINFO = 10065;
-    curl.setopt(h, URL, url.c_str());
-    curl.setopt(h, HTTPHEADER, list);
-    curl.setopt(h, POSTFIELDS, body.c_str());
-    curl.setopt(h, POSTFIELDSIZE, long(body.size()));
-    curl.setopt(h, WRITEFUNCTION, &writeCb);
-    curl.setopt(h, WRITEDATA, &out);
-    curl.setopt(h, TIMEOUT, 600L);
-    if (const char* ca = std::getenv("SSL_CERT_FILE")) curl.setopt(h, CAINFO, ca);
-    int rc = curl.perform(h);
-    long status = 0;
-    curl.getinfo(h, 0x200002 /* CURLINFO_RESPONSE_CODE */, &status);
-    if (rc != 0) err = curl.strerror ? curl.strerror(rc) : "network error";
-    curl.slistFree(list);
-    curl.cleanup(h);
-    return rc == 0 ? status : 0;
-}
-
-std::string documentsDir() {
-    std::string home = std::getenv("HOME") ? std::getenv("HOME") : "/tmp";
-    std::ifstream probe(home + "/Documents/.");
-    return home + "/Documents";
-}
-
 std::string readApiKey() {
-    for (const auto& path : {documentsDir() + "/MC_FLO_API.txt", std::string(std::getenv("HOME") ? std::getenv("HOME") : "") + "/MC_FLO_API.txt"}) {
+    for (const auto& path : {documentsDir() + "/MC_FLO_API.txt", homeDir() + "/MC_FLO_API.txt"}) {
         std::ifstream f(path);
         std::string k;
         if (f && std::getline(f, k)) {
@@ -413,12 +348,12 @@ public:
         hidden.Value <<= true;
         filter.Name = "FilterName";
         filter.Value <<= OUString("HTML (StarWriter)");
-        auto doc = loader->loadComponentFromURL(ou("file://" + base + ".html"), "_blank", 0, seq<beans::PropertyValue>({hidden, filter}));
+        auto doc = loader->loadComponentFromURL(ou(fileUrl(base + ".html")), "_blank", 0, seq<beans::PropertyValue>({hidden, filter}));
         beans::PropertyValue out;
         out.Name = "FilterName";
         out.Value <<= OUString::createFromAscii(kind == "pdf" ? "writer_pdf_Export" : "MS Word 2007 XML");
         std::string file = base + (kind == "pdf" ? ".pdf" : ".docx");
-        Reference<frame::XStorable>(doc, UNO_QUERY_THROW)->storeToURL(ou("file://" + file), seq<beans::PropertyValue>({out}));
+        Reference<frame::XStorable>(doc, UNO_QUERY_THROW)->storeToURL(ou(fileUrl(file)), seq<beans::PropertyValue>({out}));
         Reference<util::XCloseable>(doc, UNO_QUERY_THROW)->close(true);
         std::remove((base + ".html").c_str());
         return file;

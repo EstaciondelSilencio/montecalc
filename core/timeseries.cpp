@@ -26,7 +26,7 @@ void TimeSeries::validate() const {
 namespace {
 struct Stepper {
     const TimeSeries& ts;
-    double y, epsPrev = 0;
+    double y = 0, epsPrev = 0;
     explicit Stepper(const TimeSeries& t) : ts(t) {
         switch (t.type) {
         case TsType::AR1: y = t.p[3]; break;
