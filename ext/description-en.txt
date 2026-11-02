@@ -1,0 +1,1 @@
+MonteCalc adds Monte Carlo simulation to LibreOffice Calc: 27 probability distributions, 5 time-series processes, correlated inputs (Gaussian, Student-t, Clayton and Gumbel copulas), output variables, scenario analysis, a result workbook with histograms and tornado charts, and about 40 result statistics functions.

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<description xmlns="http://openoffice.org/extensions/description/2006"
+             xmlns:xlink="http://www.w3.org/1999/xlink"
+             xmlns:d="http://openoffice.org/extensions/description/2006">
+  <identifier value="org.montecalc.extension"/>
+  <version value="0.1.0"/>
+  <platform value="linux_x86_64"/>
+  <dependencies>
+    <OpenOffice.org-minimal-version value="4.0" d:name="LibreOffice 7.0 or later"/>
+  </dependencies>
+  <display-name>
+    <name lang="en">MonteCalc - Monte Carlo simulation for Calc</name>
+  </display-name>
+  <extension-description>
+    <src lang="en" xlink:href="description-en.txt"/>
+  </extension-description>
+</description>

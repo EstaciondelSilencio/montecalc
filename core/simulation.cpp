@@ -208,6 +208,11 @@ Mode Simulation::mode() const {
     return mode_;
 }
 
+bool Simulation::busy() const {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    return mode_ == Mode::Register || mode_ == Mode::Simulate;
+}
+
 void Simulation::setReplayIteration(int i) {
     std::lock_guard<std::recursive_mutex> g(mtx_);
     if (!hasResults_) throw std::runtime_error("no simulation results available");

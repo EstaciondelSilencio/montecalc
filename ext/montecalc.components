@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<components xmlns="http://openoffice.org/2010/uno-components">
+  <component loader="com.sun.star.loader.SharedLibrary" uri="libmontecalc.so">
+    <implementation name="org.montecalc.MonteCalcAddIn">
+      <service name="com.sun.star.sheet.AddIn"/>
+      <service name="org.montecalc.MonteCalc"/>
+    </implementation>
+    <implementation name="org.montecalc.Engine">
+      <service name="com.sun.star.frame.ProtocolHandler"/>
+    </implementation>
+  </component>
+</components>

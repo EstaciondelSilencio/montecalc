@@ -80,6 +80,8 @@ public:
     void reset();                         // forget results
     void setMode(Mode m);
     Mode mode() const;
+    // true while registering or simulating: result functions should not do work
+    bool busy() const;
     void setReplayIteration(int i);       // switch to Replay mode
     void toggleLock(const std::string& name);
     bool isLocked(const std::string& name) const;
