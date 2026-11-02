@@ -1,6 +1,7 @@
 // MonteCalc - copulas
 #include "copula.h"
 #include "specfun.h"
+#include "stats.h"
 
 #include <algorithm>
 #include <cmath>
@@ -124,6 +125,101 @@ double clampU(double u) { return std::min(std::max(u, 1e-15), 1 - 1e-15); }
 
 } // namespace
 
+// ---- bivariate families --------------------------------------------------
+// theta is the family parameter (strength); every family is calibrated by simulation
+// so that the Spearman rank correlation matches the requested coefficient.
+std::pair<double, double> samplePair(int type, double theta, std::mt19937_64& rng) {
+    std::uniform_real_distribution<double> uni(0.0, 1.0);
+    std::exponential_distribution<double> ex(1.0);
+    auto clayton = [&](double th) -> std::pair<double, double> {
+        if (th < 1e-9) return {uni(rng), uni(rng)};
+        double v = std::gamma_distribution<double>(1 / th, 1.0)(rng);
+        return {std::pow(1 + ex(rng) / v, -1 / th), std::pow(1 + ex(rng) / v, -1 / th)};
+    };
+    auto gumbel = [&](double th) -> std::pair<double, double> {
+        if (th <= 1 + 1e-9) return {uni(rng), uni(rng)};
+        double v = positiveStable(1 / th, rng);
+        return {std::exp(-std::pow(ex(rng) / v, 1 / th)), std::exp(-std::pow(ex(rng) / v, 1 / th))};
+    };
+    // Khoudraji asymmetrisation: C(u,v) = u^(1-a) v^(1-b) C0(u^a, v^b)
+    auto khoudraji = [&](std::pair<double, double> base, double a, double b) -> std::pair<double, double> {
+        double w1 = uni(rng), w2 = uni(rng);
+        double u = a >= 1 ? base.first : std::max(std::pow(base.first, 1 / a), std::pow(w1, 1 / (1 - a)));
+        double v = b >= 1 ? base.second : std::max(std::pow(base.second, 1 / b), std::pow(w2, 1 / (1 - b)));
+        return {u, v};
+    };
+    switch (type) {
+    case 2: return clayton(theta);
+    case 3: { auto p = clayton(theta); return {1 - p.first, 1 - p.second}; }
+    case 4: return gumbel(1 + theta);
+    case 5: { auto p = gumbel(1 + theta); return {1 - p.first, 1 - p.second}; }
+    case 6: return khoudraji(gumbel(1 + theta), 1.0, 0.6);           // asymmetric Gumbel
+    case 7: {                                                         // asymmetric Frechet (Marshall-Olkin)
+        double m = uni(rng);
+        return khoudraji({m, m}, std::min(1.0, theta), std::min(1.0, theta) / 2);
+    }
+    case 8: return khoudraji(clayton(theta), 0.6, 1.0);              // asymmetric triangular
+    default: return {uni(rng), uni(rng)};
+    }
+}
+
+double familySpearman(int type, double theta, int n, unsigned long long seed) {
+    std::mt19937_64 rng(seed);
+    std::vector<double> a(n), b(n);
+    for (int i = 0; i < n; ++i) { auto p = samplePair(type, theta, rng); a[i] = p.first; b[i] = p.second; }
+    return stats::spearman(a, b);
+}
+
+double calibrateTheta(int type, double rho, std::vector<std::string>& warnings) {
+    if (rho < 1e-6) return 0;
+    double lo = 0, hi = type == 7 ? 1.0 : 60.0;
+    const int n = 4000;
+    double maxRho = familySpearman(type, hi, n, 99);
+    if (rho >= maxRho) {
+        warnings.push_back("rank correlation " + std::to_string(rho) + " exceeds what copula type " + std::to_string(type) +
+                           " can reach; using " + std::to_string(maxRho));
+        return hi;
+    }
+    for (int i = 0; i < 30; ++i) {
+        double mid = 0.5 * (lo + hi);
+        if (familySpearman(type, mid, n, 99) < rho) lo = mid; else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+}
+
+int fitCopula(const std::vector<double>& x, const std::vector<double>& y, std::mt19937_64& rng) {
+    size_t n = std::min(x.size(), y.size());
+    if (n < 10) throw std::invalid_argument("at least 10 pairs are needed");
+    std::vector<double> rx = stats::ranks(std::vector<double>(x.begin(), x.begin() + n));
+    std::vector<double> ry = stats::ranks(std::vector<double>(y.begin(), y.begin() + n));
+    double rho = stats::spearman(x, y);
+    // empirical copula on a 10 x 10 grid
+    const int G = 10;
+    auto grid = [&](const std::vector<double>& u, const std::vector<double>& v) {
+        std::vector<double> g(G * G, 0.0);
+        for (size_t i = 0; i < u.size(); ++i) {
+            int a = std::min(G - 1, int(u[i] * G)), b = std::min(G - 1, int(v[i] * G));
+            g[a * G + b] += 1.0 / u.size();
+        }
+        return g;
+    };
+    std::vector<double> pu(n), pv(n);
+    for (size_t i = 0; i < n; ++i) { pu[i] = rx[i] / (n + 1); pv[i] = ry[i] / (n + 1); }
+    auto ge = grid(pu, pv);
+    int best = 0;
+    double bestD = 1e300;
+    for (int type = 0; type <= kMaxCopulaType; ++type) {
+        std::vector<CorrelationSpec> spec{{0, 1, std::max(-0.95, std::min(0.95, rho)), type}};
+        CopulaResult cr;
+        try { cr = generateUniforms(2, 20000, spec, rng); } catch (...) { continue; }
+        auto gm = grid(cr.u[0], cr.u[1]);
+        double d = 0;
+        for (int i = 0; i < G * G; ++i) d += (ge[i] - gm[i]) * (ge[i] - gm[i]);
+        if (d < bestD) { bestD = d; best = type; }
+    }
+    return best;
+}
+
 CopulaResult generateUniforms(int nvars, int iterations, const std::vector<CorrelationSpec>& corr,
                               std::mt19937_64& rng) {
     CopulaResult res;
@@ -139,13 +235,13 @@ CopulaResult generateUniforms(int nvars, int iterations, const std::vector<Corre
         if (c.a == c.b) { res.warnings.push_back("a variable cannot be correlated with itself; ignored"); continue; }
         if (!(c.rho > -1 && c.rho < 1)) { res.warnings.push_back("correlation outside (-1,1); ignored"); continue; }
         anyUse[c.a]++; anyUse[c.b]++;
-        (c.type >= 2 && c.type <= 5 ? arch : ell).push_back(c);
+        (c.type >= 2 && c.type <= kMaxCopulaType ? arch : ell).push_back(c);
     }
     std::set<int> inArch;
     for (const auto& c : arch) {
         if (anyUse[c.a] > 1 || anyUse[c.b] > 1)
             throw std::invalid_argument(
-                "Archimedean copulas (types 2-5) are bivariate: each variable may only appear in one correlation");
+                "Archimedean and asymmetric copulas (types 2-8) are bivariate: each variable may only appear in one correlation");
         inArch.insert(c.a);
         inArch.insert(c.b);
     }
@@ -192,33 +288,16 @@ CopulaResult generateUniforms(int nvars, int iterations, const std::vector<Corre
         for (int v : vars) done[v] = true;
     }
 
-    // ---- Archimedean pairs ----
+    // ---- bivariate (Archimedean and asymmetric) pairs ----
     for (const auto& c : arch) {
-        double tau = spearmanToKendall(c.rho);
-        bool negative = tau < 0;
-        tau = std::min(std::fabs(tau), 0.98);
-        bool clayton = c.type == 2 || c.type == 3;
-        bool rotate = c.type == 3 || c.type == 5;
+        bool negative = c.rho < 0;
+        double theta = calibrateTheta(c.type, std::fabs(c.rho), res.warnings);
         auto& ua = res.u[c.a];
         auto& ub = res.u[c.b];
         ua.resize(iterations);
         ub.resize(iterations);
         for (int it = 0; it < iterations; ++it) {
-            double u1, u2;
-            if (tau < 1e-9) {
-                u1 = uni(rng); u2 = uni(rng);
-            } else if (clayton) {
-                double th = 2 * tau / (1 - tau);
-                double v = std::gamma_distribution<double>(1 / th, 1.0)(rng);
-                u1 = std::pow(1 + ex(rng) / v, -1 / th);
-                u2 = std::pow(1 + ex(rng) / v, -1 / th);
-            } else {
-                double th = 1 / (1 - tau);
-                double v = positiveStable(1 / th, rng);
-                u1 = std::exp(-std::pow(ex(rng) / v, 1 / th));
-                u2 = std::exp(-std::pow(ex(rng) / v, 1 / th));
-            }
-            if (rotate) { u1 = 1 - u1; u2 = 1 - u2; }
+            auto [u1, u2] = samplePair(c.type, theta, rng);
             if (negative) u2 = 1 - u2;
             ua[it] = clampU(u1);
             ub[it] = clampU(u2);

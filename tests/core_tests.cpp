@@ -1,5 +1,9 @@
 // MonteCalc - unit tests for the core library (no LibreOffice needed)
+#include "../core/bayes.h"
 #include "../core/copula.h"
+#include "../core/fitting.h"
+#include "../core/flofuncs.h"
+#include "../core/formula.h"
 #include "../core/distributions.h"
 #include "../core/simulation.h"
 #include "../core/specfun.h"
@@ -9,6 +13,7 @@
 #include <cmath>
 #include <cstdio>
 #include <functional>
+#include <map>
 #include <random>
 #include <string>
 #include <vector>
@@ -210,9 +215,17 @@ static void testSimulationFlow() {
         double y = sim.input("Price", "Normal", b->mean(),
                              [&](double u, std::mt19937_64&) { return b->quantile(u); });
         sim.correlate("Volume", "Price", -0.6, 0);
-        double r = sim.output("Revenue", x * y);
+        double r = sim.output("Revenue", x * y, true);
         if (out) out->push_back(r);
         return r;
+    };
+    auto run = [&](const Settings& s, const std::string& label = "") {
+        sim.beginRegistration();
+        model(nullptr);
+        auto w = sim.prepare(s);
+        for (int i = 0; i < s.iterations; ++i) { sim.setIteration(i); model(nullptr); }
+        sim.finish(label);
+        return w;
     };
     CHECK_NEAR(model(nullptr), 500, 1e-9);  // expected-value mode
     sim.beginRegistration();
@@ -221,10 +234,8 @@ static void testSimulationFlow() {
     Settings s;
     s.iterations = 5000;
     s.seed = 123;
-    auto w = sim.prepare(s);
-    CHECK(w.empty());
-    for (int i = 0; i < s.iterations; ++i) { sim.setIteration(i); model(nullptr); }
-    sim.finish();
+    sim.clearResultSets();
+    CHECK(run(s).empty());
     std::vector<double> vol, price, rev;
     CHECK(sim.samples("volume", vol));
     CHECK(sim.samples("Price", price));
@@ -239,20 +250,253 @@ static void testSimulationFlow() {
     CHECK_NEAR(rr[0], rev[17], 1e-9);
     sim.setMode(Mode::Expected);
     // seed reproducibility
-    sim.beginRegistration(); model(nullptr); sim.prepare(s);
-    for (int i = 0; i < s.iterations; ++i) { sim.setIteration(i); model(nullptr); }
-    sim.finish();
+    sim.clearResultSets();
+    run(s);
     std::vector<double> rev2;
     sim.samples("Revenue", rev2);
     CHECK_NEAR(rev2[42], rev[42], 1e-12);
     // locking
     sim.toggleLock("Price");
-    sim.beginRegistration(); model(nullptr); sim.prepare(s);
-    for (int i = 0; i < s.iterations; ++i) { sim.setIteration(i); model(nullptr); }
-    sim.finish();
+    sim.clearResultSets();
+    run(s);
     sim.samples("Price", price);
     CHECK_NEAR(stats::stdev(price), 0, 1e-12);
     sim.toggleLock("Price");
+    // variants: two result sets, selectable
+    sim.clearResultSets();
+    run(s, "A");
+    Settings s2 = s;
+    s2.seed = 7;
+    run(s2, "B");
+    CHECK(sim.resultSetLabels().size() == 2 && sim.activeResultSet() == 1);
+    std::vector<double> va, vb;
+    sim.samplesIn(0, "Revenue", va);
+    sim.samplesIn(1, "Revenue", vb);
+    CHECK(va[0] != vb[0]);
+    sim.selectResultSet(0);
+    sim.samples("Revenue", rev2);
+    CHECK_NEAR(rev2[0], va[0], 0);
+    // engine-side recording of an unnamed cell
+    sim.clearResultSets();
+    sim.beginRegistration();
+    model(nullptr);
+    sim.prepare(s);
+    for (int i = 0; i < 10; ++i) { sim.setIteration(i); model(nullptr); sim.record("Model_B9", VarKind::Input, i * 2.0); }
+    sim.finish();
+    std::vector<double> rec;
+    CHECK(sim.samples("model_b9", rec) && rec[3] == 6.0 && std::isnan(rec[20]));
+}
+
+static void testFitting() {
+    std::mt19937_64 rng(5);
+    std::gamma_distribution<double> g(3, 2);
+    std::vector<double> d(800);
+    for (auto& x : d) x = g(rng);
+    auto f = fitDistributions(d);
+    CHECK(f[0].ok && f[0].ksPValue > 0.5);
+    bool gammaTop3 = false;
+    for (int i = 0; i < 3; ++i) gammaTop3 |= f[i].name == "Gamma";
+    CHECK(gammaTop3);
+    for (auto& x : f)
+        if (x.name == "Gamma") { CHECK_NEAR(x.params[0] * x.params[1], 6, 0.4); }
+    // time series: AR(1) should win
+    std::normal_distribution<double> nd;
+    std::vector<double> y{10};
+    for (int t = 1; t < 300; ++t) y.push_back(5 + 0.7 * (y.back() - 5) + nd(rng));
+    auto ts = fitTimeSeries(y);
+    CHECK(ts[0].name == "AR(1)" || ts[0].name == "ARMA(1,1)");
+    CHECK_NEAR(ts[0].ts.p[0], 5, 0.4);
+    CHECK_NEAR(ts[0].ts.p[1], 0.7, 0.1);
+    CHECK(ts[0].theilU < 1);
+    auto fc = forecastTimeSeries(ts[0].ts, y, 50, 0.5, 2000, rng);
+    CHECK_NEAR(fc.back(), 5, 0.3);  // mean reversion
+    // Holt-Winters on a seasonal trend
+    std::vector<double> sn;
+    for (int t = 0; t < 72; ++t) sn.push_back(100 + 2 * t + 15 * std::sin(2 * kPi * t / 12) + nd(rng) * 2);
+    auto hw = bestHoltWinters(sn, 12, 0);
+    CHECK(hw.ok);
+    CHECK_NEAR(hw.forecast(1)[0], 100 + 2 * 72 + 15 * std::sin(2 * kPi * 72 / 12), 6);
+    auto lo = hw.forecastPercentile(3, 0.05, 4000, rng), hi = hw.forecastPercentile(3, 0.95, 4000, rng);
+    CHECK(lo[2] < hw.forecast(3)[2] && hw.forecast(3)[2] < hi[2]);
+}
+
+static void testBayes() {
+    std::mt19937_64 rng(3);
+    auto bf = bayes::bayesFactor(0.5, 0.62, 200, 0.95);
+    CHECK(bf.bf10 > 3);
+    CHECK_NEAR(bf.posteriorMean, 125.0 / 202, 1e-9);
+    auto bf0 = bayes::bayesFactor(0.5, 0.5, 200, 0);
+    CHECK(bf0.bf10 < 1);
+    std::normal_distribution<double> a(10, 2), b(12, 1);
+    std::vector<double> p(3000), l(3000);
+    for (auto& x : p) x = a(rng);
+    for (auto& x : l) x = b(rng);
+    double exact = (10 / 4.0 + 12) / (1 / 4.0 + 1);
+    CHECK_NEAR(stats::mean(bayes::posteriorMCMC(p, l, 6000, 500, 2, 60, false, rng)), exact, 0.15);
+    CHECK_NEAR(stats::mean(bayes::posteriorMCMC(p, l, 6000, 500, 2, 60, true, rng)), exact, 0.15);
+    CHECK_NEAR(stats::mean(bayes::posteriorGrid(p, l, 6000, rng)), exact, 0.15);
+    auto mix = bayes::combine({p, l}, {1, 3}, 20000, rng);
+    CHECK_NEAR(stats::mean(mix), 0.25 * 10 + 0.75 * 12, 0.1);
+    // regression
+    std::vector<double> y;
+    bayes::Mat X;
+    for (int i = 0; i < 200; ++i) { double x = i / 10.0; X.push_back({x}); y.push_back(3 + 2 * x + a(rng) - 10); }
+    double s;
+    auto be = bayes::ols(y, X, s);
+    CHECK_NEAR(be[1], 2, 0.1);
+    CHECK_NEAR(s, 2, 0.3);
+    std::vector<double> xs;
+    for (auto& r : X) xs.push_back(r[0]);
+    auto rm = bayes::repeatedMedian(y, xs, s);
+    CHECK_NEAR(rm[1], 2, 0.15);
+    auto br = bayes::bayesRegression(y, X, 1000, false, 2, rng);
+    auto pred = bayes::predictive(br, {5}, true, rng);
+    CHECK_NEAR(stats::mean(pred), 13, 0.5);
+    CHECK_NEAR(stats::stdev(pred), 2, 0.4);
+    // naive Bayes on two separated classes
+    bayes::Mat fx;
+    std::vector<std::string> cls;
+    for (int i = 0; i < 200; ++i) {
+        bool c = i % 2;
+        fx.push_back({(c ? 5.0 : 0.0) + a(rng) - 10, double(c)});
+        cls.push_back(c ? "yes" : "no");
+    }
+    bayes::NaiveBayes nb;
+    nb.train(fx, cls, {});
+    CHECK(nb.predict({5, 1}) == "yes" && nb.predict({0, 0}) == "no");
+    // KDE integrates to ~1
+    auto kh = bayes::kdeHistogram(p, 0, 20, 0, 200);
+    double area = 0;
+    for (auto& r : kh) area += r[2] * (r[1] - r[0]);
+    CHECK_NEAR(area, 1, 0.02);
+    // Benford: powers of 2 follow Benford's law
+    std::vector<double> pw;
+    double v = 1;
+    for (int i = 0; i < 1000; ++i) { pw.push_back(v); v *= 2; if (v > 1e300) v /= 1e300; }
+    auto bt = bayes::benford(pw);
+    CHECK(bt.pValue > 0.05);
+}
+
+static void testCopulaExtras() {
+    std::mt19937_64 rng(9);
+    for (int t = 6; t <= 8; ++t) {
+        auto c = generateUniforms(2, 20000, {{0, 1, 0.45, t}}, rng);
+        CHECK_NEAR(stats::spearman(c.u[0], c.u[1]), 0.45, 0.06);
+        auto d = generateUniforms(2, 3000, {{0, 1, 0.5, t}}, rng);
+        CHECK(fitCopula(d.u[0], d.u[1], rng) == t);
+    }
+}
+
+static void testFloFunctions() {
+    Simulation& sim = Simulation::instance();
+    sim.setMode(Mode::Expected);
+    auto call = [](const char* fn, std::vector<Value> args) { return evalFlo(*findFlo(fn), args); };
+    using V = Value;
+    CHECK_NEAR(call("FLOsimula_Triangle", {V::text("T"), V::number(1), V::number(2), V::number(6)}), 3, 1e-12);
+    CHECK_NEAR(call("FLOSIMULA_DISCRETEUNIFORM", {V::number(300), V::number(500)}), 400, 1e-12);  // unnamed
+    CHECK_NEAR(call("ORG.MONTECALC.MONTECALC.FLOSIMULA_NORMAL", {V::number(10), V::number(2), V::number(8), V::number(12)}), 10, 1e-9);
+    CHECK_NEAR(call("FLOsimula_Normal", {V::number(10), V::number(2), V(), V(), V::boolean(true)}), 10, 0);  // Round TRUE
+    CHECK_NEAR(call("FLOsimula_Uniform", {V::number(0), V::number(1), V(), V(), V(), V::number(4)}), 2, 1e-12);  // Number = 4
+    CHECK_NEAR(call("FLOsimula_TruncatedNormal", {V::number(0), V::number(1), V::number(0), V::number(10)}), std::sqrt(2 / kPi), 1e-3);
+    CHECK_NEAR(call("FLOsimula_WienerProcess", {V::number(100), V::number(0.1), V::number(0.2), V(), V::number(2)}), 100 * std::exp(0.2), 1e-9);
+    CHECK_NEAR(call("FLOsimula_Bounded", {V::number(15), V::number(0), V::number(10)}), 10, 0);
+    CHECK_NEAR(call("FLOsimula_output", {V::text("NPV")}), 0, 0);
+    CHECK_NEAR(call("FLOsimula_output", {V::text("NPV"), V::number(7)}), 7, 0);
+    bool threw = false;
+    try { call("FLOsimula_Uniform", {V::number(5), V::number(1)}); } catch (...) { threw = true; }
+    CHECK(threw);
+    // user-defined: the manual's histogram template (8 values, 12 rows)
+    std::vector<std::vector<Value>> h;
+    double rowsv[12][3] = {{266347, 296025, 1}, {296025, 325703, 0}, {325703, 355381, 0}, {355381, 385059, 2},
+                           {385059, 414736, 1}, {414736, 444414, 0}, {444414, 474092, 1}, {474092, 503770, 1},
+                           {503770, 533448, 0}, {533448, 563126, 1}, {563126, 592804, 0}, {592804, 622481, 1}};
+    for (auto& r : rowsv) h.push_back({V::number(r[0]), V::number(r[1]), V::number(r[2])});
+    double m = call("FLOsimula_UserDefined", {V::array(h), V::number(12), V::text("Hist")});
+    CHECK(m > 400000 && m < 470000);
+    // quantile table in the manual's layout: (quantile, value) rows, last row (min, max)
+    std::vector<std::vector<Value>> q = {{V::number(0.1), V::number(120)}, {V::number(0.5), V::number(140)},
+                                         {V::number(0.9), V::number(165)}, {V::number(100), V::number(180)}};
+    auto qd = userDefinedDistribution(V::array(q), 0);
+    CHECK_NEAR(qd->quantile(0.5), 140, 1e-9);
+    CHECK_NEAR(qd->quantile(0.0), 100, 1e-9);
+    CHECK(floVariableName(*findFlo("FLOsimula_Normal"), {V::text("Price"), V::number(1), V::number(2)}) == "Price");
+    CHECK(floVariableName(*findFlo("FLOsimula_Normal"), {V::number(1), V::number(2)}).empty());
+}
+
+// tiny in-memory workbook for the formula engine
+struct MemSource : formula::Source {
+    std::map<formula::CellAddr, formula::CellContent> cells;
+    void set(int col, int row, const std::string& f) {
+        formula::CellContent c;
+        if (!f.empty() && f[0] == '=') { c.type = formula::CellContent::Formula; c.text = f; }
+        else { c.type = formula::CellContent::Number; c.value = std::atof(f.c_str()); }
+        cells[{0, col, row}] = c;
+    }
+    formula::CellContent cell(const formula::CellAddr& a) override {
+        auto it = cells.find(a);
+        return it == cells.end() ? formula::CellContent{} : it->second;
+    }
+    int sheetIndex(const std::string& n) override { return n == "Model" ? 0 : -1; }
+    bool namedRange(const std::string& n, formula::RangeAddr& r) override {
+        if (n != "FLO_i_Rate") return false;
+        r.a = r.b = {0, 1, 0};
+        return true;
+    }
+};
+
+static void testFormulaEngine() {
+    using namespace formula;
+    int c, r;
+    CHECK(parseCellName("$AB$12", c, r) && c == 27 && r == 11);
+    CHECK(columnName(27) == "AB");
+    MemSource src;
+    src.set(1, 0, "0.1");                                                        // B1 rate
+    src.set(1, 1, "=ORG.MONTECALC.MONTECALC.FLOSIMULA_TRIANGLE(\"Vol\";80;100;120)");  // B2
+    src.set(1, 2, "=FLOSIMULA_NORMAL(\"Price\";10;1)");                         // B3
+    src.set(1, 3, "=B2*B3");                                                     // B4
+    src.set(1, 4, "=NPV(FLO_i_Rate;B4;B4;B4)-2000");                             // B5
+    src.set(1, 5, "=IF(AND(B5>0;$Model.B4>=1000);ROUND(B5/1000;1);-1)");         // B6
+    src.set(1, 6, "=SUM(B2:B4)+MAX(B2;B3)^2-2%");                                // B7
+    src.set(1, 7, "=MOD(-7;3)&\"x\"");                                           // B8
+    src.set(1, 8, "=IFERROR(1/0;42)");                                           // B9
+    src.set(1, 9, "=SUMPRODUCT(B2:B3;B2:B3)");                                   // B10
+    src.set(1, 10, "=VLOOKUP(1;B1:B3;1)");                                       // B11 unsupported
+    Model m;
+    std::string why;
+    CHECK(m.build(src, {{0, 1, 4}, {0, 1, 5}, {0, 1, 6}, {0, 1, 7}, {0, 1, 8}, {0, 1, 9}}, why));
+    Simulation::instance().setMode(Mode::Expected);
+    m.beginIteration();
+    double npv = 1000 * (1 / 1.1 + 1 / 1.21 + 1 / 1.331) - 2000;
+    CHECK_NEAR(m.value({0, 1, 4}).num, npv, 1e-9);
+    CHECK_NEAR(m.value({0, 1, 5}).num, std::round(npv / 100) / 10, 1e-12);
+    CHECK_NEAR(m.value({0, 1, 6}).num, 100 + 10 + 1000 + 10000 - 0.02, 1e-9);
+    CHECK(m.value({0, 1, 7}).str == "2x");
+    CHECK_NEAR(m.value({0, 1, 8}).num, 42, 0);
+    CHECK_NEAR(m.value({0, 1, 9}).num, 10100, 1e-9);
+    Model bad;
+    CHECK(!bad.build(src, {{0, 1, 10}}, why) && why.find("VLOOKUP") != std::string::npos);
+    // in a simulation the memory model draws named inputs from the shared state
+    Simulation& sim = Simulation::instance();
+    sim.clearResultSets();
+    sim.beginRegistration();
+    m.beginIteration();
+    m.value({0, 1, 4});
+    Settings s;
+    s.iterations = 3000;
+    s.seed = 5;
+    sim.prepare(s);
+    std::vector<double> npvs;
+    for (int i = 0; i < s.iterations; ++i) {
+        sim.setIteration(i);
+        m.beginIteration();
+        npvs.push_back(m.value({0, 1, 4}).num);
+    }
+    sim.finish();
+    std::vector<double> vol;
+    sim.samples("Vol", vol);
+    CHECK_NEAR(stats::mean(vol), 100, 1);
+    CHECK_NEAR(stats::mean(npvs), npv, 30);
+    CHECK(stats::stdev(npvs) > 50);
 }
 
 int main() {
@@ -263,6 +507,11 @@ int main() {
     testCopulas();
     testTimeSeries();
     testSimulationFlow();
+    testFitting();
+    testBayes();
+    testCopulaExtras();
+    testFloFunctions();
+    testFormulaEngine();
     std::printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail ? 1 : 0;
 }
