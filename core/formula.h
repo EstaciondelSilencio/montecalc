@@ -68,6 +68,15 @@ void collectRanges(const NodePtr& n, std::vector<RangeAddr>& out);
 void collectCalls(const NodePtr& n, std::vector<const Node*>& out);
 std::string baseName(const std::string& funcName);   // strips "ORG.MONTECALC.MONTECALC." etc.
 
+// Finds the first call whose function base name starts with `prefix` (case-insensitive,
+// e.g. "FLOSIMULA_") and returns its base name and the raw text of its top-level arguments.
+bool findCall(const std::string& formula, const std::string& prefix, std::string& func,
+              std::vector<std::string>& args);
+// "\"abc\"" -> abc (isString = true); other text is returned trimmed.
+std::string unquote(const std::string& s, bool& isString);
+// Name usable in a named range: invalid characters replaced by '_' (as MC FLO does).
+std::string sanitizeName(const std::string& s);
+
 // Names of the built-in functions the evaluator supports.
 const std::set<std::string>& supportedFunctions();
 

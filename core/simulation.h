@@ -92,6 +92,8 @@ public:
     void setIteration(int i);
     // Record a value for the current iteration (creates the variable if needed).
     void record(const std::string& name, VarKind kind, double value);
+    int variableIndex(const std::string& name) const { std::lock_guard<std::recursive_mutex> g(mtx_); return indexOf(name); }
+    void recordAt(int index, double value);
     void setVariableInfo(const std::string& name, VarKind kind, const std::string& desc, const std::string& cell);
     void clearResultSets();
     void finish(const std::string& label = "");

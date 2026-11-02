@@ -17,13 +17,16 @@ void showMessage(const css::uno::Reference<css::uno::XComponentContext>& ctx,
 
 struct FormField {
     std::string label;
-    std::string value;      // in/out (text fields)
+    std::string value;                 // in/out (text fields and drop-downs)
     bool isCheck = false;
-    bool checked = false;   // in/out (check boxes)
+    bool checked = false;              // in/out (check boxes)
+    std::vector<std::string> options;  // non-empty: drop-down list
+    int lines = 1;                     // > 1: multi-line text
+    bool readOnly = false;
 };
 
 // Shows a modal dialog with one row per field. Returns true on OK.
-bool showForm(const css::uno::Reference<css::uno::XComponentContext>& ctx,
-              const std::string& title, std::vector<FormField>& fields);
+bool showForm(const css::uno::Reference<css::uno::XComponentContext>& ctx, const std::string& title,
+              std::vector<FormField>& fields, int width = 220);
 
 } // namespace montecalc

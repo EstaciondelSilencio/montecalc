@@ -100,8 +100,13 @@ Options readOptions(const std::vector<Value>& a, size_t i) {
 
 double inputWith(const std::string& name, std::string desc, std::shared_ptr<Distribution> d, const Options& o,
                  bool userDefined) {
-    double expected = expectedValue(*d, o.bounds) * o.number;
-    if (o.round >= 0) expected = roundTo(expected, o.round);
+    auto& sim = Simulation::instance();
+    double expected = std::nan("");
+    bool needExpected = sim.mode() != Mode::Simulate && sim.mode() != Mode::Random;
+    if (needExpected || (!name.empty() && sim.isLocked(name))) {
+        expected = expectedValue(*d, o.bounds) * o.number;
+        if (o.round >= 0) expected = roundTo(expected, o.round);
+    }
     if (o.bounds.active()) desc += " bounded";
     if (o.number > 1) desc += " x" + std::to_string(o.number);
     Bounds b = o.bounds;

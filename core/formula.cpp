@@ -385,6 +385,64 @@ std::string baseName(const std::string& f) {
     return u;
 }
 
+bool findCall(const std::string& f, const std::string& prefix, std::string& func, std::vector<std::string>& args) {
+    std::string u = upper(f), pre = upper(prefix);
+    size_t pos = 0;
+    while ((pos = u.find(pre, pos)) != std::string::npos) {
+        // must not be inside a string literal: count quotes before pos
+        size_t q = std::count(u.begin(), u.begin() + pos, '"');
+        if (q % 2) { pos += pre.size(); continue; }
+        size_t start = pos;
+        while (start > 0 && (std::isalnum((unsigned char)u[start - 1]) || u[start - 1] == '_' || u[start - 1] == '.')) --start;
+        size_t end = pos;
+        while (end < u.size() && (std::isalnum((unsigned char)u[end]) || u[end] == '_')) ++end;
+        size_t i = end;
+        while (i < u.size() && u[i] == ' ') ++i;
+        if (i >= u.size() || u[i] != '(') { pos = end; continue; }
+        func = baseName(u.substr(start, end - start));
+        args.clear();
+        int depth = 0;
+        bool str = false;
+        std::string cur;
+        for (size_t k = i + 1; k < f.size(); ++k) {
+            char c = f[k];
+            if (str) {
+                cur += c;
+                if (c == '"') str = false;
+                continue;
+            }
+            if (c == '"') { str = true; cur += c; continue; }
+            if (c == '(' || c == '{') ++depth;
+            if ((c == ')' || c == '}') && depth == 0) { args.push_back(cur); return true; }
+            if (c == ')' || c == '}') --depth;
+            if ((c == ';' || c == ',') && depth == 0) { args.push_back(cur); cur.clear(); continue; }
+            cur += c;
+        }
+        return false;
+    }
+    return false;
+}
+
+std::string unquote(const std::string& s0, bool& isString) {
+    size_t a = s0.find_first_not_of(' '), b = s0.find_last_not_of(' ');
+    std::string s = a == std::string::npos ? std::string() : s0.substr(a, b - a + 1);
+    isString = s.size() >= 2 && s.front() == '"' && s.back() == '"';
+    if (!isString) return s;
+    std::string r;
+    for (size_t i = 1; i + 1 < s.size(); ++i) {
+        r += s[i];
+        if (s[i] == '"' && i + 2 < s.size() && s[i + 1] == '"') ++i;
+    }
+    return r;
+}
+
+std::string sanitizeName(const std::string& s) {
+    std::string r;
+    for (unsigned char c : s) r += (std::isalnum(c) || c == '_') ? char(c) : '_';
+    if (r.empty() || std::isdigit((unsigned char)r[0])) r = "_" + r;
+    return r;
+}
+
 const std::set<std::string>& supportedFunctions() {
     static const std::set<std::string> s = {
         "IF", "IFERROR", "AND", "OR", "NOT", "TRUE", "FALSE", "SUM", "AVERAGE", "MIN", "MAX", "COUNT", "PRODUCT",

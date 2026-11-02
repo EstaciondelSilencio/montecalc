@@ -181,6 +181,11 @@ void Simulation::record(const std::string& name, VarKind kind, double value) {
     work_[i][iteration_] = value;
 }
 
+void Simulation::recordAt(int i, double value) {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    if (mode_ == Mode::Simulate && i >= 0 && size_t(i) < work_.size()) work_[i][iteration_] = value;
+}
+
 void Simulation::setVariableInfo(const std::string& name, VarKind kind, const std::string& desc, const std::string& cell) {
     std::lock_guard<std::recursive_mutex> g(mtx_);
     int i = ensureVariable(name, kind, desc);
