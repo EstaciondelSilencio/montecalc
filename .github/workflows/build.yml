@@ -88,15 +88,34 @@ jobs:
           path: build-win/MonteCalc-windows_x86_64.oxt
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # tags v* publish that tag; pushes to main (re)publish the release of the current version
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     needs: [linux, windows]
     runs-on: ubuntu-24.04
     steps:
+      - uses: actions/checkout@v4
+      - name: Version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
+          else
+            v=$(grep -oP '<version value="\K[^"]+' ext/description.xml)
+            echo "tag=v$v" >> "$GITHUB_OUTPUT"
+          fi
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: MonteCalc ${{ steps.version.outputs.tag }}
+          body: |
+            MonteCalc - Monte Carlo simulation for LibreOffice Calc (MC FLO workflow).
+            Windows (64-bit): download MonteCalc-windows_x86_64.oxt, then in LibreOffice use
+            Tools > Extension Manager > Add, and restart LibreOffice. See docs/WINDOWS.md.
+            Built from ${{ github.sha }}; tested in headless LibreOffice on Windows and Linux.
           files: |
             MonteCalc-linux_x86_64.oxt
             MonteCalc-windows_x86_64.oxt
