@@ -31,20 +31,34 @@ Color Color::mix(const Color& o, double t) const {
 // ============================================================ screen
 
 ScreenPainter::ScreenPainter(const Reference<awt::XGraphics>& g) : g_(g) {
-    Reference<awt::XDevice> dev = g_->getDevice();
-    if (dev.is()) {
-        awt::FontDescriptor fd;
-        fd.Name = "Liberation Sans";
-        fd.Height = 9;
-        font_ = dev->getFont(fd);
-        fd.Weight = awt::FontWeight::BOLD;
-        bold_ = dev->getFont(fd);
-    }
+    dev_ = g_->getDevice();
+    font_ = fontFor(0, false);
+    bold_ = fontFor(0, true);
     if (font_.is()) {
         g_->setFont(font_);
-        auto m = font_->getFontMetric();
-        charH_ = std::max(10, int(m.Ascent + m.Descent));
+        charH_ = sizedH_[9];
     }
+}
+
+Reference<awt::XFont> ScreenPainter::fontFor(int size, bool bold) {
+    int pt = size > 0 ? size : 9;
+    auto& cache = sized_[bold ? 1 : 0];
+    auto it = cache.find(pt);
+    if (it != cache.end()) return it->second;
+    Reference<awt::XFont> f;
+    if (dev_.is()) {
+        awt::FontDescriptor fd;
+        fd.Name = "Liberation Sans";
+        fd.Height = sal_Int16(pt);
+        if (bold) fd.Weight = awt::FontWeight::BOLD;
+        f = dev_->getFont(fd);
+        if (f.is() && !sizedH_.count(pt)) {
+            auto m = f->getFontMetric();
+            sizedH_[pt] = std::max(pt + 1, int(m.Ascent + m.Descent));
+        }
+    }
+    cache[pt] = f;
+    return f;
 }
 
 void ScreenPainter::line(int x1, int y1, int x2, int y2, const Color& c, int width, bool dashed) {
@@ -108,20 +122,27 @@ void ScreenPainter::polyline(const std::vector<int>& xs, const std::vector<int>&
     }
 }
 
-void ScreenPainter::text(int x, int y, const std::string& s, const Color& c, bool bold, int) {
+void ScreenPainter::text(int x, int y, const std::string& s, const Color& c, bool bold, int size) {
     g_->setTextColor(c.rgb());
     g_->setTextFillColor(sal_Int32(0xFFFFFFFF));
-    if (bold && bold_.is()) g_->setFont(bold_);
+    auto f = fontFor(size, bold);
+    if (f.is()) g_->setFont(f);
     g_->drawText(x, y, ou(s));  // (x, y) is the top-left corner of the text
-    if (bold && font_.is()) g_->setFont(font_);
+    if (f.is() && f != font_ && font_.is()) g_->setFont(font_);
 }
 
-int ScreenPainter::textWidth(const std::string& s, int) {
-    if (font_.is()) return font_->getStringWidth(ou(s));
-    return int(s.size() * 7);
+int ScreenPainter::textWidth(const std::string& s, int size) {
+    auto f = fontFor(size, false);
+    if (f.is()) return f->getStringWidth(ou(s));
+    return int(s.size() * 7 * (size > 0 ? size : 9) / 9);
 }
 
-int ScreenPainter::textHeight(int) { return charH_; }
+int ScreenPainter::textHeight(int size) {
+    int pt = size > 0 ? size : 9;
+    fontFor(size, false);
+    auto it = sizedH_.find(pt);
+    return it != sizedH_.end() ? it->second : charH_;
+}
 
 // ============================================================ SVG
 

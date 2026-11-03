@@ -445,10 +445,11 @@ bool CanvasWindow::exportImage(const std::string& url, const std::string& mime, 
     if (!dev.is()) return false;
     Reference<awt::XGraphics> g = dev->createGraphics();
     {
-        ScreenPainter p(g);
+        ScreenPainter sp(g);
         Color white = col::white;
-        p.rect(0, 0, W, H, &white, nullptr);
-        paint(p, W, H);
+        sp.rect(0, 0, W, H, &white, nullptr);
+        ZoomPainter p(sp, scale);   // shapes and text scale together
+        paint(p, w, h);
     }
     Reference<awt::XBitmap> bmp = dev->createBitmap(0, 0, W, H);
     Reference<graphic::XGraphicProvider> gp = graphic::GraphicProvider::create(ctx_);

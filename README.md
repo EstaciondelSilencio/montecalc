@@ -135,8 +135,10 @@ formulas.
 - Nodes for inputs, relationships and outputs, with arrows derived from the
   formulas (traced through intermediate cells).
 - Select, hover tooltip, drag with reflow, double-click to jump to the cell.
-- Context menu and the shortcuts F5, Ctrl+R/L/S/E/F/T/G/D/I/H/K/J, Ctrl+Shift+C
-  and Ctrl+M.
+- Zoom (Ctrl +, Ctrl −, Ctrl 0, or the Zoom buttons). It starts at 140% and is kept for
+  the next diagram; text, nodes, legend and arrows scale together, also in exported images.
+- Context menu and the shortcuts F5, Ctrl+R/L/S/E/F/T/G/D/I/H/K/J, Ctrl+Shift+C,
+  Ctrl+M and Ctrl +/−/0.
 - Distributions inside nodes, sensitivity-weighted arrows, focus on selection,
   group view (`Event_1…n` → module), orthogonal arrows.
 - Export as PNG/JPEG/BMP at twice screen resolution.

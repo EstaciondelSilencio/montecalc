@@ -51,12 +51,15 @@ std::string familyOf(const std::string& n) {
 
 class InfluenceWindow : public CanvasWindow {
 public:
-    InfluenceWindow(const Ctx& ctx, const Frame& frame) : CanvasWindow(ctx, frame, "MonteCalc - Influence diagram", 500, 300, 110) {
+    InfluenceWindow(const Ctx& ctx, const Frame& frame) : CanvasWindow(ctx, frame, "MonteCalc - Influence diagram", 620, 380, 118) {
         int x = panelX(), w = panelW(), y = 6;
         addButton("tabDiagram", "Diagram", x, y, w / 2 - 1); addButton("tabResults", "Results", x + w / 2 + 1, y, w / 2 - 1); y += 18;
         addButton("variables", "Variables (load)", x, y, w); y += 16;
         addButton("reload", "Reload (F5)", x, y, w / 2 - 1); addButton("refresh", "Refresh (Ctrl+R)", x + w / 2 + 1, y, w / 2 - 1); y += 16;
         addButton("relayout", "Re-layout (Ctrl+L)", x, y, w); y += 16;
+        addLabel("lzoom", "Zoom", x, y + 3, 22);
+        addButton("zoomOut", "-", x + 24, y, 18); addButton("zoomIn", "+", x + 44, y, 18);
+        addButton("zoom100", "100%", x + 64, y, w - 64); y += 16;
         addCheck("edit", "Edit mode (Ctrl+E)", x, y, w, false); y += 12;
         addCheck("follow", "Follow in Calc (Ctrl+F)", x, y, w, true); y += 12;
         addCheck("dist", "Show distributions (Ctrl+D)", x, y, w, false); y += 12;
@@ -241,8 +244,12 @@ public:
     struct Box { int x, y, w, h; };
     Box boxOf(Painter& p, const Node& n, int w, int h) {
         bool dist = checkedSafe("dist");
-        int bw = std::max(90, p.textWidth(n.name) + 24), bh = dist ? 74 : 34;
-        return {int(n.x * w) - bw / 2, int(n.y * (h - 24)) - bh / 2, bw, bh};
+        int th = p.textHeight(kNameSize);
+        int bw = std::max(90, p.textWidth(n.name, kNameSize) + 26), bh = dist ? 80 : th * 2 + 12;
+        int x = int(n.x * w) - bw / 2, y = int(n.y * (h - 40)) - bh / 2;
+        x = std::max(4, std::min(x, w - bw - 4));   // keep the whole node visible
+        y = std::max(4, std::min(y, h - 40 - bh - p.textHeight() - 8));
+        return {x, y, bw, bh};
     }
 
     Vec samplesOf(const Node& n) {
@@ -251,7 +258,22 @@ public:
         return v;
     }
 
-    void paint(Painter& p, int w, int h) override {
+    // the diagram is drawn in unscaled units through a zoom painter (Ctrl + / Ctrl - / Ctrl 0)
+    bool exporting_ = false;
+    bool exportPng(const std::string& url, const std::string& mime, int w, int h, double scale) {
+        exporting_ = true;
+        bool ok = false;
+        try { ok = exportImage(url, mime, w, h, scale); } catch (...) { exporting_ = false; throw; }
+        exporting_ = false;
+        return ok;
+    }
+
+    void paint(Painter& screen, int W, int H) override {
+        ZoomPainter p(screen, zoom_);
+        paintScaled(p, int(W / zoom_), int(H / zoom_));
+    }
+
+    void paintScaled(Painter& p, int w, int h) {
         p.rect(0, 0, w, h, &col::white, nullptr);
         if (!loaded_) {
             p.text(12, 12, "Press 'Variables' to read the FLO_ variables of the model.", col::text);
@@ -261,22 +283,23 @@ public:
         std::vector<Node> nodes;
         std::vector<std::pair<int, int>> arrows, dashed;
         visible(nodes, arrows, dashed);
-        shown_ = nodes;
-        boxes_.clear();
-        for (auto& n : nodes) boxes_.push_back(boxOf(p, n, w, h));
+        // local copies: a screen repaint may run while an image is exported (different size)
+        std::vector<Box> boxes;
+        for (auto& n : nodes) boxes.push_back(boxOf(p, n, w, h));
+        if (!exporting_) { shown_ = nodes; boxes_ = boxes; }
         auto isShown = [&](int i) { return hidden_.empty() || hidden_.count(i); };
         auto related = [&](int a, int b) { return selectedVisible_ < 0 || a == selectedVisible_ || b == selectedVisible_; };
         bool sens = checkedSafe("sens"), ortho = checkedSafe("ortho");
         // edges
         for (auto& [a, b] : dashed) {
             if (!isShown(a) || !isShown(b)) continue;
-            Box A = boxes_[a], B = boxes_[b];
+            Box A = boxes[a], B = boxes[b];
             Color c = related(a, b) ? col::relation : col::grid;
             p.line(A.x + A.w / 2, A.y + A.h / 2, B.x + B.w / 2, B.y + B.h / 2, c, 1, true);
         }
         for (auto& [a, b] : arrows) {
             if (!isShown(a) || !isShown(b)) continue;
-            Box A = boxes_[a], B = boxes_[b];
+            Box A = boxes[a], B = boxes[b];
             Color c = related(a, b) ? col::axis : col::grid;
             int width = 1;
             double imp = 0;
@@ -312,7 +335,7 @@ public:
         for (size_t i = 0; i < nodes.size(); ++i) {
             if (!isShown(int(i))) continue;
             const Node& n = nodes[i];
-            Box b = boxes_[i];
+            Box b = boxes[i];
             bool dim = selectedVisible_ >= 0 && int(i) != selectedVisible_ && !neighbour(arrows, dashed, selectedVisible_, int(i));
             Color base = n.kind == mc::VarKind::Input ? col::input : n.kind == mc::VarKind::Output ? col::green : col::relation;
             Color fill = (dim ? base.mix(col::white, 0.85) : base.mix(col::white, 0.7));
@@ -329,20 +352,31 @@ public:
             } else {
                 p.ellipse(b.x, b.y, b.w, b.h, &fill, &stroke);
             }
-            p.text(b.x + (b.w - p.textWidth(n.name)) / 2, b.y + 4, n.name, dim ? col::muted : col::text, true);
+            p.text(b.x + (b.w - p.textWidth(n.name, kNameSize)) / 2, b.y + 5, n.name, dim ? col::muted : col::text, true, kNameSize);
             if (n.var >= 0 && !checkedSafe("dist")) {
                 std::string v = niceNum(g_.numValues[n.var]);
-                p.text(b.x + (b.w - p.textWidth(v)) / 2, b.y + 4 + p.textHeight(), v, col::muted);
+                p.text(b.x + (b.w - p.textWidth(v)) / 2, b.y + 6 + p.textHeight(kNameSize), v, col::muted);
             }
             if (n.var >= 0 && checkedSafe("dist")) miniChart(p, n, b);
         }
         // legend and status bar
-        int ly = h - 44;
-        p.roundRect(8, ly, 14, 10, 6, &col::input, nullptr); p.text(26, ly - 2, "input", col::muted);
-        p.ellipse(70, ly, 16, 10, &col::relation, nullptr); p.text(90, ly - 2, "relationship", col::muted);
-        p.rect(170, ly, 14, 10, &col::green, nullptr); p.text(188, ly - 2, "output", col::muted);
-        p.rect(0, h - 22, w, 22, &col::panel, nullptr);
-        p.text(8, h - 18, status_, col::text);
+        int th = p.textHeight(), bar = th + 8, ly = h - bar - th - 8;
+        int lx = 8;
+        auto legend = [&](int shape, const Color& c, const std::string& t) {
+            if (shape == 0) p.roundRect(lx, ly + 1, 18, th - 2, 6, &c, nullptr);
+            else if (shape == 1) p.ellipse(lx, ly + 1, 20, th - 2, &c, nullptr);
+            else p.rect(lx, ly + 1, 18, th - 2, &c, nullptr);
+            p.text(lx + 24, ly, t, col::muted);
+            lx += 24 + p.textWidth(t) + 18;
+        };
+        legend(0, col::input, "input");
+        legend(1, col::relation, "relationship");
+        legend(2, col::green, "output");
+        p.rect(0, h - bar, w, bar, &col::panel, nullptr);
+        char z[24];
+        std::snprintf(z, sizeof z, "Zoom %d%%", int(zoom_ * 100 + 0.5));
+        p.text(w - p.textWidth(z) - 8, h - bar + 4, z, col::muted);
+        p.text(8, h - bar + 4, status_, col::text);
         // tooltip
         if (hover_ >= 0 && hover_ < int(nodes.size()) && nodes[hover_].var >= 0) {
             const auto& v = g_.vars[nodes[hover_].var];
@@ -374,7 +408,7 @@ public:
     }
 
     void miniChart(Painter& p, const Node& n, const Box& b) {
-        int cx = b.x + 8, cy = b.y + 4 + p.textHeight() + 2, cw = b.w - 16, ch = b.h - p.textHeight() - 12;
+        int cx = b.x + 8, cy = b.y + 6 + p.textHeight(kNameSize) + 2, cw = b.w - 16, ch = b.h - p.textHeight(kNameSize) - 16;
         if (n.kind == mc::VarKind::Correlation) {
             auto [ia, ib] = g_.corrPartners[n.var];
             Vec sa, sb;
@@ -418,7 +452,7 @@ public:
             p.text(12, 12, resNames_.empty() ? "No simulation results - run Start first." : "Tick variables in the Results list.", col::text);
             return;
         }
-        int gridW = std::min(240, w / 3);
+        int gridW = std::min(260, w / 3);
         drawOverlay(p, 0, 0, w - gridW, h, series, mc::Simulation::instance().settings().bins, true, mouseX_, probe_);
         std::string sv;
         try { sv = selectedItem("statvar"); } catch (...) {}
@@ -451,12 +485,20 @@ public:
         }
     }
 
-    void mouseDown(const MouseInfo& m) override {
+    MouseInfo unzoom(const MouseInfo& raw) const {
+        MouseInfo m = raw;
+        m.x = int(raw.x / zoom_);
+        m.y = int(raw.y / zoom_);
+        return m;
+    }
+
+    void mouseDown(const MouseInfo& raw) override {
         if (!loaded_) return;
+        MouseInfo m = unzoom(raw);
         mouseX_ = m.x;
         mouseY_ = m.y;
         if (resultsTab_) { probe_ = true; repaint(); return; }
-        if (m.right) { contextMenu(m.x, m.y); return; }
+        if (m.right) { contextMenu(raw.x, raw.y); return; }
         int i = hit(m.x, m.y);
         if (m.clicks >= 2 && i >= 0) {
             doubleClick(i);
@@ -483,15 +525,18 @@ public:
 
     void mouseUp(const MouseInfo&) override { dragNode_ = -1; }
 
-    void mouseMove(const MouseInfo& m, bool dragging) override {
+    void mouseMove(const MouseInfo& raw, bool dragging) override {
+        MouseInfo m = unzoom(raw);
         mouseX_ = m.x;
         mouseY_ = m.y;
         if (resultsTab_) { probe_ = true; repaint(); return; }
         int w, h;
         canvasSize(w, h);
+        w = int(w / zoom_);
+        h = int(h / zoom_);
         if (dragging && dragNode_ >= 0) {
             base_[dragNode_].x = std::min(0.97, std::max(0.03, double(m.x) / w));
-            base_[dragNode_].y = std::min(0.95, std::max(0.05, double(m.y) / (h - 24)));
+            base_[dragNode_].y = std::min(0.95, std::max(0.05, double(m.y) / (h - 40)));
             relax(15, dragNode_);  // the rest of the diagram reflows around it
             repaint();
             return;
@@ -509,16 +554,28 @@ public:
             {1, "Reload\tF5"}, {2, "Refresh values\tCtrl+R"}, {3, "Re-layout\tCtrl+L"}, {4, "Export image...\tCtrl+S"}, {0, ""},
             {5, "Edit mode\tCtrl+E"}, {6, "Follow in Calc\tCtrl+F"}, {7, "Go to cell\tCtrl+G"}, {0, ""},
             {8, "Show distributions\tCtrl+D"}, {9, "Show sensitivity\tCtrl+I"}, {10, "Focus on selection\tCtrl+H"}, {11, "Group view\tCtrl+K"},
-            {12, "Orthogonal arrows\tCtrl+J"}, {0, ""}, {13, "Write context for Claude\tCtrl+Shift+C"}, {14, "AI mentor\tCtrl+M"}};
+            {12, "Orthogonal arrows\tCtrl+J"}, {0, ""}, {15, "Zoom in\tCtrl +"}, {16, "Zoom out\tCtrl -"}, {17, "Zoom 100%\tCtrl 0"}, {0, ""}, {13, "Write context for Claude\tCtrl+Shift+C"}, {14, "AI mentor\tCtrl+M"}};
         int id = popup(x, y, items);
-        static const char* actions[] = {"", "reload", "refresh", "relayout", "export", "edit", "follow", "goto", "dist", "sens", "focus", "group", "ortho", "context", "mentor"};
-        if (id > 0 && id < 15) act(actions[id]);
+        static const char* actions[] = {"",      "reload", "refresh", "relayout", "export",  "edit",    "follow",  "goto",   "dist",
+                                        "sens",  "focus",  "group",   "ortho",    "context", "mentor",  "zoomIn",  "zoomOut", "zoom100"};
+        if (id > 0 && id < 18) act(actions[id]);
     }
 
     void option(const std::string& o) {
+        if (o.rfind("zoom=", 0) == 0) { setZoom(std::atof(o.c_str() + 5)); return; }
         if (o == "results") { resultsTab_ = true; return; }
         if (o == "select" && !base_.empty()) { selectedVisible_ = int(base_.size()) - 1; return; }
         setChecked(o, true);
+    }
+
+    void setZoom(double z) {
+        zoom_ = std::min(3.0, std::max(0.6, z));
+        lastZoom() = zoom_;
+        repaint();
+    }
+    static double& lastZoom() {   // the zoom is kept for the next diagram window
+        static double z = 1.4;
+        return z;
     }
 
     void toggle(const std::string& n) { setChecked(n, !checkedSafe(n)); repaint(); }
@@ -532,6 +589,10 @@ public:
             return;
         }
         if (a == "relayout") { layout(); repaint(); return; }
+        if (a == "zoomIn" || a == "zoomOut" || a == "zoom100") {
+            setZoom(a == "zoom100" ? 1.0 : a == "zoomIn" ? zoom_ * 1.15 : zoom_ / 1.15);
+            return;
+        }
         if (a == "export") { exportDialog(); return; }
         if (a == "goto") {
             if (selectedVisible_ >= 0 && shown_[selectedVisible_].var >= 0)
@@ -571,6 +632,9 @@ public:
         case awt::Key::J: act("ortho"); return true;
         case awt::Key::C: if (shift) { act("context"); return true; } return false;
         case awt::Key::M: act("mentor"); return true;
+        case awt::Key::ADD: act("zoomIn"); return true;
+        case awt::Key::SUBTRACT: act("zoomOut"); return true;
+        case awt::Key::NUM0: act("zoom100"); return true;
         default: (void)ch; return false;
         }
     }
@@ -595,7 +659,7 @@ public:
         std::string mime = f[1].value == "JPEG" ? "image/jpeg" : f[1].value == "BMP" ? "image/bmp" : "image/png";
         int w, h;
         canvasSize(w, h);
-        if (exportImage(url, mime, w, h, 2.0)) { status_ = "Saved " + url; repaint(); }  // higher resolution than the screen
+        if (exportPng(url, mime, w, h, 2.0)) { status_ = "Saved " + url; repaint(); }  // higher resolution than the screen
     }
 
     // formula editor (Edit mode): shift a reference by columns/rows or type a new formula
@@ -649,6 +713,8 @@ private:
     std::set<int> hidden_;
     std::set<std::string> expanded_;
     std::vector<std::string> resNames_;
+    static constexpr int kNameSize = 10;   // node names (points, before zoom)
+    double zoom_ = lastZoom();
     int selectedVisible_ = -1, hover_ = -1, dragNode_ = -1, mouseX_ = 0, mouseY_ = 0;
     bool loaded_ = false, resultsTab_ = false, probe_ = false;
     std::string status_ = "Press 'Variables'";
@@ -664,7 +730,7 @@ void openInfluenceDiagram(const Ctx& ctx, const Frame& frame, const std::string&
     while (std::getline(ss, o, ','))
         if (!o.empty()) w->option(o);
     if (!exportTo.empty()) {
-        w->exportImage(exportTo, "image/png", 1000, 620);
+        w->exportPng(exportTo, "image/png", 1000, 620, 1.0);
         w->close();
         return;
     }

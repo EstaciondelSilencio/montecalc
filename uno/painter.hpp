@@ -5,6 +5,8 @@
 #include <com/sun/star/awt/XFont.hpp>
 #include <com/sun/star/awt/XGraphics.hpp>
 
+#include <algorithm>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -57,8 +59,48 @@ public:
 
 private:
     css::uno::Reference<css::awt::XGraphics> g_;
+    css::uno::Reference<css::awt::XDevice> dev_;
     css::uno::Reference<css::awt::XFont> font_, bold_;
     int charH_ = 12;
+    // fonts by point size (0 = the default 9 pt); bold in the second map
+    std::map<int, css::uno::Reference<css::awt::XFont>> sized_[2];
+    std::map<int, int> sizedH_;
+    css::uno::Reference<css::awt::XFont> fontFor(int size, bool bold);
+};
+
+// Draws through another painter with all coordinates, line widths and font sizes
+// multiplied by `zoom` (window zoom, high-resolution export). Callers keep working in
+// unscaled units: pass the canvas size divided by the zoom.
+class ZoomPainter : public Painter {
+public:
+    ZoomPainter(Painter& inner, double zoom) : p_(inner), z_(zoom > 0 ? zoom : 1) {}
+    void line(int x1, int y1, int x2, int y2, const Color& c, int width, bool dashed) override {
+        p_.line(S(x1), S(y1), S(x2), S(y2), c, W(width), dashed);
+    }
+    void rect(int x, int y, int w, int h, const Color* fill, const Color* stroke) override { p_.rect(S(x), S(y), S(w), S(h), fill, stroke); }
+    void roundRect(int x, int y, int w, int h, int r, const Color* fill, const Color* stroke) override {
+        p_.roundRect(S(x), S(y), S(w), S(h), S(r), fill, stroke);
+    }
+    void ellipse(int x, int y, int w, int h, const Color* fill, const Color* stroke) override { p_.ellipse(S(x), S(y), S(w), S(h), fill, stroke); }
+    void polygon(const std::vector<int>& xs, const std::vector<int>& ys, const Color* fill, const Color* stroke) override {
+        p_.polygon(V(xs), V(ys), fill, stroke);
+    }
+    void polyline(const std::vector<int>& xs, const std::vector<int>& ys, const Color& c, int width) override { p_.polyline(V(xs), V(ys), c, W(width)); }
+    void text(int x, int y, const std::string& s, const Color& c, bool bold, int size) override { p_.text(S(x), S(y), s, c, bold, F(size)); }
+    int textWidth(const std::string& s, int size) override { return int(p_.textWidth(s, F(size)) / z_ + 0.5); }
+    int textHeight(int size) override { return int(p_.textHeight(F(size)) / z_ + 0.5); }
+
+private:
+    Painter& p_;
+    double z_;
+    int S(int v) const { return int(v * z_ + (v >= 0 ? 0.5 : -0.5)); }
+    int W(int w) const { return std::max(1, S(std::max(1, w))); }
+    int F(int size) const { return std::max(6, int((size > 0 ? size : 9) * z_ + 0.5)); }
+    std::vector<int> V(const std::vector<int>& v) const {
+        std::vector<int> r(v.size());
+        for (size_t i = 0; i < v.size(); ++i) r[i] = S(v[i]);
+        return r;
+    }
 };
 
 // SVG painter (text width estimated)
