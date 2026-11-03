@@ -73,7 +73,7 @@ def build(ctx):
     sh.getCellByPosition(1, last + 3).setFormula(f'=SUM(F{first}:F{last})+FLOsimula_output("TotalCash")')
 
     res = last + 5
-    sh.getCellByPosition(0, res).setString("Results (filled after MonteCalc > Simulation > Start)")
+    sh.getCellByPosition(0, res).setString("Results (filled after MC FLO > Simulation > Start)")
     results = [
         ("Expected NPV", '=fMC_Average("NPV")'),
         ("Standard deviation", '=fMC_StdS("NPV")'),

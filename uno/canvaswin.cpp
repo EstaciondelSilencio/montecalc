@@ -44,7 +44,11 @@
 #include <com/sun/star/container/XIndexAccess.hpp>
 #include <com/sun/star/table/CellAddress.hpp>
 #include <com/sun/star/util/MeasureUnit.hpp>
-#include <cppuhelper/implbase8.hxx>
+#include <com/sun/star/awt/ScrollBarOrientation.hpp>
+#include <com/sun/star/awt/XAdjustmentListener.hpp>
+#include <com/sun/star/awt/XScrollBar.hpp>
+#include <com/sun/star/awt/XTextListener.hpp>
+#include <cppuhelper/implbase10.hxx>
 
 #include <cstdio>
 #include <fstream>
@@ -62,8 +66,9 @@ namespace montecalc {
 
 // one UNO object receiving every event of a window
 class WindowListener
-    : public cppu::WeakImplHelper8<awt::XPaintListener, awt::XMouseListener, awt::XMouseMotionListener, awt::XKeyListener,
-                                   awt::XActionListener, awt::XItemListener, awt::XTopWindowListener, awt::XWindowListener> {
+    : public cppu::WeakImplHelper10<awt::XPaintListener, awt::XMouseListener, awt::XMouseMotionListener, awt::XKeyListener,
+                                    awt::XActionListener, awt::XItemListener, awt::XTopWindowListener, awt::XWindowListener,
+                                    awt::XAdjustmentListener, awt::XTextListener> {
 public:
     explicit WindowListener(CanvasWindow* w) : w_(w) {}
     void detach() { w_ = nullptr; }
@@ -117,6 +122,23 @@ public:
     void SAL_CALL actionPerformed(const awt::ActionEvent& e) override {
         std::string cmd = u8(e.ActionCommand);
         safe([&] { w_->button(cmd); });
+    }
+    static std::string sourceName(const uno::Reference<uno::XInterface>& src) {
+        Reference<awt::XControl> c(src, UNO_QUERY);
+        OUString n;
+        if (c.is()) {
+            Reference<beans::XPropertySet> m(c->getModel(), UNO_QUERY);
+            if (m.is()) m->getPropertyValue("Name") >>= n;
+        }
+        return u8(n);
+    }
+    void SAL_CALL adjustmentValueChanged(const awt::AdjustmentEvent& e) override {
+        std::string name = sourceName(e.Source);
+        safe([&] { w_->itemChanged(name); });
+    }
+    void SAL_CALL textChanged(const awt::TextEvent& e) override {
+        std::string name = sourceName(e.Source);
+        safe([&] { w_->itemChanged(name); });
     }
     void SAL_CALL itemStateChanged(const awt::ItemEvent& e) override {
         Reference<awt::XControl> c(e.Source, UNO_QUERY);
@@ -237,6 +259,30 @@ void CanvasWindow::addCheck(const std::string& name, const std::string& label, i
     checks_.push_back(name);
 }
 
+void CanvasWindow::addSlider(const std::string& name, int x, int y, int w, int min, int max, int value) {
+    auto m = addModel("com.sun.star.awt.UnoControlScrollBarModel", name, x, y, w, 10);
+    m->setPropertyValue("Orientation", Any(sal_Int32(awt::ScrollBarOrientation::HORIZONTAL)));
+    m->setPropertyValue("ScrollValueMin", Any(sal_Int32(min)));
+    m->setPropertyValue("ScrollValueMax", Any(sal_Int32(max)));
+    m->setPropertyValue("ScrollValue", Any(sal_Int32(value)));
+    m->setPropertyValue("LineIncrement", Any(sal_Int32(1)));
+    m->setPropertyValue("BlockIncrement", Any(sal_Int32(10)));
+    m->setPropertyValue("VisibleSize", Any(sal_Int32(1)));
+    sliders_.push_back(name);
+}
+
+int CanvasWindow::sliderValue(const std::string& name) {
+    return Reference<awt::XScrollBar>(control(name), UNO_QUERY_THROW)->getValue();
+}
+
+void CanvasWindow::setSliderValue(const std::string& name, int v) {
+    Reference<awt::XScrollBar>(control(name), UNO_QUERY_THROW)->setValue(v);
+}
+
+void CanvasWindow::setTextColor(const std::string& name, sal_Int32 rgb) {
+    Reference<beans::XPropertySet>(control(name)->getModel(), UNO_QUERY_THROW)->setPropertyValue("TextColor", Any(rgb));
+}
+
 void CanvasWindow::show() {
     auto smgr = ctx_->getServiceManager();
     dialog_.set(smgr->createInstanceWithContext("com.sun.star.awt.UnoControlDialog", ctx_), UNO_QUERY_THROW);
@@ -266,6 +312,14 @@ void CanvasWindow::show() {
     for (auto& n : checks_) {
         Reference<awt::XCheckBox> cb(cc->getControl(ou(n)), UNO_QUERY);
         if (cb.is()) cb->addItemListener(l);
+    }
+    for (auto& n : sliders_) {
+        Reference<awt::XScrollBar> sb(cc->getControl(ou(n)), UNO_QUERY);
+        if (sb.is()) sb->addAdjustmentListener(l);
+    }
+    for (auto& n : watched_) {
+        Reference<awt::XTextComponent> t(cc->getControl(ou(n)), UNO_QUERY);
+        if (t.is()) t->addTextListener(l);
     }
     // keyboard shortcuts also when a control has the focus
     for (const auto& c : cc->getControls()) Reference<awt::XWindow>(c, UNO_QUERY_THROW)->addKeyListener(l);

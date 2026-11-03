@@ -26,6 +26,7 @@
 #include <com/sun/star/text/XText.hpp>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <map>
@@ -533,7 +534,14 @@ public:
         addButton("save", "Save into the selected cell", x, y, w); y += 16;
         addButton("close", "Close", x, y, w);
     }
-    void afterShow() { select("func", 1); updateParams(); }
+    void afterShow(const std::string& function = "") {
+        int sel = 1;
+        for (size_t i = 0; i < funcs_.size(); ++i)
+            if (!function.empty() && (mc::lower(funcs_[i]->label) == mc::lower(function) || mc::lower(funcs_[i]->name) == mc::lower(function)))
+                sel = int(i);
+        select("func", sel);
+        updateParams();
+    }
 
     void updateParams() {
         int s = std::max(0, selected("func"));
@@ -733,10 +741,10 @@ private:
     int customSheet_ = 0;
 };
 
-void openWizard(const Ctx& ctx, const Frame& frame) {
+void openWizard(const Ctx& ctx, const Frame& frame, const std::string& function) {
     auto w = std::make_shared<WizardWindow>(ctx, frame);
     w->show();
-    w->afterShow();
+    w->afterShow(function);
     CanvasWindow::keep(w);
 }
 
@@ -1215,6 +1223,278 @@ std::string modelContextText(const Frame& frame) {
         os << "\n";
     }
     return os.str();
+}
+
+} // namespace montecalc
+
+// ============================================================ Insert correlation (graphical)
+
+namespace montecalc {
+namespace {
+
+const std::vector<std::string>& copulaTypeNames() {
+    static const std::vector<std::string> t = {"0 - Normal", "1 - Student-t (4 df)", "2 - Clayton", "3 - r-Clayton", "4 - Gumbel",
+                                               "5 - r-Gumbel", "6 - asy. Gumbel", "7 - asy. Frechet", "8 - asy. Triangular"};
+    return t;
+}
+
+// parses =FLOsimula_Correlation("a";"b";r;type) (also with , separators)
+bool parseCorrelationFormula(const std::string& f, std::string& a, std::string& b, double& r, int& type) {
+    std::string u = f;
+    for (auto& c : u) c = char(std::toupper((unsigned char)c));
+    size_t p = u.find("FLOSIMULA_CORRELATION(");
+    if (p == std::string::npos) return false;
+    size_t s = p + 22, e = f.rfind(')');
+    if (e == std::string::npos || e < s) return false;
+    std::vector<std::string> args;
+    std::string cur;
+    bool q = false;
+    for (size_t i = s; i < e; ++i) {
+        char c = f[i];
+        if (c == '"') { q = !q; continue; }
+        if (!q && (c == ';' || c == ',')) { args.push_back(cur); cur.clear(); continue; }
+        cur += c;
+    }
+    args.push_back(cur);
+    if (args.size() < 3) return false;
+    a = args[0]; b = args[1];
+    bool ok;
+    r = parseNumber(args[2], ok);
+    if (!ok) return false;
+    type = args.size() > 3 ? std::atoi(args[3].c_str()) : 0;
+    return true;
+}
+
+} // namespace
+
+class CorrelationWindow : public CanvasWindow {
+public:
+    CorrelationWindow(const Ctx& ctx, const Frame& frame)
+        : CanvasWindow(ctx, frame, "MonteCalc - Insert correlation into " + targetName(frame), 430, 250, 132) {
+        ModelDoc d = docOf(frame);
+        if (!d.currentCell(target_)) throw std::runtime_error("select the cell for the correlation formula first");
+        for (auto& v : d.scan()) {
+            if (v.kind == mc::VarKind::Input && !v.name.empty()) {
+                if (std::find(names_.begin(), names_.end(), v.name) == names_.end()) { names_.push_back(v.name); cells_.push_back(v.addr); }
+            } else if (v.kind == mc::VarKind::Correlation && !(v.addr.Sheet == target_.Sheet && v.addr.Column == target_.Column && v.addr.Row == target_.Row)) {
+                std::string a, b; double r; int t;
+                if (parseCorrelationFormula(v.formula, a, b, r, t)) others_.push_back({a, b, r, t});
+            }
+        }
+        if (names_.size() < 2) throw std::runtime_error("at least two named input variables are needed (define inputs, then use Register variables)");
+        // editing an existing correlation: take over its values
+        std::string fa, fb; double fr = 0.5; int ft = 0;
+        bool existing = parseCorrelationFormula(u8(d.cell(target_)->getFormula()), fa, fb, fr, ft);
+        int i1 = existing ? indexOf(fa, 0) : 0, i2 = existing ? indexOf(fb, 1) : 1;
+        if (!existing) fr = 0.5;
+        int x = panelX(), w = panelW(), y = 6;
+        addLabel("lv1", "Variable 1:", x, y + 2, 40); addList("v1", names_, x + 42, y, w - 42, 12, true); y += 15;
+        addLabel("lv2", "Variable 2:", x, y + 2, 40); addList("v2", names_, x + 42, y, w - 42, 12, true); y += 20;
+        addLabel("lr", "Coefficient of correlation", x, y + 2, 80); addEdit("r", fmtNum(fr), x + 82, y, w - 82); y += 13;
+        addLabel("rank", "", x + 82, y, w - 82); y += 16;
+        addLabel("lt", "Correlation type:", x, y + 2, 60); addList("type", copulaTypeNames(), x + 62, y, w - 62, 12, true); y += 20;
+        addSlider("slider", x, y, w, -99, 99, int(std::lround(fr * 100))); y += 13;
+        addLabel("ticks", "-1                      0                      1", x, y, w); y += 14;
+        addCheck("ranks", "Show ranks (copula)", x, y, w, false); y += 15;
+        addLabel("status", "", x, y, w, 30); y += 34;
+        addButton("ok", "OK", x, y, w, 16); y += 20;
+        addButton("cancel", "Cancel", x, y, w, 16);
+        watchText("r");
+        init1_ = i1; init2_ = i2; initType_ = std::max(0, std::min(mc::kMaxCopulaType, ft));
+    }
+    void afterShow() {
+        select("v1", init1_);
+        select("v2", init2_ == init1_ ? (init1_ + 1) % int(names_.size()) : init2_);
+        select("type", initType_);
+        setTextColor("rank", 0x808080);
+        ready_ = true;
+        update();
+    }
+
+    void itemChanged(const std::string& name) override {
+        if (!ready_ || syncing_) return;
+        if (name == "slider") {
+            syncing_ = true;
+            setText("r", fmtNum(sliderValue("slider") / 100.0));
+            syncing_ = false;
+        } else if (name == "r") {
+            bool ok;
+            double r = parseNumber(text("r"), ok);
+            if (ok && r > -1 && r < 1) { syncing_ = true; setSliderValue("slider", int(std::lround(r * 100))); syncing_ = false; }
+        }
+        update();
+    }
+
+    void button(const std::string& name) override {
+        if (name == "cancel") { close(); return; }
+        if (name == "ok") {
+            std::string err = validate();
+            if (!err.empty() && err.rfind("Note", 0) != 0) { message(err, true); return; }
+            insert();
+            close();
+        }
+    }
+
+    // non-interactive use (dispatch arguments / tests)
+    void preset(const std::string& a, const std::string& b, double r, int type) {
+        select("v1", indexOf(a, 0));
+        select("v2", indexOf(b, 1));
+        select("type", std::max(0, std::min(mc::kMaxCopulaType, type)));
+        setText("r", fmtNum(r));
+        update();
+    }
+    // "" = fine, "Note: ..." = allowed with a remark, anything else = not allowed
+    std::string validate() {
+        int i1 = selected("v1"), i2 = selected("v2");
+        if (i1 < 0 || i2 < 0) return "Choose two input variables.";
+        if (i1 == i2) return "Choose two different variables.";
+        bool ok;
+        double r = parseNumber(text("r"), ok);
+        if (!ok || !(r > -1 && r < 1)) return "The correlation coefficient must be between -1 and 1 (exclusive).";
+        int type = std::max(0, selected("type"));
+        const std::string &a = names_[i1], &b = names_[i2];
+        bool archNew = type >= 2;
+        for (auto& o : others_) {
+            bool touches = o.a == a || o.b == a || o.a == b || o.b == b;
+            if ((o.a == a && o.b == b) || (o.a == b && o.b == a))
+                return "A correlation between " + a + " and " + b + " is already defined in another cell.";
+            if (archNew && touches) return "Archimedean / asymmetric copulas are bivariate: " + (o.a == a || o.b == a ? a : b) + " is already correlated with another variable.";
+            if (o.type >= 2 && touches) return "The variable is already part of an Archimedean / asymmetric correlation (bivariate only).";
+        }
+        if (archNew)
+            for (auto& o : others_)
+                if (o.type < 2) return "Note: with an Archimedean copula all correlations of the model must be bivariate.";
+        return "";
+    }
+    void insert() {
+        ModelDoc d = docOf(frame_);
+        const std::string &a = names_[selected("v1")], &b = names_[selected("v2")];
+        bool ok;
+        double r = parseNumber(text("r"), ok);
+        int type = std::max(0, selected("type"));
+        d.cell(target_)->setFormula(ou("=FLOsimula_Correlation(" + quote(a) + ";" + quote(b) + ";" + fmtNum(r) + ";" + std::to_string(type) + ")"));
+        d.removeNamedRangesWithPrefix("FLO_c_" + mc::formula::sanitizeName(a + "_" + b));
+        d.setNamedRange("FLO_c_" + mc::formula::sanitizeName(a + "_" + b), target_);
+        d.setBackground(target_, kColorCorrelation);
+        d.select(target_);
+    }
+
+    void paint(Painter& p, int w, int h) override {
+        Color bg = col::white;
+        p.rect(0, 0, w, h, &bg, nullptr);
+        if (xs_.empty()) {
+            p.text(12, 12, why_.empty() ? "Choose two input variables." : why_, col::muted);
+            return;
+        }
+        bool ranks = checked("ranks");
+        const Vec& X = ranks ? u1_ : xs_;
+        const Vec& Y = ranks ? u2_ : ys_;
+        double x0, x1, y0, y1;
+        auto mm = [](const Vec& v, double& lo, double& hi) {
+            lo = *std::min_element(v.begin(), v.end()); hi = *std::max_element(v.begin(), v.end());
+            if (hi <= lo) { lo -= 0.5; hi += 0.5; }
+            double pad = (hi - lo) * 0.03; lo -= pad; hi += pad;
+        };
+        mm(X, x0, x1); mm(Y, y0, y1);
+        Plot pl = axes(p, 6, 4, w - 12, h - 10, x0, x1, y0, y1, names_[sel1_] + " / " + names_[sel2_], false, names_[sel2_]);
+        Color dot = Color{60, 150, 160}, red = col::red, green = col::green;
+        for (size_t i = 0; i < X.size(); ++i) {
+            bool ext2 = u2_[i] <= 0.05 || u2_[i] >= 0.95;
+            const Color* c = &dot;
+            int s = 3;
+            if (u1_[i] <= 0.05 && ext2) { c = &red; s = 5; }
+            else if (u1_[i] >= 0.95 && ext2) { c = &green; s = 5; }
+            p.rect(pl.px(X[i]) - s / 2, pl.py(Y[i]) - s / 2, s, s, c, nullptr);
+        }
+        p.text(pl.x + pl.w - p.textWidth(names_[sel1_]) - 4, pl.y + pl.h - p.textHeight() - 2, names_[sel1_], col::muted);
+    }
+
+    std::string exportTo;
+
+private:
+    struct Corr { std::string a, b; double r; int type; };
+    table::CellAddress target_{};
+    std::vector<std::string> names_;
+    std::vector<table::CellAddress> cells_;
+    std::vector<Corr> others_;
+    std::map<std::string, Vec> marg_;   // sorted preview samples per variable
+    Vec xs_, ys_, u1_, u2_;
+    std::string why_;
+    int sel1_ = 0, sel2_ = 1, init1_ = 0, init2_ = 1, initType_ = 0;
+    bool ready_ = false, syncing_ = false;
+
+    static std::string targetName(const Frame& frame) {
+        ModelDoc d = docOf(frame);
+        table::CellAddress a;
+        return d.currentCell(a) ? d.cellName(a, false) : std::string();
+    }
+    int indexOf(const std::string& n, int def) const {
+        for (size_t i = 0; i < names_.size(); ++i)
+            if (mc::formula::sanitizeName(names_[i]) == mc::formula::sanitizeName(n)) return int(i);
+        return def;
+    }
+    const Vec& marginal(int i) {
+        auto it = marg_.find(names_[i]);
+        if (it != marg_.end()) return it->second;
+        Vec v = previewSamples(docOf(frame_), cells_[i], 2000);
+        std::sort(v.begin(), v.end());
+        return marg_[names_[i]] = v;
+    }
+    void update() {
+        xs_.clear(); ys_.clear(); u1_.clear(); u2_.clear(); why_.clear();
+        sel1_ = selected("v1"); sel2_ = selected("v2");
+        std::string err = validate();
+        setLabel("status", err);
+        setTextColor("status", err.rfind("Note", 0) == 0 ? 0x806000 : 0xC00000);
+        bool ok;
+        double r = parseNumber(text("r"), ok);
+        if (sel1_ < 0 || sel2_ < 0 || sel1_ == sel2_ || !ok || !(r > -1 && r < 1)) {
+            setLabel("rank", "");
+            why_ = sel1_ == sel2_ ? "Choose two different variables." : "Enter a coefficient between -1 and 1.";
+            repaint();
+            return;
+        }
+        try {
+            const Vec& m1 = marginal(sel1_);
+            const Vec& m2 = marginal(sel2_);
+            if (m1.empty() || m2.empty()) throw std::runtime_error("the variables could not be previewed");
+            std::mt19937_64 rng(20261103);   // fixed: the picture changes only with the inputs
+            auto res = mc::generateUniforms(2, 1000, {{0, 1, r, std::max(0, selected("type"))}}, rng);
+            u1_ = res.u[0]; u2_ = res.u[1];
+            auto q = [](const Vec& s, double u) { size_t k = std::min(s.size() - 1, size_t(u * double(s.size()))); return s[k]; };
+            for (size_t i = 0; i < u1_.size(); ++i) { xs_.push_back(q(m1, u1_[i])); ys_.push_back(q(m2, u2_[i])); }
+            double rs = mc::stats::spearman(xs_, ys_);
+            char t[64];
+            std::snprintf(t, sizeof t, "%.2f", std::isfinite(rs) ? rs : 0.0);
+            setLabel("rank", t);
+        } catch (const std::exception& e) {
+            why_ = e.what();
+            setLabel("rank", "");
+        }
+        repaint();
+    }
+};
+
+void openCorrelationWindow(const Ctx& ctx, const Frame& frame, const std::string& var1, const std::string& var2, double r, int type,
+                           const std::string& exportTo, bool insertNow) {
+    auto w = std::make_shared<CorrelationWindow>(ctx, frame);
+    w->show();
+    w->afterShow();
+    if (!var1.empty()) w->preset(var1, var2, r, type);
+    if (!exportTo.empty()) {
+        int cw, ch;
+        w->canvasSize(cw, ch);
+        w->exportImage(exportTo, "image/png", cw, ch, 2.0);
+    }
+    if (insertNow) {
+        std::string err = w->validate();
+        if (!err.empty() && err.rfind("Note", 0) != 0) { w->close(); throw std::runtime_error(err); }
+        w->insert();
+        w->close();
+        return;
+    }
+    if (!exportTo.empty()) { w->close(); return; }
+    CanvasWindow::keep(w);
 }
 
 } // namespace montecalc

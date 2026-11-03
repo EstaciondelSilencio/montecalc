@@ -5,4 +5,6 @@
   <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/ProtocolHandler.xcu"/>
   <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/Addons.xcu"/>
   <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/CalcWindowState.xcu"/>
+  <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/Sidebar.xcu"/>
+  <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/Factories.xcu"/>
 </manifest:manifest>

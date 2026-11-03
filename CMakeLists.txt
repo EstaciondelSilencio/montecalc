@@ -110,12 +110,13 @@ else()
 endif()
 
 # 4. the extension package
+file(GLOB_RECURSE EXT_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/ext/*")
 set(OXT "${CMAKE_BINARY_DIR}/MonteCalc-${OXT_PLATFORM}.oxt")
 add_custom_command(
   OUTPUT "${OXT}"
   COMMAND Python3::Interpreter "${CMAKE_SOURCE_DIR}/tools/package_oxt.py" ${OXT_PLATFORM} "$<TARGET_FILE:montecalc>"
           "${CMAKE_BINARY_DIR}/montecalc.rdb" "${OXT}"
-  DEPENDS montecalc "${CMAKE_BINARY_DIR}/montecalc.rdb" "${CMAKE_SOURCE_DIR}/tools/package_oxt.py"
+  DEPENDS montecalc "${CMAKE_BINARY_DIR}/montecalc.rdb" "${CMAKE_SOURCE_DIR}/tools/package_oxt.py" ${EXT_FILES}
   COMMENT "Packaging ${OXT}")
 add_custom_target(oxt ALL DEPENDS "${OXT}")
 

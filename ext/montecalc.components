@@ -8,5 +8,8 @@
     <implementation name="org.montecalc.Engine">
       <service name="com.sun.star.frame.ProtocolHandler"/>
     </implementation>
+    <implementation name="org.montecalc.PanelFactory">
+      <service name="com.sun.star.ui.UIElementFactory"/>
+    </implementation>
   </component>
 </components>

@@ -325,14 +325,58 @@ def run_tests(ctx):
     cmd("Start", Iterations=4000, Seed=5, Report=False)
     check(near(val("D5"), 0.4, 0.07), f"asy. Gumbel correlation: {val('D5')}")
 
+    print("graphical correlation window, ribbon fields and sidebar")
+    select("E40")
+    cmd("InsertCorrelation", Variable1="Orders", Variable2="Hist", Coefficient=-0.3, Type=0)
+    f = cell("E40").getFormula()
+    check("FLOSIMULA_CORRELATION" in f.upper() and '"Orders"' in f and "-0.3" in f, f"correlation inserted from the window: {f}")
+    check(doc.NamedRanges.hasByName("FLO_c_Orders_Hist") and cell("E40").CellBackColor == 0xFFF2CC, "FLO_c_ name and colour")
+    select("E41")
+    cmd("InsertCorrelation", Variable1="Volume", Variable2="Price", Coefficient=0.2, Type=0)
+    check(cell("E41").getFormula() == "", f"a second correlation of the same pair is refused ({cell('E41').getFormula()})")
+    select("E41")
+    cmd("InsertCorrelation", Variable1="Volume", Variable2="Orders", Coefficient=0.2, Type=0)
+    check(cell("E41").getFormula() == "", "the bivariate rule of Archimedean / asymmetric copulas is enforced")
+    put("E40", "")
+    doc.NamedRanges.removeByName("FLO_c_Orders_Hist")
+    cmd("Start", Iterations=3000, Seed=5, Report=False, UseCorrelations=False)
+    check(near(val("D5"), 0, 0.06), f"Use correlations off: independent inputs ({val('D5')})")
+    cmd("Start", Iterations=3000, Seed=5, Report=False, UseCorrelations=True)
+    check(near(val("D5"), 0.4, 0.07), f"Use correlations on again: {val('D5')}")
+    factory = smgr.createInstanceWithContext("org.montecalc.PanelFactory", ctx)
+    check(factory is not None, "sidebar panel factory registered")
+    heights = {}
+    for group in ["Model", "Information", "Simulation", "Statistics", "Correlations", "Iteration", "Results", "Other"]:
+        try:
+            el = factory.createUIElement("private:resource/toolpanel/MonteCalcPanelFactory/" + group,
+                                         (prop("Frame", frame), prop("ParentWindow", frame.ContainerWindow)))
+            heights[group] = el.getRealInterface().getHeightForWidth(260).Preferred
+            el.getRealInterface().dispose()
+        except Exception as e:  # noqa: BLE001
+            heights[group] = str(e)
+    check(all(isinstance(h, int) and h > 40 for h in heights.values()), f"all ribbon-group panels build: {heights}")
+    cp = smgr.createInstanceWithContext("com.sun.star.configuration.ConfigurationProvider", ctx)
+    sb = cp.createInstanceWithArguments("com.sun.star.configuration.ConfigurationAccess",
+                                        (prop("nodepath", "/org.openoffice.Office.UI.Sidebar/Content/DeckList"),))
+    check(sb.hasByName("MonteCalcDeck"), "MC FLO sidebar deck registered")
+    nb = cp.createInstanceWithArguments("com.sun.star.configuration.ConfigurationAccess",
+                                        (prop("nodepath", "/org.openoffice.Office.Addons/AddonUI/OfficeNotebookBar"),))
+    check(nb.hasByName("org.montecalc.notebookbar"), "Notebookbar (Extension tab) items registered")
+
     print("windows (exported images) and context sheet")
     outdir = tempfile.mkdtemp()
+    select("E41")
+    cmd("InsertCorrelation", Variable1="Orders", Variable2="Hist", Coefficient=0.6, Type=2, Insert=False,
+        ExportTo=pathlib.Path(outdir, "correlation.png").as_uri())
+    check(cell("E41").getFormula() == "", "the correlation preview (Insert=False) does not write the cell")
+    dispatcher.executeDispatch(frame, "org.montecalc:Results?Variable=Revenue&View=Cumulative&ExportTo=" +
+                               pathlib.Path(outdir, "url_args.png").as_uri(), "", 0, (prop("Silent", True),))
     for view in ["Histogram", "Tornado", "Spider", "Scatter", "Decision", "Statistics"]:
         cmd("Results", Variable="Revenue", View=view, ExportTo=pathlib.Path(outdir, f"{view}.png").as_uri())
     for name, opt in [("diagram", ""), ("dist", "dist,sens"), ("group", "group,ortho"), ("results", "results")]:
         cmd("InfluenceDiagram", Options=opt, ExportTo=pathlib.Path(outdir, f"id_{name}.png").as_uri())
     sizes = {f: os.path.getsize(os.path.join(outdir, f)) for f in os.listdir(outdir)}
-    check(len(sizes) == 10 and min(sizes.values()) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
+    check(len(sizes) == 12 and min(sizes.values()) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
     shutil.rmtree(outdir, ignore_errors=True)
     cmd("WriteContext")
     ctxs = doc.Sheets.getByName("FLO_Context") if doc.Sheets.hasByName("FLO_Context") else None

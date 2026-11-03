@@ -256,6 +256,7 @@ RunOptions loadOptions(const Reference<frame::XModel>& m) {
     o.report = readProp(m, "MonteCalc.Report", 0) != 0;
     o.memory = readProp(m, "MonteCalc.Memory", 0) != 0;
     o.dip = readProp(m, "MonteCalc.DIP", 0) != 0;
+    o.s.useCorrelations = readProp(m, "MonteCalc.UseCorrelations", 1) != 0;
     return o;
 }
 
@@ -270,6 +271,7 @@ void saveOptions(const Reference<frame::XModel>& m, const RunOptions& o) {
     writeProp(m, "MonteCalc.Report", Any(o.report ? 1.0 : 0.0));
     writeProp(m, "MonteCalc.Memory", Any(o.memory ? 1.0 : 0.0));
     writeProp(m, "MonteCalc.DIP", Any(o.dip ? 1.0 : 0.0));
+    writeProp(m, "MonteCalc.UseCorrelations", Any(o.s.useCorrelations ? 1.0 : 0.0));
 }
 
 // ============================================================ simulation run
@@ -542,9 +544,31 @@ bool Engine::ask(const std::string& title, std::vector<FormField>& fields) {
 }
 
 void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>& args) {
-    silent_ = argNum(args, "Silent", 0) != 0;
     args_ = args;
     std::string cmd = u8(url.Path);
+    // menu entries pass arguments in the URL: org.montecalc:Wizard?Function=Normal&x=1
+    std::string query = u8(url.Arguments);
+    size_t qm = cmd.find('?');
+    if (qm != std::string::npos) { query = cmd.substr(qm + 1); cmd = cmd.substr(0, qm); }
+    if (!query.empty()) {
+        std::vector<beans::PropertyValue> extra(args_.begin(), args_.end());
+        size_t pos = 0;
+        while (pos <= query.size()) {
+            size_t amp = query.find('&', pos);
+            std::string kv = query.substr(pos, amp == std::string::npos ? std::string::npos : amp - pos);
+            size_t eq = kv.find('=');
+            if (eq != std::string::npos) {
+                beans::PropertyValue p;
+                p.Name = ou(kv.substr(0, eq));
+                p.Value <<= ou(kv.substr(eq + 1));
+                extra.push_back(p);
+            }
+            if (amp == std::string::npos) break;
+            pos = amp + 1;
+        }
+        args_ = Sequence<beans::PropertyValue>(extra.data(), sal_Int32(extra.size()));
+    }
+    silent_ = argNum(args_, "Silent", 0) != 0;
     try {
         ModelDoc d(model());
         if (!d.valid() && cmd != "About" && cmd != "Mentor") {
@@ -565,11 +589,11 @@ void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>
         if (it != cmds.end()) (this->*(it->second))();
         else if (cmd == "SortAsc") cmdSort(true);
         else if (cmd == "SortDesc") cmdSort(false);
-        else if (cmd == "Wizard") openWizard(ctx_, frame_);
+        else if (cmd == "Wizard") openWizard(ctx_, frame_, argText(args_, "Function"));
         else if (cmd == "Fit") openFitWindow(ctx_, frame_);
-        else if (cmd == "Results") openResultWindow(ctx_, frame_, argText(args, "Variable"), argText(args, "View"), argText(args, "ExportTo"));
+        else if (cmd == "Results") openResultWindow(ctx_, frame_, argText(args_, "Variable"), argText(args_, "View"), argText(args_, "ExportTo"));
         else if (cmd == "Correlogram") openCorrelogram(ctx_, frame_);
-        else if (cmd == "InfluenceDiagram") openInfluenceDiagram(ctx_, frame_, argText(args, "Options"), argText(args, "ExportTo"));
+        else if (cmd == "InfluenceDiagram") openInfluenceDiagram(ctx_, frame_, argText(args_, "Options"), argText(args_, "ExportTo"));
         else if (cmd == "Mentor") openMentor(ctx_, frame_);
         else if (cmd == "Show") openVariableList(ctx_, frame_);
         else message("MonteCalc", "Unknown command: " + cmd, true);
@@ -596,6 +620,7 @@ void Engine::cmdSettings() {
         {"Memory Calculation (fast, supported functions only)", "", true, o.memory},
         {"Store results in a result workbook after each run", "", true, o.report},
         {"Use DIP (store outputs as FLO_r_ arrays in the model)", "", true, o.dip},
+        {"Use correlations", "", true, o.s.useCorrelations},
     };
     if (!ask("MonteCalc - Settings", f)) return;
     bool ok = true;
@@ -611,6 +636,7 @@ void Engine::cmdSettings() {
     n.memory = f[7].checked;
     n.report = f[8].checked;
     n.dip = f[9].checked;
+    n.s.useCorrelations = f[10].checked;
     std::string err;
     if (!ok) err = "Please enter numbers only.";
     if (!err.empty() || !validateOptions(n, err)) { message("MonteCalc", err, true); return; }
@@ -633,6 +659,7 @@ void Engine::cmdRun() {
     o.report = argNum(args_, "Report", o.report) != 0;
     o.memory = argNum(args_, "Memory", o.memory) != 0;
     o.dip = argNum(args_, "DIP", o.dip) != 0;
+    o.s.useCorrelations = argNum(args_, "UseCorrelations", o.s.useCorrelations) != 0;
     std::string err;
     if (!validateOptions(o, err)) { message("MonteCalc", err, true); return; }
     // remember the selected variable (the result window opens for it)
@@ -778,7 +805,8 @@ void Engine::cmdCalcCorrelations() {
     std::vector<FormField> f = {{"X-variable", ins.empty() ? names[0] : ins[0]}, {"Y-variable", outs.empty() ? names[0] : outs[0]}};
     f[0].options = names;
     f[1].options = names;
-    if (!ask("MonteCalc - Correlation and sensitivities", f)) return;
+    if (!argText(args_, "X").empty() && !argText(args_, "Y").empty()) { f[0].value = argText(args_, "X"); f[1].value = argText(args_, "Y"); }
+    else if (!ask("MonteCalc - Correlation and sensitivities", f)) return;
     addSensitivitySheet(ctx_, model(), f[0].value, f[1].value, silent_);
 }
 
@@ -870,28 +898,12 @@ void Engine::cmdInsertOutput() {
 }
 
 void Engine::cmdInsertCorrelation() {
-    ModelDoc d(model());
-    table::CellAddress a;
-    if (!d.currentCell(a)) { message("MonteCalc", "Select the cell for the correlation formula.", true); return; }
-    std::vector<std::string> inputs;
-    for (auto& v : d.scan())
-        if (v.kind == mc::VarKind::Input && v.named) inputs.push_back(v.name);
-    if (inputs.size() < 2) { message("MonteCalc", "At least two named input variables are needed (use Register variables).", true); return; }
-    std::vector<std::string> types = {"0 normal", "1 Student-t", "2 Clayton", "3 r-Clayton", "4 Gumbel", "5 r-Gumbel",
-                                      "6 asy. Gumbel", "7 asy. Frechet", "8 asy. Triangular"};
-    std::vector<FormField> f = {{"Variable 1", inputs[0]}, {"Variable 2", inputs[1]}, {"Correlation coefficient", "0.5"}, {"Type", types[0]}};
-    f[0].options = inputs;
-    f[1].options = inputs;
-    f[3].options = types;
-    if (!ask("MonteCalc - Insert correlation", f)) return;
-    bool ok;
-    double r = parseNumber(f[2].value, ok);
-    if (!ok || !(r > -1 && r < 1)) { message("MonteCalc", "The coefficient must be between -1 and 1.", true); return; }
-    if (f[0].value == f[1].value) { message("MonteCalc", "Choose two different variables.", true); return; }
-    int type = std::atoi(f[3].value.c_str());
-    d.cell(a)->setFormula(ou("=FLOsimula_Correlation(" + quote(f[0].value) + ";" + quote(f[1].value) + ";" + fmtNum(r) + ";" + std::to_string(type) + ")"));
-    d.setNamedRange("FLO_c_" + mc::formula::sanitizeName(f[0].value + "_" + f[1].value), a);
-    d.setBackground(a, kColorCorrelation);
+    // graphical window as in the guide; with Silent=true and the arguments Variable1, Variable2,
+    // Coefficient and Type the correlation is inserted without user interaction (macros, tests);
+    // ExportTo writes the preview scatter as PNG.
+    bool insertNow = silent_ && !argText(args_, "Variable1").empty() && argNum(args_, "Insert", 1) != 0;
+    openCorrelationWindow(ctx_, frame_, argText(args_, "Variable1"), argText(args_, "Variable2"), argNum(args_, "Coefficient", 0.5),
+                          int(argNum(args_, "Type", 0)), argText(args_, "ExportTo"), insertNow);
 }
 
 void Engine::cmdLock() {

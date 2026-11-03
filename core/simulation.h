@@ -53,6 +53,7 @@ struct Settings {
     double real = 0.50;
     double best = 0.95;
     int bins = 20;             // default histogram bins (fMC_Bin)
+    bool useCorrelations = true;  // ribbon "Use correlations": false simulates all inputs independently
 };
 
 struct CorrelationRef {

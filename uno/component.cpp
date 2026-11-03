@@ -1,6 +1,7 @@
 // MonteCalc - UNO component registration
 #include "addin.hpp"
 #include "engine.hpp"
+#include "sidebar.hpp"
 
 #include <cppuhelper/implementationentry.hxx>
 
@@ -18,6 +19,11 @@ Reference<uno::XInterface> SAL_CALL createAddIn(const Reference<uno::XComponentC
 Reference<uno::XInterface> SAL_CALL createEngine(const Reference<uno::XComponentContext>& ctx) {
     return static_cast<cppu::OWeakObject*>(new montecalc::Engine(ctx));
 }
+Reference<uno::XInterface> SAL_CALL createPanelFactory(const Reference<uno::XComponentContext>& ctx) {
+    return static_cast<cppu::OWeakObject*>(new montecalc::PanelFactory(ctx));
+}
+OUString SAL_CALL panelImplName() { return OUString::createFromAscii(montecalc::kPanelFactoryImplName); }
+Sequence<OUString> SAL_CALL panelServices() { return montecalc::PanelFactory::serviceNames(); }
 OUString SAL_CALL addInImplName() { return OUString::createFromAscii(montecalc::kAddInImplName); }
 OUString SAL_CALL engineImplName() { return OUString::createFromAscii(montecalc::kEngineImplName); }
 Sequence<OUString> SAL_CALL addInServices() { return montecalc::MonteCalcAddIn::serviceNames(); }
@@ -26,6 +32,7 @@ Sequence<OUString> SAL_CALL engineServices() { return montecalc::Engine::service
 const cppu::ImplementationEntry entries[] = {
     {createAddIn, addInImplName, addInServices, cppu::createSingleComponentFactory, nullptr, 0},
     {createEngine, engineImplName, engineServices, cppu::createSingleComponentFactory, nullptr, 0},
+    {createPanelFactory, panelImplName, panelServices, cppu::createSingleComponentFactory, nullptr, 0},
     {nullptr, nullptr, nullptr, nullptr, nullptr, 0}};
 
 } // namespace

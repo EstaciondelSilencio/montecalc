@@ -41,6 +41,10 @@ public:
     void addList(const std::string& name, const std::vector<std::string>& items, int x, int y, int w, int h, bool dropdown,
                  bool multi = false);
     void addCheck(const std::string& name, const std::string& label, int x, int y, int w, bool checked);
+    // horizontal slider (scroll bar) with integer values min..max; changes call itemChanged(name)
+    void addSlider(const std::string& name, int x, int y, int w, int min, int max, int value);
+    // edit fields registered here call itemChanged(name) on every text change
+    void watchText(const std::string& name) { watched_.push_back(name); }
     int panelX() const { return width_ - panelW_ + 4; }
     int panelW() const { return panelW_ - 8; }
     void show();   // creates the peer and shows the window (modeless)
@@ -57,6 +61,9 @@ public:
     bool checked(const std::string& name);
     void setChecked(const std::string& name, bool on);
     void setEnabled(const std::string& name, bool on);
+    int sliderValue(const std::string& name);
+    void setSliderValue(const std::string& name, int v);
+    void setTextColor(const std::string& name, sal_Int32 rgb);
 
     void repaint();
     void close();
@@ -92,7 +99,7 @@ private:
     css::uno::Reference<css::container::XNameContainer> container_;
     css::uno::Reference<css::awt::XControl> dialog_;
     css::uno::Reference<css::uno::XInterface> listener_;
-    std::vector<std::string> buttons_, lists_, checks_;
+    std::vector<std::string> buttons_, lists_, checks_, sliders_, watched_;
     int width_, height_, panelW_;
     bool closed_ = false;
     bool dragging_ = false;

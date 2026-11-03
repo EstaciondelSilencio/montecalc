@@ -16,19 +16,42 @@ make            # builds build/MonteCalc.oxt (needs the LibreOffice SDK)
 make install    # unopkg add (run as a normal user)
 ```
 
-Open `examples/business_case.ods`, then use the **MonteCalc** menu (or toolbar):
+Open `examples/business_case.ods`. MonteCalc adds the MC FLO ribbon to Calc in four places,
+all running the same commands:
 
-1. **Model → Choose Wizard…** pick a distribution, press *Show*, read values
-   off the draggable **magic stripe**, then *Save into the selected cell*.
-   *Fit distribution* fits historical data instead.
-2. **Model → Insert correlation… / Insert output variable…** writes
-   `=FLOsimula_Correlation("Volume";"Price";-0.6;0)` or `=B30+FLOsimula_output("NPV")`.
-3. **Model → Register variables** names unnamed inputs (from the label to the
-   left), creates the `FLO_i_ / FLO_c_ / FLO_o_` named ranges and colours the
-   cells.
-4. **Simulation → Settings** (`# iterations`, seed, worst/real/best levels,
-   Memory Calculation), then **Start**. The result window opens for the
-   selected output.
+- the **MC FLO sidebar deck** (sidebar icon on the right, or *View → Sidebar*). It has one
+  panel per ribbon group: *Model specification* (Choose continuous / discrete variable / time
+  series, Choose Wizard, Insert correlation, Insert output variable, Register variables,
+  Lock/Unlock, Fit distribution), *Information*, *Simulation* (Best-case, Real-case,
+  Worst-case, Iterations, Use correlations, Visualize simulation, Multiple simulation, Start,
+  Reset), *Statistics* (Variable, Show statistical parameters), *Correlations and
+  sensitivities* (X-/Y-variable, Calc correlations), *Individual analysis of iteration*,
+  *Results* (Close and save results) and *Other*;
+- the **Extension** tab of the tabbed interface (*View → User Interface → Tabbed*);
+- the **MC FLO** toolbar, with icons and text;
+- the **MC FLO** menu, whose submenus follow the ribbon groups and include the distribution
+  pickers.
+
+![MC FLO sidebar deck, Extension tab and correlation window](docs/screenshots/mcflo_interface.png)
+
+1. **Choose continuous variable** (or the Wizard) picks a distribution. Read values off the
+   draggable **magic stripe**, then *Save into the selected cell*. *Fit distribution* fits
+   historical data instead.
+2. **Insert correlation** opens the correlation window described in the guide:
+   - pick Variable 1 and 2, the coefficient (type it, or use the slider) and the correlation
+     type 0–8;
+   - the scatter shows up to 1,000 simulated points. Points in the joint 5%/95% tails are red
+     and green, and the resulting rank correlation appears in grey under the coefficient;
+   - *OK* writes `=FLOsimula_Correlation("Price";"Investment";0.6;4)` into the cell, names it
+     `FLO_c_…` and colours it;
+   - pairs that are already correlated, and breaches of the rule that Archimedean copulas are
+     bivariate, are reported in the window.
+
+   **Insert output variable** writes `=B30+FLOsimula_output("NPV")`.
+3. **Register variables** names unnamed inputs (from the label to the left), creates the
+   `FLO_i_ / FLO_c_ / FLO_o_` named ranges and colours the cells.
+4. Set **Iterations**, **Best/Real/Worst-case** and **Use correlations** in the Simulation
+   panel (or *Settings…* for the seed and Memory Calculation), then **Start**.
 5. Analyse in the result window, the result workbook (*Store results*), the
    `fMC_` functions, the influence diagram or the AI mentor.
 
@@ -151,6 +174,8 @@ intermediate cells.
 | `_MC` function variants | not listed | Memory Calculation is a run setting instead |
 | Fit: "Degree of freedom", "increment" | grid for the fit | not used: all parameters are fitted by Nelder–Mead |
 | "Always on top" (influence diagram) | menu toggle | windows always stay in front of their Calc window |
+| Ribbon | an Excel ribbon tab "MC FLO" | LibreOffice extensions cannot add a ribbon tab of their own, so the ribbon groups become the MC FLO sidebar deck (with the input fields), the *Extension* tab of the tabbed interface (text buttons), a toolbar and a menu |
+| Correlation window | Correlation type 0–7 | 0–8 (r-Clayton and r-Gumbel have their own codes); the scatter is drawn from the inputs' preview samples coupled with the chosen copula |
 | Random data tools | — | fixed seed, so results don't change between recalculations |
 
 The guide's `fMC_GetOuputName` typo is kept as written; `fMC_GetOutputName`
@@ -169,8 +194,11 @@ core/   C++17, no LibreOffice dependency (1400 unit-test checks)
 uno/    addin (132 functions, generated), engine (all commands), model (cell scanning,
         named ranges), report (result workbook), deps (variable dependencies), painter/
         charts/canvaswin (drawing, modeless windows), windows (result window, wizard,
-        fitting, correlogram, variable list, context), influence (diagram), mentor (Claude)
+        correlation window, fitting, correlogram, variable list, context), influence (diagram),
+        mentor (Claude), sidebar (MC FLO deck: one panel per ribbon group)
 tools/  gen_functions.py: one table generating IDL, C++, wizard metadata and docs
+        gen_ui.py (+ gen_icons.py): one ribbon table generating the menu, toolbar, Notebookbar
+        tab, sidebar deck registration and icons
 tests/  core_tests.cpp, integration_test.py (headless LibreOffice, run as a normal user)
 ```
 

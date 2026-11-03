@@ -146,6 +146,7 @@ std::vector<std::string> Simulation::prepare(const Settings& s) {
         warn.push_back("variable name '" + d + "' is used in more than one cell; only the last value is kept");
     std::vector<CorrelationSpec> specs;
     for (const auto& c : corr_) {
+        if (!s.useCorrelations) break;
         int a = indexOf(c.a), b = indexOf(c.b);
         if (a < 0 || b < 0) {
             warn.push_back("correlation " + c.a + " / " + c.b +

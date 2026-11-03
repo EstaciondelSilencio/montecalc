@@ -13,8 +13,13 @@ Requirements: **LibreOffice 7.6 or later, 64-bit** (the extension is built for
      `"C:\Program Files\LibreOffice\program\unopkg.com" add MonteCalc-windows_x86_64.oxt`
 3. Restart LibreOffice, closing it completely, including the Quickstarter in
    the system tray.
-4. Open `examples\business_case.ods`. The **MonteCalc** menu and toolbar appear
-   in Calc; start with **Simulation → Start**.
+4. Open `examples\business_case.ods`. In Calc you will find:
+   - the **MC FLO** sidebar deck (click its icon at the right edge, or *View → Sidebar*), with
+     the ribbon groups and fields;
+   - the **MC FLO** menu and toolbar;
+   - the **Extension** tab, if you use *View → User Interface → Tabbed*.
+
+   Start with **Simulation → Start**.
 
 **AI mentor:** put your Anthropic API key in
 `%USERPROFILE%\Documents\MC_FLO_API.txt`, or type it into the mentor window.

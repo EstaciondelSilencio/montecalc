@@ -114,7 +114,8 @@ jobs:
           body: |
             MonteCalc - Monte Carlo simulation for LibreOffice Calc (MC FLO workflow).
             Windows (64-bit): download MonteCalc-windows_x86_64.oxt, then in LibreOffice use
-            Tools > Extension Manager > Add, and restart LibreOffice. See docs/WINDOWS.md.
+            Tools > Extension Manager > Add, and restart LibreOffice. The ribbon groups are in the
+            MC FLO sidebar deck, the Extension tab (tabbed UI), the MC FLO toolbar and menu. See docs/WINDOWS.md.
             Built from ${{ github.sha }}; tested in headless LibreOffice on Windows and Linux.
           files: |
             MonteCalc-linux_x86_64.oxt
