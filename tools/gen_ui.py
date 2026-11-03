@@ -31,8 +31,9 @@ RIBBON = [
         ("Fit", "Fit distribution...", "Fit distribution", "fit", True),
     ]),
     ("Information", "Information", [
-        ("Show", "Model (show variables)...", "Model", "model", True),
-        ("InfluenceDiagram", "Influence diagram...", "Influence diagram", "influence", True),
+        ("Model", "Model (update names, show variables)...", "Model", "model", True),
+        ("InfluenceDiagram", "Variables (influence diagram)...", "Variables", "influence", True),
+        ("Show", "Variable list...", "Variable list", "variables", False),
         ("Mentor", "AI mentor...", "AI mentor", "mentor", False),
         ("WriteContext", "FLO_Context sheet", "FLO_Context", "context", False),
     ]),
@@ -68,7 +69,7 @@ RIBBON = [
         ("StartBatch", "Start Batch", "Start Batch", "batch", False),
         ("HideFormulas", "Hide formulas", "Hide formulas", "hide", False),
         ("LoadFormulas", "Load formulas", "Load formulas", "load", False),
-        ("Variables", "Variables (text list)", "Variables", "variables", False),
+        ("Variables", "Variables (text summary)", "Variables (text)", "variables", False),
         ("About", "About MonteCalc", "About", "about", False),
     ]),
 ]
@@ -79,8 +80,9 @@ def flo_lists():
     import re
     src = open(os.path.join(ROOT, "core", "flofuncs.cpp"), encoding="utf-8").read()
     cont, disc, ts = [], [], []
-    for kind, label, arg in re.findall(r'\b(dist|ts)\("(\w+)",\s*(\w+)', src):
-        (ts if kind == "ts" else disc if arg == "true" else cont).append(label)
+    for label, arg in re.findall(r'\bdist\("(\w+)",\s*(true|false)', src):
+        (disc if arg == "true" else cont).append(label)
+    ts = re.findall(r'\bts\("(\w+)",', src)
     if len(cont) < 10 or len(disc) < 5 or len(ts) < 4:
         sys.exit("gen_ui.py: could not read the distribution list from core/flofuncs.cpp")
     return cont + ["UserDefined"], disc + ["DiscreteUserDefined"], ts

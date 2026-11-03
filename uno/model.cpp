@@ -116,11 +116,35 @@ std::string ModelDoc::defaultName(const table::CellAddress& a) const {
     return mc::formula::sanitizeName(sh) + "_" + mc::formula::columnName(a.Column) + std::to_string(a.Row + 1);
 }
 
+size_t nameArgIndex(const mc::FloFunction& f, const std::vector<std::string>& args) {
+    switch (f.kind) {
+    case mc::FloFunction::UserDefined:
+    case mc::FloFunction::DiscreteUserDefined: return 2;
+    case mc::FloFunction::Bounded: return 3;
+    case mc::FloFunction::Output:
+    case mc::FloFunction::Correlation: return 0;
+    default: break;
+    }
+    size_t np = f.params.size();
+    if (f.minParams && f.minParams < np) {
+        // optional last parameter: present when the argument after the required ones is not text
+        if (args.size() > f.minParams) {
+            bool isStr;
+            std::string t = mc::formula::unquote(args[f.minParams], isStr);
+            bool numeric = false;
+            parseNumber(t, numeric);
+            if (!isStr && !t.empty()) return np;   // number or reference
+        }
+        return f.minParams;
+    }
+    return np;
+}
+
 std::string ModelDoc::variableNameFromArgs(const VarCell& v, const std::vector<std::string>& args,
                                            const table::CellAddress& a) const {
     const mc::FloFunction* fl = mc::findFlo(v.function);
     if (!fl) return {};
-    size_t idx = (fl->kind == mc::FloFunction::UserDefined || fl->kind == mc::FloFunction::DiscreteUserDefined) ? 2 : 0;
+    size_t idx = nameArgIndex(*fl, args);
     if (idx >= args.size()) return {};
     bool isStr;
     std::string t = mc::formula::unquote(args[idx], isStr);
@@ -162,7 +186,7 @@ std::vector<VarCell> ModelDoc::scan() const {
             std::vector<std::string> args;
             if (!mc::formula::findCall(f, "FLOSIMULA_", v.function, args)) continue;
             const mc::FloFunction* fl = mc::findFlo(v.function);
-            if (!fl || fl->kind == mc::FloFunction::Bounded) continue;
+            if (!fl) continue;
             v.addr = Reference<sheet::XCellAddressable>(c, UNO_QUERY_THROW)->getCellAddress();
             v.formula = f;
             std::string a;
@@ -184,6 +208,16 @@ std::vector<VarCell> ModelDoc::scan() const {
                 bool s1, s2;
                 v.corrA = args.size() > 0 ? mc::formula::unquote(args[0], s1) : "";
                 v.corrB = args.size() > 1 ? mc::formula::unquote(args[1], s2) : "";
+                // names may also be given as references to cells holding them (=FLOsimula_correlation(A1; B1; B2; B4))
+                auto resolve = [&](std::string& n, bool isStr) {
+                    table::CellAddress ref;
+                    std::string r = n;
+                    if (isStr || !parseAddress(r, ref)) return;
+                    if (r.find('.') == std::string::npos && r.find('!') == std::string::npos) ref.Sheet = v.addr.Sheet;
+                    n = u8(Reference<text::XText>(cell(ref), UNO_QUERY_THROW)->getString());
+                };
+                if (args.size() > 0) resolve(v.corrA, s1);
+                if (args.size() > 1) resolve(v.corrB, s2);
                 v.name = mc::formula::sanitizeName(v.corrA + "_" + v.corrB);
                 v.named = true;
             } else {
@@ -219,6 +253,11 @@ void ModelDoc::setNamedRange(const std::string& name, const table::CellAddress& 
     for (char c : sh) quoted += c == '\'' ? std::string("''") : std::string(1, c);
     quoted += "'.$" + mc::formula::columnName(a.Column) + "$" + std::to_string(a.Row + 1);
     nr->addNewByName(n, ou(quoted), a, 0);
+}
+
+void ModelDoc::removeNamedRange(const std::string& name) {
+    auto nr = namedRangesOf(doc_);
+    if (nr.is() && nr->hasByName(ou(name))) nr->removeByName(ou(name));
 }
 
 void ModelDoc::removeNamedRangesWithPrefix(const std::string& prefix) {

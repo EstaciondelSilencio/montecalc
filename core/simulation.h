@@ -83,7 +83,12 @@ public:
     double input(const std::string& name, const std::string& description, double expected,
                  const Sampler& sampler, bool userDefined = false);
     double output(const std::string& name, double value, bool hasValue);
-    double correlate(const std::string& a, const std::string& b, double rho, int type);
+    double correlate(const std::string& a, const std::string& b, double rho, int type);   // MC FLO type code
+    // state of a time-series variable that continues from iteration to iteration (cleared per run)
+    std::vector<double>& seriesState(const std::string& key);
+    void clearSeriesState();
+    // the sampler of the input that last returned `value` in this iteration (FLOsimula_Bounded)
+    bool samplerOfValue(double value, Sampler& out) const;
     std::mt19937_64& rng() { return rng_; }
 
     // ---- called by the engine ----
@@ -134,6 +139,10 @@ public:
 private:
     Simulation() = default;
     int indexOf(const std::string& name) const;
+    double inputValue(const std::string& name, bool named, const std::string& desc, double expected, const Sampler& sampler,
+                      bool userDefined, std::uniform_real_distribution<double>& uni);
+    std::map<std::string, std::vector<double>> series_;
+    std::vector<std::pair<double, Sampler>> recent_;
     int ensureVariable(const std::string& name, VarKind kind, const std::string& desc);
     const ResultSet* active() const;
 

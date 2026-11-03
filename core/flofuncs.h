@@ -3,18 +3,21 @@
 // Shared by the Calc add-in and the in-memory calculation engine, so both
 // evaluate a model identically.
 //
-// Argument conventions (see docs/FUNCTIONS.md):
-//   distributions  FLOsimula_<Dist>([Name;] p1; p2; ...; [Min]; [Max]; [Round]; [Number])
-//                  Name is optional: when the first argument is text it is the
-//                  variable name. Min/Max truncate the distribution, Round gives
-//                  the number of decimals (TRUE = 0), Number sums that many draws
-//                  per iteration (compound distribution).
-//   time series    FLOsimula_<Process>([Name;] p1; ...; [Number])   Number = periods
-//   user defined   FLOsimula_UserDefined(Data; NumberOfColumns; [Name]; [Min]; [Max]; [Round]; [Number])
+// Argument conventions follow the MC FLO wiki (www.mcflosim.ch/wiki):
+//   distributions  FLOsimula_<Dist>(p1; p2; ...; [Variable_name]; [Number]; [Min]; [Max]; [Round])
+//                  e.g. =FLOsimula_Triangular(10;16;13;"Umsatz_Kunde"). The name may be left out
+//                  (unnamed input, named by Register variables). Number sums that many draws per
+//                  iteration (compound distribution); Min/Max truncate; Round = decimals (TRUE = 0).
+//   time series    FLOsimula_TemporalS_ARmodel(Start; Weight; StDeviation; UseBefore; [Name]; [Number]) ...
+//                  Number = 0 (default): the path continues from iteration to iteration
+//                  (5,000 iterations = 5,000 periods); Number = n: every iteration starts at
+//                  Start and returns period n. UseBefore = 1: every iteration starts at Start
+//                  (typically the previous period's cell).
+//   user defined   FLOsimula_UserDefined(Data; NumberOfBins; [Name]; ...)
 //                  FLOsimula_DiscreteUserDefined(Values; Probabilities; [Name]; ...)
-//   others         FLOsimula_Bounded(Reference; LowerLimit; UpperLimit)
+//   others         FLOsimula_Bounded(Variable; LowerLimit; UpperLimit; [Name])  truncates a variable
 //                  FLOsimula_output(Name; [Value])
-//                  FLOsimula_Correlation(Name1; Name2; Coefficient; [Type])
+//                  FLOsimula_correlation(Name1; Name2; Coefficient; [CorType])  MC FLO type codes
 #pragma once
 
 #include "distributions.h"
@@ -34,14 +37,16 @@ struct FloParam {
 
 struct FloFunction {
     enum Kind { Dist, TimeSeries, UserDefined, DiscreteUserDefined, Bounded, Output, Correlation };
-    std::string name;          // e.g. "FLOsimula_Triangle"
+    std::string name;          // e.g. "FLOsimula_Triangular"
+    std::vector<std::string> aliases;   // e.g. FLOsimula_Uniforme
     Kind kind;
     bool discrete = false;
-    std::string label;         // e.g. "Triangle"
+    std::string label;         // e.g. "Triangular" (wizard), "AR(1)" for time series
     std::string description;
     std::vector<FloParam> params;   // distribution / process parameters (without Name and options)
     std::function<DistPtr(const std::vector<double>&)> make;  // Dist
     TsType ts = TsType::AR1;                                 // TimeSeries
+    size_t minParams = 0;                                    // 0 = all params required
 };
 
 const std::vector<FloFunction>& floFunctions();

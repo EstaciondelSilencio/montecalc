@@ -11,5 +11,7 @@ namespace montecalc {
 // status (0 on a transport error, with a message in `err`); the response body goes to `out`.
 long httpPost(const std::string& url, const std::vector<std::string>& headers, const std::string& body, std::string& out,
               std::string& err);
+// GET an https:// URL (redirects are followed). Same return convention as httpPost.
+long httpGet(const std::string& url, std::string& out, std::string& err);
 
 } // namespace montecalc

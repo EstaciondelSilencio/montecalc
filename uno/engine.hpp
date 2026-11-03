@@ -87,6 +87,7 @@ private:
     void cmdCalcCorrelations();
     // model definition
     void cmdRegister();
+    void cmdModel();
     void cmdInsertOutput();
     void cmdInsertCorrelation();
     void cmdLock();

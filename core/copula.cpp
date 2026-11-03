@@ -241,7 +241,7 @@ CopulaResult generateUniforms(int nvars, int iterations, const std::vector<Corre
     for (const auto& c : arch) {
         if (anyUse[c.a] > 1 || anyUse[c.b] > 1)
             throw std::invalid_argument(
-                "Archimedean and asymmetric copulas (types 2-8) are bivariate: each variable may only appear in one correlation");
+                "Archimedean and asymmetric copulas (all types except Normal and Student-t) are bivariate: each variable may only appear in one correlation");
         inArch.insert(c.a);
         inArch.insert(c.b);
     }
@@ -313,5 +313,26 @@ CopulaResult generateUniforms(int nvars, int iterations, const std::vector<Corre
     }
     return res;
 }
+
+namespace {
+//                            MC FLO code: 0  1  2  3  4  5  6  7  8
+constexpr int kFromMcflo[kMaxCopulaType + 1] = {0, 2, 3, 4, 5, 1, 6, 8, 7};
+} // namespace
+
+int copulaFromMcflo(int t) { return t >= 0 && t <= kMaxCopulaType ? kFromMcflo[t] : 0; }
+
+int copulaToMcflo(int internal) {
+    for (int t = 0; t <= kMaxCopulaType; ++t)
+        if (kFromMcflo[t] == internal) return t;
+    return 0;
+}
+
+const char* copulaMcfloName(int t) {
+    static const char* n[kMaxCopulaType + 1] = {"Normal", "Clayton", "rClayton", "Gumbel", "rGumbel",
+                                                "Student-t", "asy. Gumbel", "asy. Triangular", "asy. Frechet"};
+    return t >= 0 && t <= kMaxCopulaType ? n[t] : "?";
+}
+
+bool copulaIsBivariateOnly(int t) { return t != 0 && t != 5; }
 
 } // namespace mc

@@ -392,16 +392,43 @@ static void testFloFunctions() {
     sim.setMode(Mode::Expected);
     auto call = [](const char* fn, std::vector<Value> args) { return evalFlo(*findFlo(fn), args); };
     using V = Value;
-    CHECK_NEAR(call("FLOsimula_Triangle", {V::text("T"), V::number(1), V::number(2), V::number(6)}), 3, 1e-12);
+    // MC FLO syntax (wiki): parameters; Variable_name; Number; [Min]; [Max]; [Round]
+    CHECK_NEAR(call("FLOsimula_Triangular", {V::number(1), V::number(6), V::number(2), V::text("T")}), 3, 1e-12);
+    CHECK_NEAR(call("FLOsimula_PERT", {V::number(0), V::number(100), V::number(30), V::text("P")}), (0 + 4 * 30 + 100) / 6.0, 1e-9);
     CHECK_NEAR(call("FLOSIMULA_DISCRETEUNIFORM", {V::number(300), V::number(500)}), 400, 1e-12);  // unnamed
-    CHECK_NEAR(call("ORG.MONTECALC.MONTECALC.FLOSIMULA_NORMAL", {V::number(10), V::number(2), V::number(8), V::number(12)}), 10, 1e-9);
-    CHECK_NEAR(call("FLOsimula_Normal", {V::number(10), V::number(2), V(), V(), V::boolean(true)}), 10, 0);  // Round TRUE
-    CHECK_NEAR(call("FLOsimula_Uniform", {V::number(0), V::number(1), V(), V(), V(), V::number(4)}), 2, 1e-12);  // Number = 4
-    CHECK_NEAR(call("FLOsimula_TruncatedNormal", {V::number(0), V::number(1), V::number(0), V::number(10)}), std::sqrt(2 / kPi), 1e-3);
-    CHECK_NEAR(call("FLOsimula_WienerProcess", {V::number(100), V::number(0.1), V::number(0.2), V(), V::number(2)}), 100 * std::exp(0.2), 1e-9);
-    CHECK_NEAR(call("FLOsimula_Bounded", {V::number(15), V::number(0), V::number(10)}), 10, 0);
+    CHECK_NEAR(call("FLOsimula_DiscreteUniforme", {V::number(1), V::number(11), V::text("d")}), 6, 1e-12);  // alias
+    CHECK_NEAR(call("FLOsimula_Uniforme", {V::number(1000), V::number(1200), V::text("Anzahl_Kunden")}), 1100, 1e-12);
+    CHECK_NEAR(call("ORG.MONTECALC.MONTECALC.FLOSIMULA_NORMAL", {V::number(10), V::number(2), V(), V(), V::number(8), V::number(12)}), 10, 1e-9);
+    CHECK_NEAR(call("FLOsimula_Normal", {V::number(10), V::number(2), V(), V(), V(), V(), V::boolean(true)}), 10, 0);  // Round TRUE
+    CHECK_NEAR(call("FLOsimula_Uniform", {V::number(0), V::number(1), V::text("U"), V::number(4)}), 2, 1e-12);  // Number = 4
+    CHECK_NEAR(call("FLOsimula_TruncNormal", {V::number(0), V::number(1), V::number(0), V::number(10)}), std::sqrt(2 / kPi), 1e-3);
+    CHECK_NEAR(call("FLOsimula_LogNormal", {V::number(5), V::number(0), V::number(0.3)}), 5 + std::exp(0.045), 1e-9);
+    CHECK_NEAR(call("FLOsimula_Gamma", {V::number(5), V::number(3), V::number(7)}), 5 + 21, 1e-9);        // Shift + scale*shape
+    CHECK_NEAR(call("FLOsimula_Exponential", {V::number(1), V::number(2)}), 3, 1e-9);                     // Shift + mean
+    CHECK_NEAR(call("FLOsimula_Weibull", {V::number(0), V::number(1), V::number(5)}), std::tgamma(1.2), 1e-9);
+    CHECK_NEAR(call("FLOsimula_Pareto", {V::number(1), V::number(10)}), 10.0 / 9, 1e-9);
+    CHECK_NEAR(call("FLOsimula_Binomial", {V::number(0.25), V::number(10)}), 2.5, 1e-9);                  // (Probability; Tries)
+    CHECK_NEAR(call("FLOsimula_Hypergeometric", {V::number(10), V::number(45), V::number(20)}), 10 * 20 / 45.0, 1e-9);
+    CHECK_NEAR(call("FLOsimula_Pascal", {V::number(0.4), V::number(5)}), 5 * 0.4 / 0.6, 1e-9);           // failures, P = failure prob.
+    CHECK_NEAR(call("FLOsimula_studentt", {V::number(5)}), 0, 1e-12);
+    CHECK_NEAR(call("FLOsimula_Fisher", {V::number(10), V::number(100)}), 100.0 / 98, 1e-9);
+    CHECK_NEAR(call("FLOsimula_TemporalS_WPmodel", {V::number(100), V::number(0.01), V::number(0.1), V::number(1), V::number(0), V::text("p"), V::number(2)}),
+               100 * std::exp(0.2), 1e-9);
+    CHECK_NEAR(call("FLOsimula_TemporalS_WPmodel", {V::number(100), V::number(0.01), V::number(0), V::number(0), V::text("p")}), 100, 1e-9);
+    CHECK_NEAR(call("FLOsimula_TemporalS_ARmodel", {V::number(3), V::number(0.3), V::number(1), V::number(0), V::text("AR")}), 3, 1e-12);
+    CHECK_NEAR(call("FLOsimula_Bounded", {V::number(15), V::number(0), V::number(10), V::text("B")}), 15, 0);  // shows the reference
     CHECK_NEAR(call("FLOsimula_output", {V::text("NPV")}), 0, 0);
     CHECK_NEAR(call("FLOsimula_output", {V::text("NPV"), V::number(7)}), 7, 0);
+    CHECK_NEAR(call("FLOsimula_correlation", {V::text("A"), V::text("B"), V::number(0.8), V::number(0)}), 0.8, 0);
+    {   // the name must come after the parameters
+        bool bad = false;
+        try { call("FLOsimula_Normal", {V::text("Price"), V::number(10), V::number(1)}); } catch (...) { bad = true; }
+        CHECK(bad);
+    }
+    // MC FLO correlation type codes
+    CHECK(copulaFromMcflo(1) == 2 && copulaFromMcflo(5) == 1 && copulaFromMcflo(7) == 8 && copulaFromMcflo(8) == 7);
+    for (int t = 0; t <= kMaxCopulaType; ++t) CHECK(copulaToMcflo(copulaFromMcflo(t)) == t);
+    CHECK(!copulaIsBivariateOnly(0) && !copulaIsBivariateOnly(5) && copulaIsBivariateOnly(1));
     bool threw = false;
     try { call("FLOsimula_Uniform", {V::number(5), V::number(1)}); } catch (...) { threw = true; }
     CHECK(threw);
@@ -419,8 +446,72 @@ static void testFloFunctions() {
     auto qd = userDefinedDistribution(V::array(q), 0);
     CHECK_NEAR(qd->quantile(0.5), 140, 1e-9);
     CHECK_NEAR(qd->quantile(0.0), 100, 1e-9);
-    CHECK(floVariableName(*findFlo("FLOsimula_Normal"), {V::text("Price"), V::number(1), V::number(2)}) == "Price");
+    CHECK(floVariableName(*findFlo("FLOsimula_Normal"), {V::number(1), V::number(2), V::text("Price")}) == "Price");
     CHECK(floVariableName(*findFlo("FLOsimula_Normal"), {V::number(1), V::number(2)}).empty());
+    CHECK(floVariableName(*findFlo("FLOsimula_TemporalS_WPmodel"), {V::number(100), V::number(0.01), V::number(0), V::number(0), V::text("W")}) == "W");
+    CHECK(floVariableName(*findFlo("FLOsimula_TemporalS_WPmodel"),
+                          {V::number(100), V::number(0.01), V::number(0), V::number(1), V::number(0), V::text("W5")}) == "W5");
+    CHECK(floVariableName(*findFlo("FLOsimula_Bounded"), {V::number(1), V::number(0), V::number(2), V::text("Bd")}) == "Bd");
+}
+
+// time series paths, Bounded truncation and correlation codes in a simulation run
+static void testMcfloSemantics() {
+    using V = Value;
+    Simulation& sim = Simulation::instance();
+    auto ar = findFlo("FLOsimula_TemporalS_ARmodel");
+    auto wp = findFlo("FLOsimula_TemporalS_WPmodel");
+    auto tri = findFlo("FLOsimula_Triangular");
+    auto bnd = findFlo("FLOsimula_Bounded");
+    auto cor = findFlo("FLOsimula_correlation");
+    std::vector<V> aArgs{V::number(10), V::number(0.8), V::number(1), V::number(0), V::text("ARpath")};
+    std::vector<V> rArgs{V::number(10), V::number(0.8), V::number(1), V::number(1), V::text("ARrestart")};
+    std::vector<V> gArgs{V::number(100), V::number(0.1), V::number(0), V::number(1), V::number(0), V::text("GBM3"), V::number(3)};
+    std::vector<V> tArgs{V::number(10), V::number(150), V::number(120), V::text("Tri")};
+    auto run = [&](int n, std::vector<std::vector<double>>& out) {
+        sim.clearResultSets();
+        sim.beginRegistration();
+        auto pass = [&] {
+            out[0].push_back(evalFlo(*ar, aArgs));
+            out[1].push_back(evalFlo(*ar, rArgs));
+            out[2].push_back(evalFlo(*wp, gArgs));
+            double t = evalFlo(*tri, tArgs);
+            out[3].push_back(t);
+            out[4].push_back(evalFlo(*bnd, {V::number(t), V::number(30), V::number(140), V::text("Bounded")}));
+            evalFlo(*cor, {V::text("Tri"), V::text("ARrestart"), V::number(0.7), V::number(3)});   // 3 = Gumbel in MC FLO
+        };
+        pass();
+        for (auto& o : out) o.clear();
+        Settings s;
+        s.iterations = n;
+        s.seed = 11;
+        sim.prepare(s);
+        for (int i = 0; i < n; ++i) { sim.setIteration(i); pass(); }
+        sim.finish();
+    };
+    std::vector<std::vector<double>> o(5);
+    run(20000, o);
+    // continuing path: stationary AR(1) with variance 1/(1-0.8^2) and lag-1 autocorrelation 0.8
+    CHECK_NEAR(stats::mean(o[0]), 10, 0.15);
+    CHECK_NEAR(stats::variance(o[0]), 1 / (1 - 0.64), 0.25);
+    std::vector<double> lag0(o[0].begin(), o[0].end() - 1), lag1(o[0].begin() + 1, o[0].end());
+    CHECK_NEAR(stats::pearson(lag0, lag1), 0.8, 0.03);
+    // UseBefore = 1: one step from Start in every iteration
+    CHECK_NEAR(stats::variance(o[1]), 1, 0.05);
+    std::vector<double> r0(o[1].begin(), o[1].end() - 1), r1(o[1].begin() + 1, o[1].end());
+    CHECK_NEAR(stats::pearson(r0, r1), 0, 0.03);
+    // Number = 3: period 3 of a path starting at 100, log sd = 0.1 * sqrt(3)
+    std::vector<double> lg;
+    for (double v : o[2]) lg.push_back(std::log(v / 100));
+    CHECK_NEAR(stats::stdev(lg), 0.1 * std::sqrt(3.0), 0.01);
+    // Bounded: truncation of the triangular variable to [30, 140]
+    CHECK(stats::min(o[4]) >= 30 && stats::max(o[4]) <= 140);
+    CHECK(stats::min(o[3]) < 30 && stats::max(o[3]) > 140);
+    CHECK(std::count(o[4].begin(), o[4].end(), 30.0) + std::count(o[4].begin(), o[4].end(), 140.0) < 5);   // not clamped
+    CHECK_NEAR(stats::percentile(o[4], 0.01), 33.4, 0.8);   // quantile of the truncated triangle
+    std::vector<double> tri2, ar2;
+    sim.samples("Tri", tri2);
+    sim.samples("ARrestart", ar2);
+    CHECK_NEAR(stats::spearman(tri2, ar2), 0.7, 0.05);
 }
 
 // tiny in-memory workbook for the formula engine
@@ -451,8 +542,8 @@ static void testFormulaEngine() {
     CHECK(columnName(27) == "AB");
     MemSource src;
     src.set(1, 0, "0.1");                                                        // B1 rate
-    src.set(1, 1, "=ORG.MONTECALC.MONTECALC.FLOSIMULA_TRIANGLE(\"Vol\";80;100;120)");  // B2
-    src.set(1, 2, "=FLOSIMULA_NORMAL(\"Price\";10;1)");                         // B3
+    src.set(1, 1, "=ORG.MONTECALC.MONTECALC.FLOSIMULA_TRIANGULAR(80;120;100;\"Vol\")");  // B2
+    src.set(1, 2, "=FLOSIMULA_NORMAL(10;1;\"Price\")");                         // B3
     src.set(1, 3, "=B2*B3");                                                     // B4
     src.set(1, 4, "=NPV(FLO_i_Rate;B4;B4;B4)-2000");                             // B5
     src.set(1, 5, "=IF(AND(B5>0;$Model.B4>=1000);ROUND(B5/1000;1);-1)");         // B6
@@ -511,6 +602,7 @@ int main() {
     testBayes();
     testCopulaExtras();
     testFloFunctions();
+    testMcfloSemantics();
     testFormulaEngine();
     std::printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail ? 1 : 0;

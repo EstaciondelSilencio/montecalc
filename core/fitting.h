@@ -69,6 +69,8 @@ struct HoltWinters {
     std::vector<double> forecastPercentile(int h, double p, int n, std::mt19937_64& rng) const;
 };
 HoltWinters fitHoltWinters(const std::vector<double>& y, int season, bool multiplicative);
+// Holt-Winters with given smoothing factors (fMC_HWAmodel / fMC_HWMmodel)
+HoltWinters runHoltWinters(const std::vector<double>& y, int season, bool multiplicative, double alpha, double beta, double gamma);
 // Best of additive / multiplicative by AIC (selection 0) or SSE (selection 1).
 HoltWinters bestHoltWinters(const std::vector<double>& y, int season, int selection);
 

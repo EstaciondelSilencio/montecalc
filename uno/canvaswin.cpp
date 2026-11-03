@@ -4,6 +4,7 @@
 #include "util.hpp"
 
 #include <com/sun/star/awt/InvalidateStyle.hpp>
+#include <com/sun/star/awt/Key.hpp>
 #include <com/sun/star/awt/KeyModifier.hpp>
 #include <com/sun/star/awt/MouseButton.hpp>
 #include <com/sun/star/awt/PopupMenu.hpp>
@@ -82,7 +83,8 @@ public:
             int cw, ch;
             w_->canvasSize(cw, ch);
             g->intersectClipRegion(nullptr);
-            ScreenPainter p(g);
+            ScreenPainter sp(g);
+            ZoomPainter p(sp, w_->zoom_);
             w_->paint(p, cw, ch);
         } catch (const std::exception& e) {
             std::fprintf(stderr, "[MonteCalc] paint error: %s\n", e.what());
@@ -90,8 +92,9 @@ public:
             std::fprintf(stderr, "[MonteCalc] paint error: %s\n", u8(e.Message).c_str());
         }
     }
-    static MouseInfo info(const awt::MouseEvent& e) {
-        return {e.X, e.Y, (e.Buttons & awt::MouseButton::LEFT) != 0, (e.Buttons & awt::MouseButton::RIGHT) != 0 || e.PopupTrigger,
+    MouseInfo info(const awt::MouseEvent& e) const {
+        double z = w_ ? w_->zoom_ : 1.0;
+        return {int(e.X / z), int(e.Y / z), (e.Buttons & awt::MouseButton::LEFT) != 0, (e.Buttons & awt::MouseButton::RIGHT) != 0 || e.PopupTrigger,
                 e.ClickCount, (e.Modifiers & awt::KeyModifier::MOD1) != 0, (e.Modifiers & awt::KeyModifier::SHIFT) != 0};
     }
     template <class F>
@@ -116,6 +119,11 @@ public:
     void SAL_CALL mouseDragged(const awt::MouseEvent& e) override { safe([&] { w_->mouseMove(info(e), true); }); }
     void SAL_CALL mouseMoved(const awt::MouseEvent& e) override { safe([&] { w_->mouseMove(info(e), false); }); }
     void SAL_CALL keyPressed(const awt::KeyEvent& e) override {
+        bool ctrl = (e.Modifiers & awt::KeyModifier::MOD1) != 0;
+        if (ctrl && w_ && (e.KeyCode == awt::Key::ADD || e.KeyCode == awt::Key::SUBTRACT || e.KeyCode == awt::Key::NUM0)) {
+            safe([&] { w_->setZoom(e.KeyCode == awt::Key::NUM0 ? 1.0 : e.KeyCode == awt::Key::ADD ? w_->zoom_ * 1.15 : w_->zoom_ / 1.15); });
+            return;
+        }
         safe([&] { w_->key(e.KeyCode, e.KeyChar, (e.Modifiers & awt::KeyModifier::MOD1) != 0, (e.Modifiers & awt::KeyModifier::SHIFT) != 0); });
     }
     void SAL_CALL keyReleased(const awt::KeyEvent&) override {}
@@ -389,17 +397,28 @@ int CanvasWindow::panelPixels() {
 
 void CanvasWindow::canvasSize(int& w, int& h) {
     awt::Rectangle r = Reference<awt::XWindow>(dialog_, UNO_QUERY_THROW)->getPosSize();
-    w = std::max(50, int(r.Width) - panelPixels());
-    h = std::max(50, int(r.Height));
+    w = std::max(50, int((int(r.Width) - panelPixels()) / zoom_));
+    h = std::max(50, int(int(r.Height) / zoom_));
+}
+
+double& CanvasWindow::defaultZoom() {
+    static double z = 1.25;
+    return z;
+}
+
+void CanvasWindow::setZoom(double z) {
+    zoom_ = std::min(3.0, std::max(0.6, z));
+    defaultZoom() = zoom_;
+    repaint();
 }
 
 void CanvasWindow::repaint() {
     if (closed_ || !dialog_.is()) return;
     Reference<awt::XWindowPeer> peer(dialog_->getPeer(), UNO_QUERY);
     if (!peer.is()) return;
-    int w, h;
-    canvasSize(w, h);
-    peer->invalidateRect(awt::Rectangle(0, 0, w, h), awt::InvalidateStyle::NOCHILDREN);
+    awt::Rectangle r = Reference<awt::XWindow>(dialog_, UNO_QUERY_THROW)->getPosSize();
+    peer->invalidateRect(awt::Rectangle(0, 0, std::max(50, int(r.Width) - panelPixels()), std::max(50, int(r.Height))),
+                         awt::InvalidateStyle::NOCHILDREN);
 }
 
 void CanvasWindow::close() {
@@ -420,7 +439,7 @@ int CanvasWindow::popup(int x, int y, const std::vector<std::pair<int, std::stri
         else menu->insertItem(sal_Int16(id), ou(text), 0, pos++);
     }
     Reference<awt::XWindowPeer> peer(dialog_->getPeer(), UNO_QUERY_THROW);
-    return menu->execute(peer, awt::Rectangle(x, y, 1, 1), awt::PopupMenuDirection::EXECUTE_DEFAULT);
+    return menu->execute(peer, awt::Rectangle(int(x * zoom_), int(y * zoom_), 1, 1), awt::PopupMenuDirection::EXECUTE_DEFAULT);
 }
 
 void CanvasWindow::message(const std::string& text, bool error) {
@@ -439,6 +458,7 @@ std::string CanvasWindow::svg(int w, int h, double scale) {
 
 bool CanvasWindow::exportImage(const std::string& url, const std::string& mime, int w, int h, double scale) {
     // draw with the screen painter on an off-screen device (identical to the window)
+    scale *= zoom_;   // the image looks like the window
     int W = int(w * scale), H = int(h * scale);
     Reference<awt::XToolkit> tk(awt::Toolkit::create(ctx_), UNO_QUERY_THROW);
     Reference<awt::XDevice> dev = tk->createScreenCompatibleDevice(W, H);

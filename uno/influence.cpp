@@ -268,10 +268,8 @@ public:
         return ok;
     }
 
-    void paint(Painter& screen, int W, int H) override {
-        ZoomPainter p(screen, zoom_);
-        paintScaled(p, int(W / zoom_), int(H / zoom_));
-    }
+    // the base window applies the zoom (Ctrl + / Ctrl - / Ctrl 0)
+    void paint(Painter& p, int w, int h) override { paintScaled(p, w, h); }
 
     void paintScaled(Painter& p, int w, int h) {
         p.rect(0, 0, w, h, &col::white, nullptr);
@@ -374,7 +372,7 @@ public:
         legend(2, col::green, "output");
         p.rect(0, h - bar, w, bar, &col::panel, nullptr);
         char z[24];
-        std::snprintf(z, sizeof z, "Zoom %d%%", int(zoom_ * 100 + 0.5));
+        std::snprintf(z, sizeof z, "Zoom %d%%", int(zoom() * 100 + 0.5));
         p.text(w - p.textWidth(z) - 8, h - bar + 4, z, col::muted);
         p.text(8, h - bar + 4, status_, col::text);
         // tooltip
@@ -485,20 +483,12 @@ public:
         }
     }
 
-    MouseInfo unzoom(const MouseInfo& raw) const {
-        MouseInfo m = raw;
-        m.x = int(raw.x / zoom_);
-        m.y = int(raw.y / zoom_);
-        return m;
-    }
-
-    void mouseDown(const MouseInfo& raw) override {
+    void mouseDown(const MouseInfo& m) override {
         if (!loaded_) return;
-        MouseInfo m = unzoom(raw);
         mouseX_ = m.x;
         mouseY_ = m.y;
         if (resultsTab_) { probe_ = true; repaint(); return; }
-        if (m.right) { contextMenu(raw.x, raw.y); return; }
+        if (m.right) { contextMenu(m.x, m.y); return; }
         int i = hit(m.x, m.y);
         if (m.clicks >= 2 && i >= 0) {
             doubleClick(i);
@@ -525,15 +515,12 @@ public:
 
     void mouseUp(const MouseInfo&) override { dragNode_ = -1; }
 
-    void mouseMove(const MouseInfo& raw, bool dragging) override {
-        MouseInfo m = unzoom(raw);
+    void mouseMove(const MouseInfo& m, bool dragging) override {
         mouseX_ = m.x;
         mouseY_ = m.y;
         if (resultsTab_) { probe_ = true; repaint(); return; }
         int w, h;
         canvasSize(w, h);
-        w = int(w / zoom_);
-        h = int(h / zoom_);
         if (dragging && dragNode_ >= 0) {
             base_[dragNode_].x = std::min(0.97, std::max(0.03, double(m.x) / w));
             base_[dragNode_].y = std::min(0.95, std::max(0.05, double(m.y) / (h - 40)));
@@ -568,16 +555,6 @@ public:
         setChecked(o, true);
     }
 
-    void setZoom(double z) {
-        zoom_ = std::min(3.0, std::max(0.6, z));
-        lastZoom() = zoom_;
-        repaint();
-    }
-    static double& lastZoom() {   // the zoom is kept for the next diagram window
-        static double z = 1.4;
-        return z;
-    }
-
     void toggle(const std::string& n) { setChecked(n, !checkedSafe(n)); repaint(); }
 
     void act(const std::string& a) {
@@ -590,7 +567,7 @@ public:
         }
         if (a == "relayout") { layout(); repaint(); return; }
         if (a == "zoomIn" || a == "zoomOut" || a == "zoom100") {
-            setZoom(a == "zoom100" ? 1.0 : a == "zoomIn" ? zoom_ * 1.15 : zoom_ / 1.15);
+            setZoom(a == "zoom100" ? 1.0 : a == "zoomIn" ? zoom() * 1.15 : zoom() / 1.15);
             return;
         }
         if (a == "export") { exportDialog(); return; }
@@ -714,7 +691,6 @@ private:
     std::set<std::string> expanded_;
     std::vector<std::string> resNames_;
     static constexpr int kNameSize = 10;   // node names (points, before zoom)
-    double zoom_ = lastZoom();
     int selectedVisible_ = -1, hover_ = -1, dragNode_ = -1, mouseX_ = 0, mouseY_ = 0;
     bool loaded_ = false, resultsTab_ = false, probe_ = false;
     std::string status_ = "Press 'Variables'";

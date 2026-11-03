@@ -381,7 +381,7 @@ private:
             buttons2("output", "Insert output variable", cmd("InsertOutput"), "register", "Register variables", cmd("Register"));
             buttons2("lock", "Lock/Unlock", cmd("Lock"), "fit", "Fit distribution", cmd("Fit"));
         } else if (group_ == "Information") {
-            buttons2("model", "Model", cmd("Show"), "influence", "Influence diagram", cmd("InfluenceDiagram"));
+            buttons2("model", "Model", cmd("Model"), "influence", "Variables (diagram)", cmd("InfluenceDiagram"));
             buttons2("check", "Excel-Check", cmd("ModelCheck"), "context", "FLO_Context sheet", cmd("WriteContext"));
             buttons2("mentor", "AI mentor", cmd("Mentor"), "about", "About", cmd("About"));
         } else if (group_ == "Simulation") {

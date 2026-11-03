@@ -20,9 +20,31 @@ std::string fmtNum(double v) {
     return b;
 }
 
+// MC FLO formula (wiki syntax) for fitted parameters in MonteCalc's internal parameterisation
 static std::string formula(const std::string& fn, const std::vector<double>& p) {
-    std::string s = "=FLOsimula_" + fn + "(";
-    for (size_t i = 0; i < p.size(); ++i) s += (i ? ";" : "") + fmtNum(p[i]);
+    std::string name = fn;
+    std::vector<double> a = p;
+    if (fn == "Triangle") { name = "Triangular"; a = {p[0], p[2], p[1]}; }
+    else if (fn == "PERT") a = {p[0], p[2], p[1]};
+    else if (fn == "Lognormal") {
+        double s2 = std::log(1 + p[1] * p[1] / (p[0] * p[0]));
+        name = "LogNormal";
+        a = {0, std::log(p[0]) - s2 / 2, std::sqrt(s2)};
+    } else if (fn == "Gamma") a = {0, p[1], p[0]};
+    else if (fn == "Exponential") a = {0, 1 / p[0]};
+    else if (fn == "Weibull") a = {0, p[1], p[0]};
+    else if (fn == "Chi2") name = "chi2";
+    else if (fn == "StudentT") name = "studentt";
+    else if (fn == "Pareto") a = {p[1], p[0]};
+    else if (fn == "F") name = "Fisher";
+    else if (fn == "Frechet") a = {p[2], p[1], p[0]};
+    else if (fn == "AR1") { name = "TemporalS_ARmodel"; a = {p[0], p[1], p[2], 0}; }
+    else if (fn == "MA1") { name = "TemporalS_MAmodel"; a = {p[0], p[1], p[2]}; }
+    else if (fn == "ARMA11") { name = "TemporalS_ARMAmodel"; a = {p[0], p[1], p[3], p[2]}; }
+    else if (fn == "ARCH1") { name = "TemporalS_ARCHmodel"; a = {p[1], p[2]}; }
+    else if (fn == "WienerProcess") { name = "TemporalS_WPmodel"; a = {p[0], p[2], p[1], 1, 0}; }
+    std::string s = "=FLOsimula_" + name + "(";
+    for (size_t i = 0; i < a.size(); ++i) s += (i ? ";" : "") + fmtNum(a[i]);
     return s + ")";
 }
 
@@ -503,7 +525,6 @@ HoltWinters fitHoltWinters(const std::vector<double>& y0, int season, bool mult)
     if (y.size() < 4) return hw;
     if (mult && *std::min_element(y.begin(), y.end()) <= 0) return hw;
     double fb;
-    HwState st;
     auto best = nelderMead(
         [&](const std::vector<double>& p) {
             HwState s;
@@ -511,9 +532,22 @@ HoltWinters fitHoltWinters(const std::vector<double>& y0, int season, bool mult)
             return std::isfinite(r) ? r : kBig;
         },
         {-1, -2, -2}, {1, 1, 1}, 800, fb);
-    hw.alpha = logistic(best[0]);
-    hw.beta = logistic(best[1]);
-    hw.gamma = logistic(best[2]);
+    return runHoltWinters(y, season, mult, logistic(best[0]), logistic(best[1]), logistic(best[2]));
+}
+
+HoltWinters runHoltWinters(const std::vector<double>& y0, int season, bool mult, double alpha, double beta, double gamma) {
+    std::vector<double> y = stats::finite(y0);
+    HoltWinters hw;
+    hw.multiplicative = mult;
+    if (season < 1) season = 1;
+    if (y.size() < size_t(2 * season) + 2) season = 1;
+    hw.season = season;
+    if (y.size() < 4) return hw;
+    if (mult && *std::min_element(y.begin(), y.end()) <= 0) return hw;
+    HwState st;
+    hw.alpha = alpha;
+    hw.beta = beta;
+    hw.gamma = gamma;
     std::vector<double> rel;
     hw.sse = hwRun(y, season, mult, hw.alpha, hw.beta, hw.gamma, st, &hw.fitted, &rel);
     hw.level = st.l;

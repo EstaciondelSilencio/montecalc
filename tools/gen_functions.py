@@ -18,47 +18,49 @@ def fn(name, ret, desc, params, body, section, note=""):
 
 
 # ============================================================ FLOsimula_* model functions
+# Names and argument order as in the MC FLO wiki: parameters first, then Variable_name and
+# Number; MonteCalc adds the options Min, Max and Round after Number.
+NAMEP = ("Variable_name", A, "Variable name (text). Leave empty for an unnamed input (Register variables names it).")
+NUMP = ("Number", A, "Optional number of occurrences per iteration; the draws are summed (compound distribution). 0 or empty = 1.")
 OPT = [("Min", A, "Optional lower bound (truncation)."), ("Max", A, "Optional upper bound (truncation)."),
-       ("Round", A, "Optional number of decimals (TRUE = whole numbers)."),
-       ("Number", A, "Optional number of occurrences per iteration; the draws are summed (compound distribution).")]
-NAMEP = ("Name", A, "Optional variable name (text). If omitted, the first argument is the first parameter.")
+       ("Round", A, "Optional number of decimals (TRUE = whole numbers).")]
 
 CONT = [
-    ("Uniform", "Continuous uniform distribution.", ["Minimum", "Maximum"]),
-    ("Triangle", "Triangle distribution.", ["Minimum", "Mode", "Maximum"]),
-    ("PERT", "PERT distribution.", ["Minimum", "Mode", "Maximum"]),
-    ("Normal", "Normal distribution.", ["Mean", "StdDev"]),
-    ("Lognormal", "Lognormal distribution (mean and standard deviation of the variable).", ["Mean", "StdDev"]),
-    ("Beta", "Beta distribution scaled to [Minimum, Maximum].", ["Alpha", "Beta", "Minimum", "Maximum"]),
-    ("Gumbel", "Gumbel (extreme value) distribution.", ["Location", "Scale"]),
-    ("Gamma", "Gamma distribution.", ["Shape", "Scale"]),
-    ("Exponential", "Exponential distribution (Rate = 1/mean).", ["Rate"]),
-    ("TruncatedNormal", "Truncated normal distribution.", ["Mean", "StdDev", "LowerLimit", "UpperLimit"]),
-    ("Weibull", "Weibull distribution.", ["Shape", "Scale"]),
-    ("Chi2", "Chi-square distribution.", ["DegreesOfFreedom"]),
-    ("StudentT", "Student-t distribution.", ["DegreesOfFreedom"]),
-    ("Pareto", "Pareto distribution.", ["Shape", "Scale"]),
-    ("F", "F distribution.", ["DegreesOfFreedom1", "DegreesOfFreedom2"]),
-    ("ArcSin", "Arcsine distribution.", ["Minimum", "Maximum"]),
-    ("Cauchy", "Cauchy distribution (the cell shows the median).", ["Location", "Scale"]),
-    ("Frechet", "Frechet distribution.", ["Shape", "Scale", "Location"]),
-    ("Logistic", "Logistic distribution.", ["Location", "Scale"]),
+    ("Uniform", "Continuous uniform distribution.", ["Lower_Limit", "Upper_Limit"], ["Uniforme"]),
+    ("Triangular", "Triangular distribution.", ["Lower_Limit", "Upper_Limit", "Mode"], []),
+    ("PERT", "PERT distribution.", ["Lower_Limit", "Upper_Limit", "Mode"], []),
+    ("Normal", "Normal distribution.", ["Mean", "StDeviation"], []),
+    ("LogNormal", "Log-normal distribution: Shift + exp(Normal(Mean; StDeviation)).", ["Shift", "Mean", "StDeviation"], []),
+    ("Beta", "Beta distribution between Lower_Limit and Upper_Limit.", ["param_alfa", "param_beta", "Lower_Limit", "Upper_Limit"], []),
+    ("Gumbel", "Gumbel (extreme value) distribution: location Shift, scale param_alfa.", ["Shift", "param_alfa"], []),
+    ("Gamma", "Gamma distribution: Shift + Gamma(scale param_alfa, shape param_beta).", ["Shift", "param_alfa", "param_beta"], []),
+    ("Exponential", "Exponential distribution: Shift + Exponential(mean param_alfa).", ["Shift", "param_alfa"], []),
+    ("TruncNormal", "Truncated normal distribution.", ["Mean", "StDeviation", "Lower_Limit", "Upper_Limit"], ["TruncatedNormal"]),
+    ("Weibull", "Weibull distribution: Shift + Weibull(scale param_alfa, shape param_beta).", ["Shift", "param_alfa", "param_beta"], []),
+    ("chi2", "Chi-square distribution.", ["Freedom"], []),
+    ("studentt", "Student-t distribution.", ["Freedom"], []),
+    ("Pareto", "Pareto distribution with minimum Shift (> 0) and shape param_alfa.", ["Shift", "param_alfa"], []),
+    ("Fisher", "F distribution.", ["Freedom1", "Freedom2"], []),
+    ("ArcSin", "Arcsine distribution.", ["Lower_Limit", "Upper_Limit"], []),
+    ("Cauchy", "Cauchy distribution: location Shift, scale param_alfa (the cell shows the median).", ["Shift", "param_alfa"], []),
+    ("Frechet", "Frechet distribution: minimum Start, scale Shift, shape param_alfa.", ["Start", "Shift", "param_alfa"], []),
+    ("Logistic", "Logistic distribution: location Location, scale Shift.", ["Location", "Shift"], []),
 ]
 DISC = [
-    ("DiscreteUniform", "Discrete uniform distribution (integers).", ["Minimum", "Maximum"]),
-    ("Bernoulli", "Bernoulli distribution: 1 with the given probability, else 0.", ["Probability"]),
-    ("Binomial", "Binomial distribution.", ["Trials", "Probability"]),
-    ("Poisson", "Poisson distribution.", ["Lambda"]),
-    ("Pascal", "Pascal (negative binomial) distribution: failures before the R-th success.", ["Successes", "Probability"]),
-    ("Geometric", "Geometric distribution: failures before the first success.", ["Probability"]),
-    ("HyperGeometric", "Hypergeometric distribution.", ["Population", "Successes", "Draws"]),
+    ("DiscreteUniform", "Discrete uniform distribution (integers).", ["Lower_Limit", "Upper_Limit"], ["DiscreteUniforme"]),
+    ("Bernoulli", "Bernoulli distribution: 1 (TRUE) with the given probability, else 0.", ["Probability"], []),
+    ("Binomial", "Binomial distribution: successes in Tries trials.", ["Probability", "Tries"], []),
+    ("Poisson", "Poisson distribution.", ["Occurency"], []),
+    ("Pascal", "Pascal (negative binomial) distribution: failed attempts until Success successes; Probability = probability of a failure.", ["Probability", "Success"], []),
+    ("Geometric", "Geometric distribution: failures before the first success.", ["Probability"], []),
+    ("Hypergeometric", "Hypergeometric distribution (draws without replacement).", ["Tries", "Population", "Success_Possibles"], []),
 ]
 TS = [
-    ("AR1", "AR(1) autoregressive process.", ["Mu", "Phi", "Sigma", "LastValue"]),
-    ("MA1", "MA(1) moving-average process.", ["Mu", "Theta", "Sigma"]),
-    ("ARMA11", "ARMA(1,1) process.", ["Mu", "Phi", "Theta", "Sigma", "LastValue"]),
-    ("ARCH1", "ARCH(1) process (non-constant volatility).", ["Mu", "A0", "A1", "LastValue"]),
-    ("WienerProcess", "Wiener process (geometric Brownian motion) with drift.", ["StartValue", "Drift", "Volatility", "Dt"]),
+    ("TemporalS_ARmodel", "AR(1) process around the level Start.", ["Start", "Weight", "StDeviation", "UseBefore"]),
+    ("TemporalS_MAmodel", "MA(1) process.", ["Start", "Weight", "StDeviation"]),
+    ("TemporalS_ARMAmodel", "ARMA(1,1) process.", ["Start", "Weight1", "StDeviation1", "Weight2"]),
+    ("TemporalS_ARCHmodel", "ARCH(1) process (mean 0, non-constant volatility).", ["Omega", "Alpha"]),
+    ("TemporalS_WPmodel", "Wiener process (geometric Brownian motion); StDeviation is optional.", ["Start", "Drift", "Mu", "StDeviation", "UseBefore"]),
 ]
 
 
@@ -66,39 +68,48 @@ def flo_body(name, params):
     return f'return flo("{name}", {{{", ".join(p[0] for p in params)}}});'
 
 
-for lab, desc, ps in CONT:
-    params = [NAMEP] + [(p, A, p + ".") for p in ps] + OPT
-    fn("FLOsimula_" + lab, D, "Input variable: " + desc, params, flo_body("FLOsimula_" + lab, params), "cont")
-for lab, desc, ps in DISC:
-    params = [NAMEP] + [(p, A, p + ".") for p in ps] + OPT
-    fn("FLOsimula_" + lab, D, "Input variable: " + desc, params, flo_body("FLOsimula_" + lab, params), "disc")
+def pid(n):
+    # parameter identifier valid in UNO IDL (lower-case start + '_' is not allowed): param_alfa -> Param_alfa
+    return n[0].upper() + n[1:] if n[0].islower() and "_" in n else n
+
+
+for section, table in (("cont", CONT), ("disc", DISC)):
+    for lab, desc, ps, aliases in table:
+        params = [(pid(p), A, p.replace("_", " ") + ".") for p in ps] + [NAMEP, NUMP] + OPT
+        for nm in [lab] + aliases:
+            fn("FLOsimula_" + nm, D, "Input variable: " + desc, params, flo_body("FLOsimula_" + nm, params), section,
+               "" if nm == lab else "Alias of FLOsimula_" + lab + " (MC FLO compatibility).")
+TSNUM = ("Number", A, "Optional number of periods. 0 / empty: the path continues from iteration to iteration (5,000 iterations = 5,000 periods); n: every iteration starts at Start and returns period n.")
 for lab, desc, ps in TS:
-    params = [NAMEP] + [(p, A, p + ".") for p in ps] + [("Number", A, "Optional number of periods simulated per iteration (default 1).")]
+    params = [(p, A, p + ".") for p in ps] + [NAMEP, TSNUM] + OPT
     fn("FLOsimula_" + lab, D, "Input variable: " + desc, params, flo_body("FLOsimula_" + lab, params), "ts",
-       "With Number = n each iteration simulates n periods from the last value and returns the value of period n.")
-p = [("Data", A, "Data area: raw data, a histogram (Min, Max, Number, ...) or a quantile table."),
-     ("NumberOfColumns", A, "Number of histogram columns for raw data (0 = empirical distribution)."), ("Name", A, "Variable name.")] + OPT
+       "The (correlated) random number drives the noise of each iteration; UseBefore = 1 restarts every iteration at Start.")
+p = [("Data", A, "Data area: raw data, a histogram (Min, Max, Number, ...) or quantile/probability (QP) pairs."),
+     ("NumberOfBins", A, "Number of intervals for raw data (0 = empirical distribution)."), NAMEP, NUMP] + OPT
 fn("FLOsimula_UserDefined", D, "Input variable: user-defined distribution from a data area.", p, flo_body("FLOsimula_UserDefined", p), "cont",
    "Two-column areas are read as (quantile, value) rows; if the quantiles are not all in [0,1] the last row is (minimum, maximum), as in the manual.")
-p = [("Values", A, "Possible values."), ("Probabilities", A, "Probabilities or weights."), ("Name", A, "Variable name.")] + OPT
+p = [("Values", A, "Possible values."), ("Probabilities", A, "Probabilities or weights."), NAMEP, NUMP] + OPT
 fn("FLOsimula_DiscreteUserDefined", D, "Input variable: user-defined discrete distribution.", p, flo_body("FLOsimula_DiscreteUserDefined", p), "disc")
-p = [("Reference", A, "The MC FLO variable (cell) to bound."), ("LowerLimit", A, "Lower barrier."), ("UpperLimit", A, "Upper barrier.")]
-fn("FLOsimula_Bounded", D, "Limits an MC FLO variable to [LowerLimit, UpperLimit].", p, flo_body("FLOsimula_Bounded", p), "other",
-   "Values outside the barriers are set to the barrier. For exact truncation use the Min/Max arguments of the distribution.")
+p = [("Variable", A, "Cell of a registered MC FLO variable."), ("LowerLimit", A, "Lower limit."), ("UpperLimit", A, "Upper limit."), NAMEP]
+fn("FLOsimula_Bounded", D, "Input variable: truncates an existing MC FLO variable to [LowerLimit, UpperLimit].", p, flo_body("FLOsimula_Bounded", p), "other",
+   "Only values within the limits are drawn. Before a simulation the cell shows the referenced variable's expected value.")
 p = [("Name", A, "Name of the output variable."), ("Value", A, "Optional value; if omitted the function returns 0 so that it can be added to a cell: =B30+FLOsimula_output(\"NPV\").")]
 fn("FLOsimula_output", D, "Output variable.", p, flo_body("FLOsimula_output", p), "other")
-p = [("Name1", A, "First input variable."), ("Name2", A, "Second input variable."), ("Coefficient", A, "Rank correlation between -1 and 1."),
-     ("Type", A, "0 normal, 1 Student-t, 2 Clayton, 3 r-Clayton, 4 Gumbel, 5 r-Gumbel, 6 asy. Gumbel, 7 asy. Frechet, 8 asy. Triangular.")]
-fn("FLOsimula_Correlation", D, "Correlation between two input variables; returns the coefficient.", p, flo_body("FLOsimula_Correlation", p), "other",
-   "The manual names the correlation types but not the formula name or the asymmetric families' definitions; see the README.")
+p = [("Variable1", A, "First input variable (name or cell with the name)."), ("Variable2", A, "Second input variable."),
+     ("Coef_corr", A, "Correlation coefficient between -1 and 1."),
+     ("CorType", A, "0 Normal, 1 Clayton, 2 rClayton, 3 Gumbel, 4 rGumbel, 5 Student-t, 6 asy. Gumbel, 7 asy. Triangular, 8 asy. Frechet.")]
+fn("FLOsimula_correlation", D, "Correlation between two input variables; returns the coefficient.", p, flo_body("FLOsimula_correlation", p), "other",
+   "Type codes as in the MC FLO wiki. Archimedean and asymmetric correlations are bivariate.")
 
 # ============================================================ fMC_* result functions
 N = ("Name", S, "Name of a simulated variable.")
+REF = ("Referenz", A, "Optional variant of a multiple simulation (variant name); empty = the selected variant.")
+VS = "VariantScope vs_(Referenz); "
 
 
 def res(name, desc, expr, extra=(), note=""):
-    fn(name, D, desc + " Returns -1 if no simulation has been run.", [N] + list(extra),
-       f"return withSamples(Name, [&](const Vec& v) {{ return {expr}; }});", "res", note)
+    fn(name, D, desc + " Returns -1 if no simulation has been run.", [N] + list(extra) + [REF],
+       VS + f"return withSamples(Name, [&](const Vec& v) {{ return {expr}; }});", "res", note)
 
 
 res("fMC_Average", "Average of the distribution.", "mc::stats::mean(v)")
@@ -119,20 +130,25 @@ res("fMC_ExpGainV", "Variance of all values above 0.", "mc::stats::expectedGainV
 res("fMC_ExpLoss", "Average of all values below 0.", "mc::stats::expectedLoss(v)")
 res("fMC_ExpectedShortfall", "Expected shortfall beyond the value-at-risk at the percentile (<= 0.5 left tail, else right tail).",
     "mc::stats::expectedShortfall(v, Percentile)", [("Percentile", D, "Percentile.")])
-res("fMC_Percentile", "Value at the percentile.", "mc::stats::percentile(v, Percentile)", [("Percentile", D, "Percentile (0..1).")])
-res("fMC_PercentileValue", "Percentile of a given value.", "mc::stats::percentRank(v, Value)", [("Value", D, "Value.")])
+res("fMC_Percentile", "Value at the percentile: the ROUNDUP(n * Percentile)-th smallest value.", "percentileMcflo(v, Percentile)",
+    [("Percentile", D, "Percentile (0..1).")])
+res("fMC_PercentileValue", "Percentile (0..1) of a given value: position of the first value >= Value among the sorted values.",
+    "percentValueMcflo(v, Value)", [("Value", D, "Value.")])
 res("fMC_PercentileInterval", "Confidence level (share of iterations) between the limits.", "mc::stats::probBetween(v, Lower_Limit, Upper_Limit)",
     [("Lower_Limit", D, "Lower limit."), ("Upper_Limit", D, "Upper limit.")])
-res("fMC_Mode", "Most frequent value based on a histogram.", "mc::stats::mode(v, int(UsedBins))", [("UsedBins", D, "Number of histogram columns.")])
-res("fMC_Density", "Density of the simulated distribution at Value.", "mc::stats::density(v, Value)", [("Value", D, "Point.")])
+res("fMC_Mode", "Most frequent value based on a histogram.", "mc::stats::mode(v, int(Number_bins))", [("Number_bins", D, "Number of histogram columns.")])
+res("fMC_Density", "Share of the iterations at Value (discrete) or in the histogram column containing Value.", "densityShare(v, Value, Number_bins)",
+    [("Value", D, "Point."), ("Number_bins", A, "Histogram columns (empty = setting).")])
 res("fMC_ExtremeValue", "Value at position Pos of the sorted list.", "sortedValue(v, Pos)", [("Pos", D, "Position (1 = smallest).")])
 res("fMC_PosValue", "Value at iteration Pos.", "iterValue(v, Pos)", [("Pos", D, "Iteration (1-based).")])
-res("fMC_ConditionPosValue", "Position (iteration) whose value equals Value, or the nearest one.", "conditionPos(v, Value)", [("Value", D, "Value.")])
+res("fMC_ConditionalPosValue", "Position (iteration) whose value equals Value, or the nearest one.", "conditionPos(v, Value)", [("Value", D, "Value.")])
+res("fMC_ConditionPosValue", "Position (iteration) whose value equals Value, or the nearest one (alias of fMC_ConditionalPosValue).", "conditionPos(v, Value)", [("Value", D, "Value.")])
+res("fMC_ADs", "Anderson-Darling normality test of a variable: 1 if very likely normal, else 0.", "normalTest(v)")
 
 
 def pair(name, desc, expr, extra=(), n1="Name1", n2="Name2", note=""):
-    fn(name, D, desc + " Returns -1 if no simulation has been run.", [(n1, S, "First variable."), (n2, S, "Second variable.")] + list(extra),
-       f"return withPair({n1}, {n2}, [&](const Vec& a, const Vec& b) {{ return {expr}; }});", "res", note)
+    fn(name, D, desc + " Returns -1 if no simulation has been run.", [(n1, S, "First variable."), (n2, S, "Second variable.")] + list(extra) + [REF],
+       VS + f"return withPair({n1}, {n2}, [&](const Vec& a, const Vec& b) {{ return {expr}; }});", "res", note)
 
 
 pair("fMC_CorrP", "Pearson correlation between two variables.", "mc::stats::pearson(a, b)")
@@ -153,23 +169,26 @@ pair("fMC_Bayes", "Conditional probability P(A | B), e.g. fMC_Bayes(\"NPV\";\">=
      [("Comparison1", S, "< <= > >= = <>"), ("Value1", D, "Threshold of A."), ("Comparison2", S, "< <= > >= = <>"), ("Value2", D, "Threshold of B.")])
 # fix parameter order of fMC_Bayes to the manual's (Name1; Comparison1; Value1; Name2; Comparison2; Value2)
 name, ret, desc, params, body, sec, note = F.pop()
-fn(name, ret, desc, [params[0], params[2], params[3], params[1], params[4], params[5]], body, sec, note)
-pair("fMC_BayesV", "Value at Percentile of A (Name1) given event B (Name2 Comparison2 Value2).",
-     "conditionalPercentile(a, b, u8(Comparison2), Value2, Percentile)",
-     [("Comparison2", S, "< <= > >= = <>"), ("Value2", D, "Threshold of B."), ("Percentile", D, "Percentile of A.")],
-     note="Referenced but not specified in the manual; signature chosen to match fMC_Bayes4V.")
+fn(name, ret, desc, [params[0], params[2], params[3], params[1], params[4], params[5], params[6]], body, sec, note)
+
+bayesV = [("Name1", A, "Variable of event A."), ("Vergleich1", A, "< <= > >= = <> (or empty)."), ("Wert1", A, "Threshold of A."),
+          ("Name2", A, "Variable of event B."), ("Vergleich", A, "< <= > >= = <>"), ("Wert2", A, "Threshold of B.")]
+for nm in ("fMC_BayesV", "fMC_BayesV_MC"):
+    fn(nm, D, "Average of A (Name1) over the iterations where A and event B (Name2) meet their conditions. Returns -1 if no simulation has been run.",
+       bayesV + [REF], VS + "return bayesMulti({" + ", ".join(p[0] for p in bayesV) + "}, true);", "res")
 
 bayes4 = []
 for i in range(1, 6):
     bayes4 += [(f"Name{i}", A, f"Variable of event {'ABCDE'[i-1]}."), (f"Compare{i}", A, "< <= > >= = <>"), (f"Value{i}", A, "Threshold.")]
-fn("fMC_Bayes4", D, "P(A | B, C, D, E) for up to five events. Returns -1 if no simulation has been run.", bayes4,
-   "return bayesMulti({" + ", ".join(p[0] for p in bayes4) + "}, Any());", "res")
-fn("fMC_Bayes4V", D, "Value at Percentile of A given events B..E. Returns -1 if no simulation has been run.",
-   bayes4 + [("Percentile", A, "Percentile of A.")], "return bayesMulti({" + ", ".join(p[0] for p in bayes4) + "}, Percentile);", "res")
+fn("fMC_Bayes4", D, "P(A | B, C, D, E) for up to five events; a condition may also be given as one text (\">=\"&100). Returns -1 if no simulation has been run.",
+   bayes4 + [REF], VS + "return bayesMulti({" + ", ".join(p[0] for p in bayes4) + "}, false);", "res")
+for nm in ("fMC_Bayes4V", "fMC_Bayes4V_MC"):
+    fn(nm, D, "Average of A over the iterations where A and the events B..E meet their conditions. Returns -1 if no simulation has been run.",
+       bayes4 + [REF], VS + "return bayesMulti({" + ", ".join(p[0] for p in bayes4) + "}, true);", "res")
 fn("fMC_CorrRankN", S, "Name of the input with the Rank-th highest (absolute, Pearson) correlation with the output.",
-   [N, ("Rank", D, "1 = strongest.")], "return corrRankName(Name, Rank);", "res")
+   [N, ("Rank", D, "1 = strongest."), REF], VS + "return corrRankName(Name, Rank);", "res")
 fn("fMC_CorrRank", D, "Pearson correlation of the Rank-th strongest input with the output. Returns -1 if no simulation has been run.",
-   [N, ("Rank", D, "1 = strongest.")], "return corrRankValue(Name, Rank);", "res")
+   [N, ("Rank", D, "1 = strongest."), REF], VS + "return corrRankValue(Name, Rank);", "res")
 fn("fMC_AD", D, "Anderson-Darling normality test on a variable name or a data area: TRUE (1) if very likely normal.",
    [("NameOrData", A, "Variable name or data area.")], "return andersonDarling(NameOrData);", "res")
 fn("fMC_BootStrapN", S, "Bootstrap confidence interval of the mean (or of Percentile) of a variable: \"mean; lower; upper\".",
@@ -191,21 +210,22 @@ for nm, asym, desc in [("fMC_BayesMCMC", "false", "Gaussian proposal"), ("fMC_Ba
     fn(nm, "matrix", f"Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo ({desc}): n x 1 data or histogram.",
        [("Name1", S, "Prior distribution (variable)."), ("Name2", S, "Likelihood (variable of the same quantity)."), ("BurnIn", D, "Initial draws discarded."),
         ("Thinning", D, "Keep every Thinning-th draw."), ("NumberIterations", D, "Size of the posterior sample."), ("ReturnData", A, "TRUE = data, FALSE = histogram."),
-        ("Number_bins", A, "Histogram columns of the output."), ("Number_binsDivide", A, "Bins used to estimate the densities.")],
-       f"return mcmc(Name1, Name2, BurnIn, Thinning, NumberIterations, ReturnData, Number_bins, Number_binsDivide, {asym});", "bayes",
+        ("Number_bins", A, "Histogram columns of the output."), ("Number_binsDivide", A, "Bins used to estimate the densities."), REF],
+       VS + f"return mcmc(Name1, Name2, BurnIn, Thinning, NumberIterations, ReturnData, Number_bins, Number_binsDivide, {asym});", "bayes",
        "The posterior density is proportional to the product of the two (kernel-estimated) densities.")
 fn("fMC_BayesPrediction", "matrix", "Predictive distribution of the failures before Count successes, using posterior success probabilities.",
    [("Name1", S, "Posterior of the success probability (variable)."), ("Name2", A, "Optional likelihood variable combined with Name1."),
-    ("Count", D, "Number of successes."), ("Attempts", D, "Tolerable unsuccessful attempts (values above are reported as Attempts+1)."),
-    ("NumberIterations", D, "Sample size."), ("ReturnData", A, "TRUE = data, FALSE = histogram."), ("Number_bins", A, "Histogram columns.")],
-   "return bayesPrediction(Name1, Name2, Count, Attempts, NumberIterations, ReturnData, Number_bins);", "bayes",
+    ("Count", D, "Number of successes."), ("NumberIterations", D, "Sample size."),
+    ("Attempts", D, "Tolerable unsuccessful attempts (values above are reported as Attempts+1)."),
+    ("ReturnData", A, "TRUE = data, FALSE = histogram."), ("Number_bins", A, "Histogram columns."), REF],
+   VS + "return bayesPrediction(Name1, Name2, Count, Attempts, NumberIterations, ReturnData, Number_bins);", "bayes",
    "The manual leaves the predictive model open; MonteCalc uses a negative-binomial predictive per posterior draw.")
 comb = []
 for i in range(1, 6):
     comb += [(f"Name{i}", A, f"Prior distribution {i} (variable)."), (f"Share{i}", A, f"Weight of prior {i}.")]
 fn("fMC_BayesCombine", "matrix", "Combines up to five prior distributions into one (mixture): n x 1 data or histogram.",
-   comb + [("ReturnData", A, "TRUE = data, FALSE = histogram."), ("NumBin", A, "Histogram columns.")],
-   "return bayesCombine({" + ", ".join(p[0] for p in comb) + "}, ReturnData, NumBin);", "bayes")
+   comb + [("ReturnData", A, "TRUE = data, FALSE = histogram."), ("NumBin", A, "Histogram columns."), REF],
+   VS + "return bayesCombine({" + ", ".join(p[0] for p in comb) + "}, ReturnData, NumBin);", "bayes")
 
 # ============================================================ fMC_* information / settings
 fn("fMC_Iterations", D, "Number of iterations of the last simulation.", [], "return mc::Simulation::instance().iterations();", "info")
@@ -233,7 +253,7 @@ fn("fMC_Spear", D, "Spearman rank correlation of two data rows/columns.", [RG("c
 fn("fMC_Sort", D, "Value at position pos of the sorted list (Sort 0 ascending, 1 descending).",
    [RG("column1", "Data."), ("pos", D, "Position (1-based)."), ("Sort", A, "0 ascending (default), 1 descending.")], "return sortValue(column1, pos, Sort);", "data")
 fn("fMC_FitC", D, "Best correlation (copula) type 0..8 for two data series.", [RG("column1", "First series."), RG("column2", "Second series.")],
-   "return guard([&] { std::mt19937_64 rng(1234); return double(mc::fitCopula(cells(column1), cells(column2), rng)); });", "data")
+   "return guard([&] { std::mt19937_64 rng(1234); return double(mc::copulaToMcflo(mc::fitCopula(cells(column1), cells(column2), rng))); });", "data")
 fn("fMC_BSMVal", D, "Price of the underlying after Time periods (Black-Scholes-Merton, risk-neutral): random in a simulation, expected value otherwise.",
    [("Basis", D, "Current price."), ("Time", D, "Periods."), ("Interest", D, "Riskless rate."), ("Sigma", D, "Volatility.")],
    "return bsmValue(Basis, Time, Interest, Sigma);", "data")
@@ -246,8 +266,9 @@ fn("fMC_BootStrapVector", "matrix", "Bootstrap distribution of the mean (or Perc
    "return bootstrapVector(Matrix1, NumNewExamples, Percentile, ReturnPercentH, Compound);", "data")
 fn("fMC_Kernel2", "matrix", "Kernel density estimate of a data area over bins: bins x 1 densities or bins x 3 (lower, upper, density).",
    [RG("Data", "Data."), ("LowerLimit", A, "Lower range limit."), ("UpperLimit", A, "Upper range limit."), ("Bandwith", A, "Bandwidth (0 = automatic)."),
-    ("Number_bins", D, "Number of bins."), ("ReturnHistogram", A, "1 = bins x 3.")],
-   "return kernel2(Data, LowerLimit, UpperLimit, Bandwith, Number_bins, ReturnHistogram);", "data")
+    ("Number_bins", A, "Number of bins (default 30)."), ("KernelType", A, "Kernel (currently Gauss)."), ("ReturnHistogram", A, "1 = bins x 3."),
+    ("ReturnSample", A, "1 = return a sample of size Sample from the estimated density."), ("Sample", A, "Sample size (default 1000).")],
+   "return kernel2(Data, LowerLimit, UpperLimit, Bandwith, Number_bins, ReturnHistogram, ReturnSample, Sample);", "data")
 fn("fMC_BayesMCMCV_Robust", "matrix", "Posterior of two data vectors (prior, likelihood) by a grid approximation (robust for sparse data), n x 1.",
    [RG("Vector1", "Prior data."), RG("Vector2", "Likelihood data.")], "return robustPosterior(Vector1, Vector2);", "bayes")
 fn("fMC_AD_Data", D, "Anderson-Darling normality test on a data area (same as fMC_AD with a range).", [RG("Matrix1", "Data.")],
@@ -271,17 +292,17 @@ fn("fMC_BayesPredictionRegression", D, "Forecast of a Bayesian linear regression
    "Posterior from the Bayesian bootstrap (Dirichlet-weighted least squares).")
 fn("fMC_BayesPredictionRegressionParameters", "amatrix", "Parameters of a Bayesian linear regression: (m+2) x 4 (label, mean, lower, upper).",
    [RG("DataY", "Dependent variable."), RG("DataX", "Independent variable(s)."), ("CI", A, "Credible interval (default 0.95)."),
-    ("FeatureDescription", A, "Optional feature labels."), BR[0], BR[2], BR[1], BR[3]],
+    ("FeatureDescription", A, "Optional feature labels.")] + BR,
    "return bayesRegParams(DataY, DataX, CI, FeatureDescription, UseLogForY, NumNewSample, UseRepeatedMedianRegression, kfolds);", "regr")
 TT = [RG("TrainDataY", "Training Y."), RG("TrainDataX", "Training X."), RG("TestDataY", "Test Y."), RG("TestDataX", "Test X.")]
 fn("fMC_BayesPredictionRegressionCIP", D, "Coverage rate of the test data by the central predictive interval (1 = as expected).",
-   TT + [("Percentile", A, "Coverage sought (default 0.95)."), BR[0], BR[2], BR[1], BR[3]],
+   TT + [("Percentile", A, "Coverage sought (default 0.95).")] + BR,
    "return bayesRegTest(0, TrainDataY, TrainDataX, TestDataY, TestDataX, Percentile, UseLogForY, NumNewSample, UseRepeatedMedianRegression, kfolds).first;", "regr")
 fn("fMC_BayesPredictionRegressionMAE", D, "Mean absolute error of the Bayesian regression on the test data.",
-   TT + [BR[0], BR[2], BR[1], BR[3]],
+   TT + [("Percentile", A, "Unused (MC FLO signature).")] + BR,
    "return bayesRegTest(1, TrainDataY, TrainDataX, TestDataY, TestDataX, Any(), UseLogForY, NumNewSample, UseRepeatedMedianRegression, kfolds).first;", "regr")
 fn("fMC_BayesPredictionRegressionResiduals", "matrix", "Residuals of the test data under the Bayesian regression, n x 1.",
-   TT + [BR[0], BR[2], BR[1], BR[3]],
+   TT + [("Percentile", A, "Unused (MC FLO signature).")] + BR,
    "return bayesRegResiduals(TrainDataY, TrainDataX, TestDataY, TestDataX, UseLogForY, NumNewSample, UseRepeatedMedianRegression, kfolds);", "regr")
 fn("fMC_BayesClassifier", "amatrix", "Naive Bayes classification (predictions, confusion matrix, credible intervals or feature impact).",
    [RG("FeatureData", "Features of the pre-classified data."), RG("ClassData", "Classes."), RG("PredictData", "Features to classify."),
@@ -339,9 +360,52 @@ CPP_T = {S: "const OUString&", D: "double", A: "const css::uno::Any&", R: "const
 CPP_RET = {S: "OUString", D: "double", "matrix": "DoubleMatrix", "amatrix": "AnyMatrix"}
 
 
+
+# ============================================================ MC FLO compatibility: _MC variants (Memory Calculation Engine)
+def alias(new, old, note=None):
+    for f in F:
+        if f[0] == old:
+            fn(new, f[1], f[2], f[3], f[4], f[5], note or ("Same as " + old + " (MC FLO Memory Calculation name)."))
+            return
+    raise SystemExit("alias: unknown " + old)
+
+
+for old in ["fMC_BayesPredictionRegression", "fMC_BayesPredictionRegressionCIP", "fMC_BayesPredictionRegressionMAE"]:
+    alias(old + "V_MC", old)
+for old in ["fMC_BayesPredictionRegressionParameters", "fMC_BayesPredictionRegressionResiduals", "fMC_BayesClassifier",
+            "fMC_BootStrapVectorMLRegression", "fMC_BootStrapVectorMLRegressionParameters"]:
+    alias(old + "_MC", old)
+
+# Holt-Winters with given smoothing factors (wiki "Forecast-Tool")
+for nm, mult in (("fMC_HWAmodel", "false"), ("fMC_HWMmodel", "true")):
+    fn(nm, "matrix", "Holt-Winters forecast (" + ("multiplicative" if mult == "true" else "additive") + ") with the given smoothing factors, Number x 1.",
+       [("alpha", D, "Smoothing factor of the level."), ("beta", D, "Smoothing factor of the trend."), ("gamma", D, "Smoothing factor of the seasonality."),
+        ("Period", D, "Season length: 7 daily, 4 quarterly, 12 monthly data."), RG("Matrix1", "Historical data (at least 2 x Period values)."),
+        ("Number", A, "Number of forecasts (default 1)."), ("ResultOrder", A, "0 = forecasts only, 1 = fitted history followed by the forecasts.")],
+       f"return hwModel(alpha, beta, gamma, Period, Matrix1, Number, ResultOrder, {mult});", "batch")
+
+# Memory Calculation vector functions (wiki "Memory Calculation"): _simula_<Distribution>_MC(parameters; [count])
+for section, table in (("mem", CONT), ("mem", DISC)):
+    for lab, desc, ps, aliases in table:
+        params = [(pid(p), A, p.replace("_", " ") + ".") for p in ps] + [("Count", A, "Number of random numbers (default 30,000; at most 1,048,576).")]
+        fn("_simula_" + lab + "_MC", "matrix", "Memory Calculation: column of random numbers of the " + desc[0].lower() + desc[1:], params,
+           f'return simulaMC("FLOsimula_{lab}", {{{", ".join(p[0] for p in params[:-1])}}}, Count);', section)
+fn("_simula_calculation_MC", "matrix", "Memory Calculation: row-wise operation on two vectors (+ - * / */+ */- //+ //- Max Min com csme inc const).",
+   [("Vector1", A, "First vector (or matrix for + and *), or a constant."), ("Vector2", A, "Second vector or constant."), ("MMOperation", S, "Operation.")],
+   "return calculationMC(Vector1, Vector2, MMOperation);", "mem")
+fn("_simula_correlation_MC", "matrix", "Memory Calculation: correlates two vectors (rank reordering), n x 2.",
+   [("Vector1", A, "First vector."), ("Vector2", A, "Second vector."), ("CorrCoef", D, "Correlation coefficient."),
+    ("CorrType", A, "MC FLO correlation type (0 Normal ... 8 asy. Frechet)."), ("DoSort", A, "TRUE = sort the pairs by Vector1.")],
+   "return correlationMC(Vector1, Vector2, CorrCoef, CorrType, DoSort);", "mem")
+fn("_simula_Bounded_MC", "matrix", "Memory Calculation: keeps the values of Vector1 within [LowerBound, UpperBound].",
+   [("Vector1", A, "Vector."), ("LowerBound", D, "Lower bound."), ("UpperBound", D, "Upper bound."), ("Number", A, "Optional size of the result (resampled).")],
+   "return boundedMC(Vector1, LowerBound, UpperBound, Number);", "mem")
+
+
 def idl(name):
     # UNO IDL identifiers starting with a lower-case letter may not contain '_';
     # the programmatic name is capitalised, the display name keeps the manual's spelling
+    name = name.lstrip("_")   # _simula_*_MC: IDL identifiers cannot start with '_'
     return name[0].upper() + name[1:]
 
 
@@ -366,7 +430,8 @@ def cstr(s):
 SECTIONS = [("cont", "Model functions: continuous distributions"), ("disc", "Model functions: discrete distributions"),
             ("ts", "Model functions: time series"), ("other", "Model functions: output, correlation, bounds"),
             ("res", "Result functions (need a simulation)"), ("info", "Information and settings"), ("data", "Data tools"),
-            ("regr", "Regression"), ("bayes", "Bayesian statistics"), ("batch", "Batch forecasting"), ("matrix", "Matrix functions")]
+            ("regr", "Regression"), ("bayes", "Bayesian statistics"), ("batch", "Batch forecasting"), ("matrix", "Matrix functions"),
+            ("mem", "Memory Calculation vector functions")]
 
 
 def main(out):

@@ -69,6 +69,14 @@ double Simulation::input(const std::string& name, const std::string& desc, doubl
     std::lock_guard<std::recursive_mutex> g(mtx_);
     bool named = !lower(name).empty();
     std::uniform_real_distribution<double> uni(0.0, 1.0);
+    double v = inputValue(name, named, desc, expected, sampler, userDefined, uni);
+    if (recent_.size() > 4096) recent_.erase(recent_.begin(), recent_.begin() + 2048);
+    recent_.push_back({v, sampler});
+    return v;
+}
+
+double Simulation::inputValue(const std::string& name, bool named, const std::string& desc, double expected,
+                              const Sampler& sampler, bool userDefined, std::uniform_real_distribution<double>& uni) {
     switch (mode_) {
     case Mode::Expected:
         return expected;
@@ -118,7 +126,7 @@ double Simulation::output(const std::string& name, double value, bool hasValue) 
     return ret;
 }
 
-double Simulation::correlate(const std::string& a, const std::string& b, double rho, int type) {
+double Simulation::correlate(const std::string& a, const std::string& b, double rho, int type) {   // type: MC FLO code
     std::lock_guard<std::recursive_mutex> g(mtx_);
     if (!(rho > -1 && rho < 1)) throw std::invalid_argument("the correlation coefficient must be between -1 and 1");
     if (type < 0 || type > kMaxCopulaType) throw std::invalid_argument("correlation type must be 0..8");
@@ -132,6 +140,8 @@ void Simulation::beginRegistration() {
     index_.clear();
     corr_.clear();
     duplicates_.clear();
+    series_.clear();
+    recent_.clear();
     mode_ = Mode::Register;
 }
 
@@ -157,7 +167,7 @@ std::vector<std::string> Simulation::prepare(const Settings& s) {
             warn.push_back("correlation " + c.a + " / " + c.b + ": only inputs can be correlated, ignored");
             continue;
         }
-        specs.push_back({a, b, c.rho, c.type});
+        specs.push_back({a, b, c.rho, copulaFromMcflo(c.type)});   // formulas use the MC FLO type codes
     }
     CopulaResult cr = generateUniforms(int(vars_.size()), iterations_, specs, rng_);
     for (auto& w : cr.warnings) warn.push_back(w);
@@ -165,6 +175,8 @@ std::vector<std::string> Simulation::prepare(const Settings& s) {
     work_.assign(vars_.size(), std::vector<double>(iterations_, kNaN));
     for (auto& v : vars_) v.callsThisPass = 0;
     iteration_ = 0;
+    series_.clear();
+    recent_.clear();
     mode_ = Mode::Simulate;
     warnings_ = warn;
     return warn;
@@ -173,6 +185,24 @@ std::vector<std::string> Simulation::prepare(const Settings& s) {
 void Simulation::setIteration(int i) {
     std::lock_guard<std::recursive_mutex> g(mtx_);
     iteration_ = i;
+    recent_.clear();
+}
+
+std::vector<double>& Simulation::seriesState(const std::string& key) {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    return series_[lower(key)];
+}
+
+void Simulation::clearSeriesState() {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    series_.clear();
+}
+
+bool Simulation::samplerOfValue(double value, Sampler& out) const {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    for (auto it = recent_.rbegin(); it != recent_.rend(); ++it)
+        if (it->first == value) { out = it->second; return true; }
+    return false;
 }
 
 void Simulation::record(const std::string& name, VarKind kind, double value) {

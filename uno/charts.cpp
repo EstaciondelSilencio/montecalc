@@ -256,7 +256,7 @@ void drawSpider(Painter& p, int x, int y, int w, int h, const std::string& outpu
                 const std::vector<std::pair<std::string, Vec>>& inputs, bool cumulative) {
     const int Q = 10;
     Plot pl = axes(p, x, y, w, h - 20, 0, 1, -1, 1,
-                   std::string("Spider: correlation with ") + output + " by quantile" + (cumulative ? " (cumulative)" : ""));
+                   std::string("Spider: Pearson correlation with ") + output + " by 10% quantile" + (cumulative ? " (cumulative)" : ""));
     p.line(pl.x, pl.py(0), pl.x + pl.w, pl.py(0), col::axis);
     double q[Q + 1];
     for (int k = 0; k <= Q; ++k) q[k] = mc::stats::percentile(out, k / double(Q));
@@ -269,7 +269,7 @@ void drawSpider(Painter& p, int x, int y, int w, int h, const std::string& outpu
             Vec a, b;
             for (size_t j = 0; j < out.size() && j < inputs[i].second.size(); ++j)
                 if (out[j] >= lo && out[j] <= hi) { a.push_back(inputs[i].second[j]); b.push_back(out[j]); }
-            double r = mc::stats::spearman(a, b);
+            double r = mc::stats::pearson(a, b);
             if (!std::isfinite(r)) r = 0;
             strong |= std::fabs(r) >= 0.3;
             xs.push_back(pl.px((k - 0.5) / Q));

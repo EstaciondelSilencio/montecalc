@@ -9,100 +9,107 @@ Functions returning arrays (n x m) are entered as array formulas (Ctrl+Shift+Ent
 
 | Function | Description | Notes |
 |---|---|---|
-| `FLOsimula_Uniform([Name]; Minimum; Maximum; [Min]; [Max]; [Round]; [Number])` | Input variable: Continuous uniform distribution. |  |
-| `FLOsimula_Triangle([Name]; Minimum; Mode; Maximum; [Min]; [Max]; [Round]; [Number])` | Input variable: Triangle distribution. |  |
-| `FLOsimula_PERT([Name]; Minimum; Mode; Maximum; [Min]; [Max]; [Round]; [Number])` | Input variable: PERT distribution. |  |
-| `FLOsimula_Normal([Name]; Mean; StdDev; [Min]; [Max]; [Round]; [Number])` | Input variable: Normal distribution. |  |
-| `FLOsimula_Lognormal([Name]; Mean; StdDev; [Min]; [Max]; [Round]; [Number])` | Input variable: Lognormal distribution (mean and standard deviation of the variable). |  |
-| `FLOsimula_Beta([Name]; Alpha; Beta; Minimum; Maximum; [Min]; [Max]; [Round]; [Number])` | Input variable: Beta distribution scaled to [Minimum, Maximum]. |  |
-| `FLOsimula_Gumbel([Name]; Location; Scale; [Min]; [Max]; [Round]; [Number])` | Input variable: Gumbel (extreme value) distribution. |  |
-| `FLOsimula_Gamma([Name]; Shape; Scale; [Min]; [Max]; [Round]; [Number])` | Input variable: Gamma distribution. |  |
-| `FLOsimula_Exponential([Name]; Rate; [Min]; [Max]; [Round]; [Number])` | Input variable: Exponential distribution (Rate = 1/mean). |  |
-| `FLOsimula_TruncatedNormal([Name]; Mean; StdDev; LowerLimit; UpperLimit; [Min]; [Max]; [Round]; [Number])` | Input variable: Truncated normal distribution. |  |
-| `FLOsimula_Weibull([Name]; Shape; Scale; [Min]; [Max]; [Round]; [Number])` | Input variable: Weibull distribution. |  |
-| `FLOsimula_Chi2([Name]; DegreesOfFreedom; [Min]; [Max]; [Round]; [Number])` | Input variable: Chi-square distribution. |  |
-| `FLOsimula_StudentT([Name]; DegreesOfFreedom; [Min]; [Max]; [Round]; [Number])` | Input variable: Student-t distribution. |  |
-| `FLOsimula_Pareto([Name]; Shape; Scale; [Min]; [Max]; [Round]; [Number])` | Input variable: Pareto distribution. |  |
-| `FLOsimula_F([Name]; DegreesOfFreedom1; DegreesOfFreedom2; [Min]; [Max]; [Round]; [Number])` | Input variable: F distribution. |  |
-| `FLOsimula_ArcSin([Name]; Minimum; Maximum; [Min]; [Max]; [Round]; [Number])` | Input variable: Arcsine distribution. |  |
-| `FLOsimula_Cauchy([Name]; Location; Scale; [Min]; [Max]; [Round]; [Number])` | Input variable: Cauchy distribution (the cell shows the median). |  |
-| `FLOsimula_Frechet([Name]; Shape; Scale; Location; [Min]; [Max]; [Round]; [Number])` | Input variable: Frechet distribution. |  |
-| `FLOsimula_Logistic([Name]; Location; Scale; [Min]; [Max]; [Round]; [Number])` | Input variable: Logistic distribution. |  |
-| `FLOsimula_UserDefined(Data; NumberOfColumns; [Name]; [Min]; [Max]; [Round]; [Number])` | Input variable: user-defined distribution from a data area. | Two-column areas are read as (quantile, value) rows; if the quantiles are not all in [0,1] the last row is (minimum, maximum), as in the manual. |
+| `FLOsimula_Uniform(Lower_Limit; Upper_Limit; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Continuous uniform distribution. |  |
+| `FLOsimula_Uniforme(Lower_Limit; Upper_Limit; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Continuous uniform distribution. | Alias of FLOsimula_Uniform (MC FLO compatibility). |
+| `FLOsimula_Triangular(Lower_Limit; Upper_Limit; Mode; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Triangular distribution. |  |
+| `FLOsimula_PERT(Lower_Limit; Upper_Limit; Mode; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: PERT distribution. |  |
+| `FLOsimula_Normal(Mean; StDeviation; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Normal distribution. |  |
+| `FLOsimula_LogNormal(Shift; Mean; StDeviation; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Log-normal distribution: Shift + exp(Normal(Mean; StDeviation)). |  |
+| `FLOsimula_Beta(Param_alfa; Param_beta; Lower_Limit; Upper_Limit; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Beta distribution between Lower_Limit and Upper_Limit. |  |
+| `FLOsimula_Gumbel(Shift; Param_alfa; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Gumbel (extreme value) distribution: location Shift, scale param_alfa. |  |
+| `FLOsimula_Gamma(Shift; Param_alfa; Param_beta; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Gamma distribution: Shift + Gamma(scale param_alfa, shape param_beta). |  |
+| `FLOsimula_Exponential(Shift; Param_alfa; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Exponential distribution: Shift + Exponential(mean param_alfa). |  |
+| `FLOsimula_TruncNormal(Mean; StDeviation; Lower_Limit; Upper_Limit; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Truncated normal distribution. |  |
+| `FLOsimula_TruncatedNormal(Mean; StDeviation; Lower_Limit; Upper_Limit; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Truncated normal distribution. | Alias of FLOsimula_TruncNormal (MC FLO compatibility). |
+| `FLOsimula_Weibull(Shift; Param_alfa; Param_beta; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Weibull distribution: Shift + Weibull(scale param_alfa, shape param_beta). |  |
+| `FLOsimula_chi2(Freedom; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Chi-square distribution. |  |
+| `FLOsimula_studentt(Freedom; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Student-t distribution. |  |
+| `FLOsimula_Pareto(Shift; Param_alfa; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Pareto distribution with minimum Shift (> 0) and shape param_alfa. |  |
+| `FLOsimula_Fisher(Freedom1; Freedom2; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: F distribution. |  |
+| `FLOsimula_ArcSin(Lower_Limit; Upper_Limit; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Arcsine distribution. |  |
+| `FLOsimula_Cauchy(Shift; Param_alfa; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Cauchy distribution: location Shift, scale param_alfa (the cell shows the median). |  |
+| `FLOsimula_Frechet(Start; Shift; Param_alfa; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Frechet distribution: minimum Start, scale Shift, shape param_alfa. |  |
+| `FLOsimula_Logistic(Location; Shift; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Logistic distribution: location Location, scale Shift. |  |
+| `FLOsimula_UserDefined(Data; NumberOfBins; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: user-defined distribution from a data area. | Two-column areas are read as (quantile, value) rows; if the quantiles are not all in [0,1] the last row is (minimum, maximum), as in the manual. |
 
 ## Model functions: discrete distributions
 
 | Function | Description | Notes |
 |---|---|---|
-| `FLOsimula_DiscreteUniform([Name]; Minimum; Maximum; [Min]; [Max]; [Round]; [Number])` | Input variable: Discrete uniform distribution (integers). |  |
-| `FLOsimula_Bernoulli([Name]; Probability; [Min]; [Max]; [Round]; [Number])` | Input variable: Bernoulli distribution: 1 with the given probability, else 0. |  |
-| `FLOsimula_Binomial([Name]; Trials; Probability; [Min]; [Max]; [Round]; [Number])` | Input variable: Binomial distribution. |  |
-| `FLOsimula_Poisson([Name]; Lambda; [Min]; [Max]; [Round]; [Number])` | Input variable: Poisson distribution. |  |
-| `FLOsimula_Pascal([Name]; Successes; Probability; [Min]; [Max]; [Round]; [Number])` | Input variable: Pascal (negative binomial) distribution: failures before the R-th success. |  |
-| `FLOsimula_Geometric([Name]; Probability; [Min]; [Max]; [Round]; [Number])` | Input variable: Geometric distribution: failures before the first success. |  |
-| `FLOsimula_HyperGeometric([Name]; Population; Successes; Draws; [Min]; [Max]; [Round]; [Number])` | Input variable: Hypergeometric distribution. |  |
-| `FLOsimula_DiscreteUserDefined(Values; Probabilities; [Name]; [Min]; [Max]; [Round]; [Number])` | Input variable: user-defined discrete distribution. |  |
+| `FLOsimula_DiscreteUniform(Lower_Limit; Upper_Limit; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Discrete uniform distribution (integers). |  |
+| `FLOsimula_DiscreteUniforme(Lower_Limit; Upper_Limit; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Discrete uniform distribution (integers). | Alias of FLOsimula_DiscreteUniform (MC FLO compatibility). |
+| `FLOsimula_Bernoulli(Probability; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Bernoulli distribution: 1 (TRUE) with the given probability, else 0. |  |
+| `FLOsimula_Binomial(Probability; Tries; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Binomial distribution: successes in Tries trials. |  |
+| `FLOsimula_Poisson(Occurency; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Poisson distribution. |  |
+| `FLOsimula_Pascal(Probability; Success; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Pascal (negative binomial) distribution: failed attempts until Success successes; Probability = probability of a failure. |  |
+| `FLOsimula_Geometric(Probability; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Geometric distribution: failures before the first success. |  |
+| `FLOsimula_Hypergeometric(Tries; Population; Success_Possibles; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Hypergeometric distribution (draws without replacement). |  |
+| `FLOsimula_DiscreteUserDefined(Values; Probabilities; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: user-defined discrete distribution. |  |
 
 ## Model functions: time series
 
 | Function | Description | Notes |
 |---|---|---|
-| `FLOsimula_AR1([Name]; Mu; Phi; Sigma; LastValue; [Number])` | Input variable: AR(1) autoregressive process. | With Number = n each iteration simulates n periods from the last value and returns the value of period n. |
-| `FLOsimula_MA1([Name]; Mu; Theta; Sigma; [Number])` | Input variable: MA(1) moving-average process. | With Number = n each iteration simulates n periods from the last value and returns the value of period n. |
-| `FLOsimula_ARMA11([Name]; Mu; Phi; Theta; Sigma; LastValue; [Number])` | Input variable: ARMA(1,1) process. | With Number = n each iteration simulates n periods from the last value and returns the value of period n. |
-| `FLOsimula_ARCH1([Name]; Mu; A0; A1; LastValue; [Number])` | Input variable: ARCH(1) process (non-constant volatility). | With Number = n each iteration simulates n periods from the last value and returns the value of period n. |
-| `FLOsimula_WienerProcess([Name]; StartValue; Drift; Volatility; Dt; [Number])` | Input variable: Wiener process (geometric Brownian motion) with drift. | With Number = n each iteration simulates n periods from the last value and returns the value of period n. |
+| `FLOsimula_TemporalS_ARmodel(Start; Weight; StDeviation; UseBefore; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: AR(1) process around the level Start. | The (correlated) random number drives the noise of each iteration; UseBefore = 1 restarts every iteration at Start. |
+| `FLOsimula_TemporalS_MAmodel(Start; Weight; StDeviation; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: MA(1) process. | The (correlated) random number drives the noise of each iteration; UseBefore = 1 restarts every iteration at Start. |
+| `FLOsimula_TemporalS_ARMAmodel(Start; Weight1; StDeviation1; Weight2; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: ARMA(1,1) process. | The (correlated) random number drives the noise of each iteration; UseBefore = 1 restarts every iteration at Start. |
+| `FLOsimula_TemporalS_ARCHmodel(Omega; Alpha; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: ARCH(1) process (mean 0, non-constant volatility). | The (correlated) random number drives the noise of each iteration; UseBefore = 1 restarts every iteration at Start. |
+| `FLOsimula_TemporalS_WPmodel(Start; Drift; Mu; StDeviation; UseBefore; Variable_name; [Number]; [Min]; [Max]; [Round])` | Input variable: Wiener process (geometric Brownian motion); StDeviation is optional. | The (correlated) random number drives the noise of each iteration; UseBefore = 1 restarts every iteration at Start. |
 
 ## Model functions: output, correlation, bounds
 
 | Function | Description | Notes |
 |---|---|---|
-| `FLOsimula_Bounded([Reference]; [LowerLimit]; [UpperLimit])` | Limits an MC FLO variable to [LowerLimit, UpperLimit]. | Values outside the barriers are set to the barrier. For exact truncation use the Min/Max arguments of the distribution. |
+| `FLOsimula_Bounded([Variable]; [LowerLimit]; [UpperLimit]; [Variable_name])` | Input variable: truncates an existing MC FLO variable to [LowerLimit, UpperLimit]. | Only values within the limits are drawn. Before a simulation the cell shows the referenced variable's expected value. |
 | `FLOsimula_output([Name]; Value)` | Output variable. |  |
-| `FLOsimula_Correlation([Name1]; [Name2]; [Coefficient]; [Type])` | Correlation between two input variables; returns the coefficient. | The manual names the correlation types but not the formula name or the asymmetric families' definitions; see the README. |
+| `FLOsimula_correlation([Variable1]; [Variable2]; [Coef_corr]; [CorType])` | Correlation between two input variables; returns the coefficient. | Type codes as in the MC FLO wiki. Archimedean and asymmetric correlations are bivariate. |
 
 ## Result functions (need a simulation)
 
 | Function | Description | Notes |
 |---|---|---|
-| `fMC_Average(Name)` | Average of the distribution. Returns -1 if no simulation has been run. |  |
-| `fMC_Mean(Name)` | Average of the distribution. Returns -1 if no simulation has been run. |  |
-| `fMC_Min(Name)` | Minimum of the distribution. Returns -1 if no simulation has been run. |  |
-| `fMC_Max(Name)` | Maximum of the distribution. Returns -1 if no simulation has been run. |  |
-| `fMC_Sum(Name)` | Sum of the distribution. Returns -1 if no simulation has been run. |  |
-| `fMC_StdS(Name)` | Sample standard deviation. Returns -1 if no simulation has been run. |  |
-| `fMC_Variance(Name)` | Sample variance. Returns -1 if no simulation has been run. |  |
-| `fMC_Skewness(Name)` | Skewness. Returns -1 if no simulation has been run. |  |
-| `fMC_Kurtosis(Name)` | Excess kurtosis. Returns -1 if no simulation has been run. |  |
-| `fMC_CV(Name)` | Coefficient of variation. Returns -1 if no simulation has been run. |  |
-| `fMC_Semivariance(Name)` | Semivariance (below the mean). Returns -1 if no simulation has been run. |  |
-| `fMC_SemivarianceL(Name; Limit)` | Semivariance of the values below Limit. Returns -1 if no simulation has been run. |  |
-| `fMC_SemivarianceR(Name; Limit)` | Semivariance of the values above Limit. Returns -1 if no simulation has been run. |  |
-| `fMC_ExpGain(Name)` | Average of all values above 0. Returns -1 if no simulation has been run. |  |
-| `fMC_ExpGainV(Name)` | Variance of all values above 0. Returns -1 if no simulation has been run. |  |
-| `fMC_ExpLoss(Name)` | Average of all values below 0. Returns -1 if no simulation has been run. |  |
-| `fMC_ExpectedShortfall(Name; Percentile)` | Expected shortfall beyond the value-at-risk at the percentile (<= 0.5 left tail, else right tail). Returns -1 if no simulation has been run. |  |
-| `fMC_Percentile(Name; Percentile)` | Value at the percentile. Returns -1 if no simulation has been run. |  |
-| `fMC_PercentileValue(Name; Value)` | Percentile of a given value. Returns -1 if no simulation has been run. |  |
-| `fMC_PercentileInterval(Name; Lower_Limit; Upper_Limit)` | Confidence level (share of iterations) between the limits. Returns -1 if no simulation has been run. |  |
-| `fMC_Mode(Name; UsedBins)` | Most frequent value based on a histogram. Returns -1 if no simulation has been run. |  |
-| `fMC_Density(Name; Value)` | Density of the simulated distribution at Value. Returns -1 if no simulation has been run. |  |
-| `fMC_ExtremeValue(Name; Pos)` | Value at position Pos of the sorted list. Returns -1 if no simulation has been run. |  |
-| `fMC_PosValue(Name; Pos)` | Value at iteration Pos. Returns -1 if no simulation has been run. |  |
-| `fMC_ConditionPosValue(Name; Value)` | Position (iteration) whose value equals Value, or the nearest one. Returns -1 if no simulation has been run. |  |
-| `fMC_CorrP(Name1; Name2)` | Pearson correlation between two variables. Returns -1 if no simulation has been run. |  |
-| `fMC_CorrS(Name1; Name2)` | Spearman rank correlation between two variables. Returns -1 if no simulation has been run. |  |
-| `fMC_RegressionX(Name1; Name2)` | Slope of the linear regression (Name1 = x, Name2 = y). Returns -1 if no simulation has been run. |  |
-| `fMC_RegressionY(Name1; Name2)` | Intercept of the linear regression (Name1 = x, Name2 = y). Returns -1 if no simulation has been run. |  |
-| `fMC_Spider(Name1; Name2; Value1; Value2)` | Pearson correlation of the two variables within the range Value1..Value2 of Name1. Returns -1 if no simulation has been run. | Value1 and Value2 are quantiles of Name1 when both lie in [0,1], otherwise values of Name1. |
-| `fMC_DSensitivity(Name1; Name2; DSensotype; NumberBins)` | Dynamic sensitivity between input Name1 and output Name2: 0 range, 1 minimum, 2 maximum of the interval means. Returns -1 if no simulation has been run. |  |
-| `fMC_FinancialValue(Name1; Name2; Value2; Diff; Value1)` | Percentile Value1 of event A (Name1) given that event B (Name2) is within Value2 +/- Diff. Returns -1 if no simulation has been run. |  |
-| `fMC_Bayes(Name1; Comparison1; Value1; Name2; Comparison2; Value2)` | Conditional probability P(A | B), e.g. fMC_Bayes("NPV";">=";1000;"Costs";">=";100). Returns -1 if no simulation has been run. |  |
-| `fMC_BayesV(Name1; Name2; Comparison2; Value2; Percentile)` | Value at Percentile of A (Name1) given event B (Name2 Comparison2 Value2). Returns -1 if no simulation has been run. | Referenced but not specified in the manual; signature chosen to match fMC_Bayes4V. |
-| `fMC_Bayes4([Name1]; [Compare1]; [Value1]; [Name2]; [Compare2]; [Value2]; [Name3]; [Compare3]; [Value3]; [Name4]; [Compare4]; [Value4]; [Name5]; [Compare5]; [Value5])` | P(A | B, C, D, E) for up to five events. Returns -1 if no simulation has been run. |  |
-| `fMC_Bayes4V([Name1]; [Compare1]; [Value1]; [Name2]; [Compare2]; [Value2]; [Name3]; [Compare3]; [Value3]; [Name4]; [Compare4]; [Value4]; [Name5]; [Compare5]; [Value5]; [Percentile])` | Value at Percentile of A given events B..E. Returns -1 if no simulation has been run. |  |
-| `fMC_CorrRankN(Name; Rank)` | Name of the input with the Rank-th highest (absolute, Pearson) correlation with the output. |  |
-| `fMC_CorrRank(Name; Rank)` | Pearson correlation of the Rank-th strongest input with the output. Returns -1 if no simulation has been run. |  |
+| `fMC_Average(Name; [Referenz])` | Average of the distribution. Returns -1 if no simulation has been run. |  |
+| `fMC_Mean(Name; [Referenz])` | Average of the distribution. Returns -1 if no simulation has been run. |  |
+| `fMC_Min(Name; [Referenz])` | Minimum of the distribution. Returns -1 if no simulation has been run. |  |
+| `fMC_Max(Name; [Referenz])` | Maximum of the distribution. Returns -1 if no simulation has been run. |  |
+| `fMC_Sum(Name; [Referenz])` | Sum of the distribution. Returns -1 if no simulation has been run. |  |
+| `fMC_StdS(Name; [Referenz])` | Sample standard deviation. Returns -1 if no simulation has been run. |  |
+| `fMC_Variance(Name; [Referenz])` | Sample variance. Returns -1 if no simulation has been run. |  |
+| `fMC_Skewness(Name; [Referenz])` | Skewness. Returns -1 if no simulation has been run. |  |
+| `fMC_Kurtosis(Name; [Referenz])` | Excess kurtosis. Returns -1 if no simulation has been run. |  |
+| `fMC_CV(Name; [Referenz])` | Coefficient of variation. Returns -1 if no simulation has been run. |  |
+| `fMC_Semivariance(Name; [Referenz])` | Semivariance (below the mean). Returns -1 if no simulation has been run. |  |
+| `fMC_SemivarianceL(Name; Limit; [Referenz])` | Semivariance of the values below Limit. Returns -1 if no simulation has been run. |  |
+| `fMC_SemivarianceR(Name; Limit; [Referenz])` | Semivariance of the values above Limit. Returns -1 if no simulation has been run. |  |
+| `fMC_ExpGain(Name; [Referenz])` | Average of all values above 0. Returns -1 if no simulation has been run. |  |
+| `fMC_ExpGainV(Name; [Referenz])` | Variance of all values above 0. Returns -1 if no simulation has been run. |  |
+| `fMC_ExpLoss(Name; [Referenz])` | Average of all values below 0. Returns -1 if no simulation has been run. |  |
+| `fMC_ExpectedShortfall(Name; Percentile; [Referenz])` | Expected shortfall beyond the value-at-risk at the percentile (<= 0.5 left tail, else right tail). Returns -1 if no simulation has been run. |  |
+| `fMC_Percentile(Name; Percentile; [Referenz])` | Value at the percentile: the ROUNDUP(n * Percentile)-th smallest value. Returns -1 if no simulation has been run. |  |
+| `fMC_PercentileValue(Name; Value; [Referenz])` | Percentile (0..1) of a given value: position of the first value >= Value among the sorted values. Returns -1 if no simulation has been run. |  |
+| `fMC_PercentileInterval(Name; Lower_Limit; Upper_Limit; [Referenz])` | Confidence level (share of iterations) between the limits. Returns -1 if no simulation has been run. |  |
+| `fMC_Mode(Name; Number_bins; [Referenz])` | Most frequent value based on a histogram. Returns -1 if no simulation has been run. |  |
+| `fMC_Density(Name; Value; [Number_bins]; [Referenz])` | Share of the iterations at Value (discrete) or in the histogram column containing Value. Returns -1 if no simulation has been run. |  |
+| `fMC_ExtremeValue(Name; Pos; [Referenz])` | Value at position Pos of the sorted list. Returns -1 if no simulation has been run. |  |
+| `fMC_PosValue(Name; Pos; [Referenz])` | Value at iteration Pos. Returns -1 if no simulation has been run. |  |
+| `fMC_ConditionalPosValue(Name; Value; [Referenz])` | Position (iteration) whose value equals Value, or the nearest one. Returns -1 if no simulation has been run. |  |
+| `fMC_ConditionPosValue(Name; Value; [Referenz])` | Position (iteration) whose value equals Value, or the nearest one (alias of fMC_ConditionalPosValue). Returns -1 if no simulation has been run. |  |
+| `fMC_ADs(Name; [Referenz])` | Anderson-Darling normality test of a variable: 1 if very likely normal, else 0. Returns -1 if no simulation has been run. |  |
+| `fMC_CorrP(Name1; Name2; [Referenz])` | Pearson correlation between two variables. Returns -1 if no simulation has been run. |  |
+| `fMC_CorrS(Name1; Name2; [Referenz])` | Spearman rank correlation between two variables. Returns -1 if no simulation has been run. |  |
+| `fMC_RegressionX(Name1; Name2; [Referenz])` | Slope of the linear regression (Name1 = x, Name2 = y). Returns -1 if no simulation has been run. |  |
+| `fMC_RegressionY(Name1; Name2; [Referenz])` | Intercept of the linear regression (Name1 = x, Name2 = y). Returns -1 if no simulation has been run. |  |
+| `fMC_Spider(Name1; Name2; Value1; Value2; [Referenz])` | Pearson correlation of the two variables within the range Value1..Value2 of Name1. Returns -1 if no simulation has been run. | Value1 and Value2 are quantiles of Name1 when both lie in [0,1], otherwise values of Name1. |
+| `fMC_DSensitivity(Name1; Name2; DSensotype; NumberBins; [Referenz])` | Dynamic sensitivity between input Name1 and output Name2: 0 range, 1 minimum, 2 maximum of the interval means. Returns -1 if no simulation has been run. |  |
+| `fMC_FinancialValue(Name1; Name2; Value2; Diff; Value1; [Referenz])` | Percentile Value1 of event A (Name1) given that event B (Name2) is within Value2 +/- Diff. Returns -1 if no simulation has been run. |  |
+| `fMC_Bayes(Name1; Comparison1; Value1; Name2; Comparison2; Value2; [Referenz])` | Conditional probability P(A | B), e.g. fMC_Bayes("NPV";">=";1000;"Costs";">=";100). Returns -1 if no simulation has been run. |  |
+| `fMC_BayesV([Name1]; [Vergleich1]; [Wert1]; [Name2]; [Vergleich]; [Wert2]; [Referenz])` | Average of A (Name1) over the iterations where A and event B (Name2) meet their conditions. Returns -1 if no simulation has been run. |  |
+| `fMC_BayesV_MC([Name1]; [Vergleich1]; [Wert1]; [Name2]; [Vergleich]; [Wert2]; [Referenz])` | Average of A (Name1) over the iterations where A and event B (Name2) meet their conditions. Returns -1 if no simulation has been run. |  |
+| `fMC_Bayes4([Name1]; [Compare1]; [Value1]; [Name2]; [Compare2]; [Value2]; [Name3]; [Compare3]; [Value3]; [Name4]; [Compare4]; [Value4]; [Name5]; [Compare5]; [Value5]; [Referenz])` | P(A | B, C, D, E) for up to five events; a condition may also be given as one text (">="&100). Returns -1 if no simulation has been run. |  |
+| `fMC_Bayes4V([Name1]; [Compare1]; [Value1]; [Name2]; [Compare2]; [Value2]; [Name3]; [Compare3]; [Value3]; [Name4]; [Compare4]; [Value4]; [Name5]; [Compare5]; [Value5]; [Referenz])` | Average of A over the iterations where A and the events B..E meet their conditions. Returns -1 if no simulation has been run. |  |
+| `fMC_Bayes4V_MC([Name1]; [Compare1]; [Value1]; [Name2]; [Compare2]; [Value2]; [Name3]; [Compare3]; [Value3]; [Name4]; [Compare4]; [Value4]; [Name5]; [Compare5]; [Value5]; [Referenz])` | Average of A over the iterations where A and the events B..E meet their conditions. Returns -1 if no simulation has been run. |  |
+| `fMC_CorrRankN(Name; Rank; [Referenz])` | Name of the input with the Rank-th highest (absolute, Pearson) correlation with the output. |  |
+| `fMC_CorrRank(Name; Rank; [Referenz])` | Pearson correlation of the Rank-th strongest input with the output. Returns -1 if no simulation has been run. |  |
 | `fMC_AD([NameOrData])` | Anderson-Darling normality test on a variable name or a data area: TRUE (1) if very likely normal. |  |
 | `fMC_BootStrapN(Name; NumNewExamples; Confidence; [Percentile])` | Bootstrap confidence interval of the mean (or of Percentile) of a variable: "mean; lower; upper". |  |
 | `fMC_Kernel(Name; AdaptRate; Number_bins; [Bandwith]; [ReturnHistogram])` | Kernel density estimate of a variable: n x 1 smoothed sample or (ReturnHistogram) bins x 3 histogram (lower, upper, density). |  |
@@ -137,7 +144,7 @@ Functions returning arrays (n x m) are entered as array formulas (Ctrl+Shift+Ent
 | `fMC_BSMVal(Basis; Time; Interest; Sigma)` | Price of the underlying after Time periods (Black-Scholes-Merton, risk-neutral): random in a simulation, expected value otherwise. |  |
 | `fMC_BootStrap(Matrix1; NumNewExamples; Confidence; [Percentile])` | Bootstrap confidence interval of the mean (or Percentile) of a data area: "mean; lower; upper". |  |
 | `fMC_BootStrapVector(Matrix1; NumNewExamples; [Percentile]; [ReturnPercentH]; [Compound])` | Bootstrap distribution of the mean (or Percentile / hit rate / compound sum) of a data area, n x 1. |  |
-| `fMC_Kernel2(Data; [LowerLimit]; [UpperLimit]; [Bandwith]; Number_bins; [ReturnHistogram])` | Kernel density estimate of a data area over bins: bins x 1 densities or bins x 3 (lower, upper, density). |  |
+| `fMC_Kernel2(Data; [LowerLimit]; [UpperLimit]; [Bandwith]; [Number_bins]; [KernelType]; [ReturnHistogram]; [ReturnSample]; [Sample])` | Kernel density estimate of a data area over bins: bins x 1 densities or bins x 3 (lower, upper, density). |  |
 | `fMC_AD_Data(Matrix1)` | Anderson-Darling normality test on a data area (same as fMC_AD with a range). |  |
 | `fMC_FinancialDTrans(Initial; Periods; ActualYear; Amount)` | Share of Amount in ActualYear when it is spread evenly over Periods years starting at Initial. |  |
 
@@ -151,24 +158,32 @@ Functions returning arrays (n x m) are entered as array formulas (Ctrl+Shift+Ent
 | `fMC_BootStrapVectorMLRegression(DataY; DataX; NumberNewSamples; [UseRepeatedMedianRegression])` | Bootstrap samples of a multiple linear regression: rows (intercept, coefficients..., standard error). |  |
 | `fMC_BootStrapVectorMLRegressionParameters(DataY; DataX; NumberNewSamples; [UseRepeatedMedianRegression]; [CI]; [FeatureDescription])` | Parameter summary of a bootstrapped multiple regression: (m+2) x 4 (label, mean, lower, upper). |  |
 | `fMC_BayesPredictionRegression(DataY; DataX; Value; [Percentile]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Forecast of a Bayesian linear regression at Value (mean, or Percentile of the predictive distribution). | Posterior from the Bayesian bootstrap (Dirichlet-weighted least squares). |
-| `fMC_BayesPredictionRegressionParameters(DataY; DataX; [CI]; [FeatureDescription]; [UseLogForY]; [NumNewSample]; [UseRepeatedMedianRegression]; [kfolds])` | Parameters of a Bayesian linear regression: (m+2) x 4 (label, mean, lower, upper). |  |
-| `fMC_BayesPredictionRegressionCIP(TrainDataY; TrainDataX; TestDataY; TestDataX; [Percentile]; [UseLogForY]; [NumNewSample]; [UseRepeatedMedianRegression]; [kfolds])` | Coverage rate of the test data by the central predictive interval (1 = as expected). |  |
-| `fMC_BayesPredictionRegressionMAE(TrainDataY; TrainDataX; TestDataY; TestDataX; [UseLogForY]; [NumNewSample]; [UseRepeatedMedianRegression]; [kfolds])` | Mean absolute error of the Bayesian regression on the test data. |  |
-| `fMC_BayesPredictionRegressionResiduals(TrainDataY; TrainDataX; TestDataY; TestDataX; [UseLogForY]; [NumNewSample]; [UseRepeatedMedianRegression]; [kfolds])` | Residuals of the test data under the Bayesian regression, n x 1. |  |
+| `fMC_BayesPredictionRegressionParameters(DataY; DataX; [CI]; [FeatureDescription]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Parameters of a Bayesian linear regression: (m+2) x 4 (label, mean, lower, upper). |  |
+| `fMC_BayesPredictionRegressionCIP(TrainDataY; TrainDataX; TestDataY; TestDataX; [Percentile]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Coverage rate of the test data by the central predictive interval (1 = as expected). |  |
+| `fMC_BayesPredictionRegressionMAE(TrainDataY; TrainDataX; TestDataY; TestDataX; [Percentile]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Mean absolute error of the Bayesian regression on the test data. |  |
+| `fMC_BayesPredictionRegressionResiduals(TrainDataY; TrainDataX; TestDataY; TestDataX; [Percentile]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Residuals of the test data under the Bayesian regression, n x 1. |  |
+| `fMC_BayesPredictionRegressionV_MC(DataY; DataX; Value; [Percentile]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Forecast of a Bayesian linear regression at Value (mean, or Percentile of the predictive distribution). | Same as fMC_BayesPredictionRegression (MC FLO Memory Calculation name). |
+| `fMC_BayesPredictionRegressionCIPV_MC(TrainDataY; TrainDataX; TestDataY; TestDataX; [Percentile]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Coverage rate of the test data by the central predictive interval (1 = as expected). | Same as fMC_BayesPredictionRegressionCIP (MC FLO Memory Calculation name). |
+| `fMC_BayesPredictionRegressionMAEV_MC(TrainDataY; TrainDataX; TestDataY; TestDataX; [Percentile]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Mean absolute error of the Bayesian regression on the test data. | Same as fMC_BayesPredictionRegressionMAE (MC FLO Memory Calculation name). |
+| `fMC_BayesPredictionRegressionParameters_MC(DataY; DataX; [CI]; [FeatureDescription]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Parameters of a Bayesian linear regression: (m+2) x 4 (label, mean, lower, upper). | Same as fMC_BayesPredictionRegressionParameters (MC FLO Memory Calculation name). |
+| `fMC_BayesPredictionRegressionResiduals_MC(TrainDataY; TrainDataX; TestDataY; TestDataX; [Percentile]; [UseLogForY]; [UseRepeatedMedianRegression]; [NumNewSample]; [kfolds])` | Residuals of the test data under the Bayesian regression, n x 1. | Same as fMC_BayesPredictionRegressionResiduals (MC FLO Memory Calculation name). |
+| `fMC_BootStrapVectorMLRegression_MC(DataY; DataX; NumberNewSamples; [UseRepeatedMedianRegression])` | Bootstrap samples of a multiple linear regression: rows (intercept, coefficients..., standard error). | Same as fMC_BootStrapVectorMLRegression (MC FLO Memory Calculation name). |
+| `fMC_BootStrapVectorMLRegressionParameters_MC(DataY; DataX; NumberNewSamples; [UseRepeatedMedianRegression]; [CI]; [FeatureDescription])` | Parameter summary of a bootstrapped multiple regression: (m+2) x 4 (label, mean, lower, upper). | Same as fMC_BootStrapVectorMLRegressionParameters (MC FLO Memory Calculation name). |
 
 ## Bayesian statistics
 
 | Function | Description | Notes |
 |---|---|---|
-| `fMC_BayesMCMC(Name1; Name2; BurnIn; Thinning; NumberIterations; [ReturnData]; [Number_bins]; [Number_binsDivide])` | Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo (Gaussian proposal): n x 1 data or histogram. | The posterior density is proportional to the product of the two (kernel-estimated) densities. |
-| `fMC_BayesMCMCA(Name1; Name2; BurnIn; Thinning; NumberIterations; [ReturnData]; [Number_bins]; [Number_binsDivide])` | Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo (asymmetric uniform proposal): n x 1 data or histogram. | The posterior density is proportional to the product of the two (kernel-estimated) densities. |
-| `fMC_BayesMCMCV(Name1; Name2; BurnIn; Thinning; NumberIterations; [ReturnData]; [Number_bins]; [Number_binsDivide])` | Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo (volatile variant): n x 1 data or histogram. | The posterior density is proportional to the product of the two (kernel-estimated) densities. |
-| `fMC_BayesMCMCAV(Name1; Name2; BurnIn; Thinning; NumberIterations; [ReturnData]; [Number_bins]; [Number_binsDivide])` | Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo (volatile variant): n x 1 data or histogram. | The posterior density is proportional to the product of the two (kernel-estimated) densities. |
-| `fMC_BayesPrediction(Name1; [Name2]; Count; Attempts; NumberIterations; [ReturnData]; [Number_bins])` | Predictive distribution of the failures before Count successes, using posterior success probabilities. | The manual leaves the predictive model open; MonteCalc uses a negative-binomial predictive per posterior draw. |
-| `fMC_BayesCombine([Name1]; [Share1]; [Name2]; [Share2]; [Name3]; [Share3]; [Name4]; [Share4]; [Name5]; [Share5]; [ReturnData]; [NumBin])` | Combines up to five prior distributions into one (mixture): n x 1 data or histogram. |  |
+| `fMC_BayesMCMC(Name1; Name2; BurnIn; Thinning; NumberIterations; [ReturnData]; [Number_bins]; [Number_binsDivide]; [Referenz])` | Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo (Gaussian proposal): n x 1 data or histogram. | The posterior density is proportional to the product of the two (kernel-estimated) densities. |
+| `fMC_BayesMCMCA(Name1; Name2; BurnIn; Thinning; NumberIterations; [ReturnData]; [Number_bins]; [Number_binsDivide]; [Referenz])` | Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo (asymmetric uniform proposal): n x 1 data or histogram. | The posterior density is proportional to the product of the two (kernel-estimated) densities. |
+| `fMC_BayesMCMCV(Name1; Name2; BurnIn; Thinning; NumberIterations; [ReturnData]; [Number_bins]; [Number_binsDivide]; [Referenz])` | Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo (volatile variant): n x 1 data or histogram. | The posterior density is proportional to the product of the two (kernel-estimated) densities. |
+| `fMC_BayesMCMCAV(Name1; Name2; BurnIn; Thinning; NumberIterations; [ReturnData]; [Number_bins]; [Number_binsDivide]; [Referenz])` | Posterior of prior Name1 and likelihood Name2 by Markov chain Monte Carlo (volatile variant): n x 1 data or histogram. | The posterior density is proportional to the product of the two (kernel-estimated) densities. |
+| `fMC_BayesPrediction(Name1; [Name2]; Count; NumberIterations; Attempts; [ReturnData]; [Number_bins]; [Referenz])` | Predictive distribution of the failures before Count successes, using posterior success probabilities. | The manual leaves the predictive model open; MonteCalc uses a negative-binomial predictive per posterior draw. |
+| `fMC_BayesCombine([Name1]; [Share1]; [Name2]; [Share2]; [Name3]; [Share3]; [Name4]; [Share4]; [Name5]; [Share5]; [ReturnData]; [NumBin]; [Referenz])` | Combines up to five prior distributions into one (mixture): n x 1 data or histogram. |  |
 | `fMC_BayesMCMCV_Robust(Vector1; Vector2)` | Posterior of two data vectors (prior, likelihood) by a grid approximation (robust for sparse data), n x 1. |  |
 | `fMC_BayesClassifier(FeatureData; ClassData; PredictData; [Testproportion]; [ModelSelection]; [ReturnConfusionMatrixTestSet]; [ReturnPredictionInterval]; [PredictionInterval]; [Iterations]; [HisBins]; [LowerLimit]; [UpperLimit]; [FeatureImpact]; [FeatureDescription]; [kfolds]; [UseFlatPrior]; [UseWeightedFeatures])` | Naive Bayes classification (predictions, confusion matrix, credible intervals or feature impact). | Feature impact is the drop in test accuracy when the feature is permuted. |
 | `fMC_BayesFactor(ExpectedProbability; ObservedProbability; NumberOfAttempts; [NumNewSample]; [Percentile]; [Attempts])` | Bayes factor of H1 (p unknown) against H0 (p = ExpectedProbability) in a binomial model; with Percentile, the posterior credible value. | Computed analytically (uniform prior under H1), so NumNewSample and Attempts are not needed. |
+| `fMC_BayesClassifier_MC(FeatureData; ClassData; PredictData; [Testproportion]; [ModelSelection]; [ReturnConfusionMatrixTestSet]; [ReturnPredictionInterval]; [PredictionInterval]; [Iterations]; [HisBins]; [LowerLimit]; [UpperLimit]; [FeatureImpact]; [FeatureDescription]; [kfolds]; [UseFlatPrior]; [UseWeightedFeatures])` | Naive Bayes classification (predictions, confusion matrix, credible intervals or feature impact). | Same as fMC_BayesClassifier (MC FLO Memory Calculation name). |
 
 ## Batch forecasting
 
@@ -178,6 +193,8 @@ Functions returning arrays (n x m) are entered as array formulas (Ctrl+Shift+Ent
 | `fMC_Batch_HW_D_Time(Matrix1; Number; [ResultOrder]; [Selection]; [NumIterations]; [Percentil])` | Marks a series for a batch Holt-Winters forecast, daily (season 7) (run 'Start Batch'). |  |
 | `fMC_Batch_HW_M_Time(Matrix1; Number; [ResultOrder]; [Selection]; [NumIterations]; [Percentil])` | Marks a series for a batch Holt-Winters forecast, monthly (season 12) (run 'Start Batch'). |  |
 | `fMC_Batch_HW_Q_Time(Matrix1; Number; [ResultOrder]; [Selection]; [NumIterations]; [Percentil])` | Marks a series for a batch Holt-Winters forecast, quarterly (season 4) (run 'Start Batch'). |  |
+| `fMC_HWAmodel(alpha; beta; gamma; Period; Matrix1; [Number]; [ResultOrder])` | Holt-Winters forecast (additive) with the given smoothing factors, Number x 1. |  |
+| `fMC_HWMmodel(alpha; beta; gamma; Period; Matrix1; [Number]; [ResultOrder])` | Holt-Winters forecast (multiplicative) with the given smoothing factors, Number x 1. |  |
 
 ## Matrix functions
 
@@ -191,3 +208,37 @@ Functions returning arrays (n x m) are entered as array formulas (Ctrl+Shift+Ent
 | `fMC_SimpleMarkovChain(aMatrix; n)` | State distribution after n periods. aMatrix: transition matrix, optionally preceded by a row with the start distribution. |  |
 | `fMC_NBT(aMatrix; [UseSummary])` | Newcomb-Benford first-digit test (chi-squared), 18 x 3. |  |
 | `fMC_LDT(aMatrix; [UseSummary])` | Last-digit (before the decimal separator) uniformity test (chi-squared), 19 x 3. |  |
+
+## Memory Calculation vector functions
+
+| Function | Description | Notes |
+|---|---|---|
+| `_simula_Uniform_MC([Lower_Limit]; [Upper_Limit]; [Count])` | Memory Calculation: column of random numbers of the continuous uniform distribution. |  |
+| `_simula_Triangular_MC([Lower_Limit]; [Upper_Limit]; [Mode]; [Count])` | Memory Calculation: column of random numbers of the triangular distribution. |  |
+| `_simula_PERT_MC([Lower_Limit]; [Upper_Limit]; [Mode]; [Count])` | Memory Calculation: column of random numbers of the pERT distribution. |  |
+| `_simula_Normal_MC([Mean]; [StDeviation]; [Count])` | Memory Calculation: column of random numbers of the normal distribution. |  |
+| `_simula_LogNormal_MC([Shift]; [Mean]; [StDeviation]; [Count])` | Memory Calculation: column of random numbers of the log-normal distribution: Shift + exp(Normal(Mean; StDeviation)). |  |
+| `_simula_Beta_MC([Param_alfa]; [Param_beta]; [Lower_Limit]; [Upper_Limit]; [Count])` | Memory Calculation: column of random numbers of the beta distribution between Lower_Limit and Upper_Limit. |  |
+| `_simula_Gumbel_MC([Shift]; [Param_alfa]; [Count])` | Memory Calculation: column of random numbers of the gumbel (extreme value) distribution: location Shift, scale param_alfa. |  |
+| `_simula_Gamma_MC([Shift]; [Param_alfa]; [Param_beta]; [Count])` | Memory Calculation: column of random numbers of the gamma distribution: Shift + Gamma(scale param_alfa, shape param_beta). |  |
+| `_simula_Exponential_MC([Shift]; [Param_alfa]; [Count])` | Memory Calculation: column of random numbers of the exponential distribution: Shift + Exponential(mean param_alfa). |  |
+| `_simula_TruncNormal_MC([Mean]; [StDeviation]; [Lower_Limit]; [Upper_Limit]; [Count])` | Memory Calculation: column of random numbers of the truncated normal distribution. |  |
+| `_simula_Weibull_MC([Shift]; [Param_alfa]; [Param_beta]; [Count])` | Memory Calculation: column of random numbers of the weibull distribution: Shift + Weibull(scale param_alfa, shape param_beta). |  |
+| `_simula_chi2_MC([Freedom]; [Count])` | Memory Calculation: column of random numbers of the chi-square distribution. |  |
+| `_simula_studentt_MC([Freedom]; [Count])` | Memory Calculation: column of random numbers of the student-t distribution. |  |
+| `_simula_Pareto_MC([Shift]; [Param_alfa]; [Count])` | Memory Calculation: column of random numbers of the pareto distribution with minimum Shift (> 0) and shape param_alfa. |  |
+| `_simula_Fisher_MC([Freedom1]; [Freedom2]; [Count])` | Memory Calculation: column of random numbers of the f distribution. |  |
+| `_simula_ArcSin_MC([Lower_Limit]; [Upper_Limit]; [Count])` | Memory Calculation: column of random numbers of the arcsine distribution. |  |
+| `_simula_Cauchy_MC([Shift]; [Param_alfa]; [Count])` | Memory Calculation: column of random numbers of the cauchy distribution: location Shift, scale param_alfa (the cell shows the median). |  |
+| `_simula_Frechet_MC([Start]; [Shift]; [Param_alfa]; [Count])` | Memory Calculation: column of random numbers of the frechet distribution: minimum Start, scale Shift, shape param_alfa. |  |
+| `_simula_Logistic_MC([Location]; [Shift]; [Count])` | Memory Calculation: column of random numbers of the logistic distribution: location Location, scale Shift. |  |
+| `_simula_DiscreteUniform_MC([Lower_Limit]; [Upper_Limit]; [Count])` | Memory Calculation: column of random numbers of the discrete uniform distribution (integers). |  |
+| `_simula_Bernoulli_MC([Probability]; [Count])` | Memory Calculation: column of random numbers of the bernoulli distribution: 1 (TRUE) with the given probability, else 0. |  |
+| `_simula_Binomial_MC([Probability]; [Tries]; [Count])` | Memory Calculation: column of random numbers of the binomial distribution: successes in Tries trials. |  |
+| `_simula_Poisson_MC([Occurency]; [Count])` | Memory Calculation: column of random numbers of the poisson distribution. |  |
+| `_simula_Pascal_MC([Probability]; [Success]; [Count])` | Memory Calculation: column of random numbers of the pascal (negative binomial) distribution: failed attempts until Success successes; Probability = probability of a failure. |  |
+| `_simula_Geometric_MC([Probability]; [Count])` | Memory Calculation: column of random numbers of the geometric distribution: failures before the first success. |  |
+| `_simula_Hypergeometric_MC([Tries]; [Population]; [Success_Possibles]; [Count])` | Memory Calculation: column of random numbers of the hypergeometric distribution (draws without replacement). |  |
+| `_simula_calculation_MC([Vector1]; [Vector2]; MMOperation)` | Memory Calculation: row-wise operation on two vectors (+ - * / */+ */- //+ //- Max Min com csme inc const). |  |
+| `_simula_correlation_MC([Vector1]; [Vector2]; CorrCoef; [CorrType]; [DoSort])` | Memory Calculation: correlates two vectors (rank reordering), n x 2. |  |
+| `_simula_Bounded_MC([Vector1]; LowerBound; UpperBound; [Number])` | Memory Calculation: keeps the values of Vector1 within [LowerBound, UpperBound]. |  |

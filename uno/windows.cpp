@@ -26,6 +26,7 @@
 #include <com/sun/star/text/XText.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cctype>
 #include <cmath>
 #include <cstdio>
@@ -124,7 +125,13 @@ void insertIntoCurrentCell(const Frame& frame, const std::string& formula, const
 
 class ResultWindow : public CanvasWindow {
 public:
-    enum View { Histogram, Cumulative, Tornado, Spider, SpiderCum, Scatter, Variants, Decision, Statistics };
+    enum View { Histogram, Cumulative, Tornado, DynSens, Spider, SpiderCum, Scatter, Variants, BoxWhisker, Decision, Statistics, Overview };
+    std::vector<std::pair<View, std::string>> viewList() const {
+        if (preview_) return {{Histogram, "Histogram"}, {Cumulative, "Cumulative"}, {Statistics, "Statistics"}};
+        return {{Histogram, "Histogram"}, {Cumulative, "Cumulative"}, {Tornado, "Correlation (Spearman)"}, {DynSens, "Dynamic sensitivity"},
+                {Spider, "Spider diagram"}, {SpiderCum, "Spider (cumulative)"}, {Scatter, "Scatter / regression"}, {Variants, "Variants"},
+                {BoxWhisker, "Box-Whisker"}, {Decision, "Decision matrix"}, {Statistics, "Statistics"}, {Overview, "Overview (selected variables)"}};
+    }
 
     ResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& previewName = "", Vec previewData = {})
         : CanvasWindow(ctx, frame, previewName.empty() ? "MonteCalc - Results" : "MonteCalc - Preview " + previewName, 440, 270, 120),
@@ -153,15 +160,22 @@ public:
         addList("var", items, x, y, w - 30, 12, true);
         addButton("prev", "<", x + w - 28, y, 13, 12);
         addButton("next", ">", x + w - 14, y, 13, 12); y += 16;
+        auto labels = sim.resultSetLabels();
+        if (!preview_ && labels.size() > 1) {   // as in MC FLO: the variant (scenario) choice at the top right
+            addLabel("lvariant", "Variant", x, y, w); y += 10;
+            addList("variant", labels, x, y, w, 12, true); y += 16;
+        }
         addLabel("lview", "View", x, y, w); y += 10;
-        std::vector<std::string> views = {"Histogram", "Cumulative", "Tornado", "Spider", "Spider (cumulative)", "Scatter / dynamic sensitivity",
-                                          "Variants", "Decision matrix", "Statistics"};
-        if (preview_) views = {"Histogram", "Cumulative", "Statistics"};
+        std::vector<std::string> views;
+        for (auto& [v, label] : viewList()) views.push_back(label);
         addList("view", views, x, y, w, 12, true); y += 16;
         addLabel("lbins", "Number of bins", x, y + 2, 60);
         addEdit("bins", std::to_string(bins_), x + 62, y, 26);
         addButton("applyBins", "Apply", x + 90, y, w - 90, 12); y += 16;
-        addLabel("lthr", "Thresholds: lower / upper", x, y, w); y += 10;
+        addLabel("lcert", "Certainty level %", x, y + 2, 62);
+        addEdit("certainty", "95", x + 64, y, w - 90);
+        addButton("setCertainty", "Set", x + w - 24, y, 24, 12); y += 14;
+        addLabel("lthr", "Lower / upper limit", x, y, w); y += 10;
         addEdit("lower", "", x, y, w / 2 - 14);
         addEdit("upper", "", x + w / 2 - 12, y, w / 2 - 14);
         addButton("thresholds", "Set", x + w - 24, y, 24, 12); y += 16;
@@ -173,16 +187,13 @@ public:
         addLabel("linput", "Input for scatter", x, y, w); y += 10;
         addList("input", inputs.empty() ? std::vector<std::string>{"-"} : inputs, x, y, w, 12, true); y += 16;
         addLabel("ltarget", "Target value (decision matrix)", x, y, w); y += 10;
-        addEdit("target", "", x, y, w - 26);
+        addList("targetDir", {">", "<"}, x, y, 22, 12, true);
+        addEdit("target", "", x + 24, y, w - 50);
         addButton("applyTarget", "Set", x + w - 24, y, 24, 12); y += 16;
-        auto labels = sim.resultSetLabels();
-        if (!preview_ && labels.size() > 1) {
-            addLabel("lvariant", "Variant", x, y, w); y += 10;
-            addList("variant", labels, x, y, w, 12, true); y += 16;
-        }
         addButton("store", "Store results", x, y, w / 2 - 1); addButton("export", "Export image", x + w / 2 + 1, y, w / 2 - 1); y += 16;
         addButton("comment", "Store as comment", x, y, w / 2 - 1); addButton("rerun", "Start", x + w / 2 + 1, y, w / 2 - 1); y += 16;
-        addButton("close", "Close", x, y, w);
+        addButton("zoomOut", "Zoom -", x, y, w / 3 - 1); addButton("zoomIn", "Zoom +", x + w / 3, y, w / 3 - 1);
+        addButton("close", "Close", x + 2 * w / 3, y, w - 2 * w / 3);
         resetVariable();
     }
 
@@ -201,10 +212,11 @@ public:
     void resetVariable() {
         Vec v = data(vars_[cur_].name);
         stripeX_ = mc::stats::percentile(v, 0.5);
-        lower_ = mc::stats::percentile(v, 0.025);
-        upper_ = mc::stats::percentile(v, 0.975);
+        lower_ = mc::stats::percentile(v, (1 - certainty_) / 2);
+        upper_ = mc::stats::percentile(v, 1 - (1 - certainty_) / 2);
         target_ = mc::stats::percentile(v, 0.5);
     }
+    void setOverview(const std::vector<std::string>& names) { overview_ = names; }
 
     bool has(const std::string& name) {
         try { selected(name); return true; } catch (...) { return false; }
@@ -238,6 +250,7 @@ public:
                 o.markers = {{"worst", mc::stats::percentile(v, st.worst)}, {"best", mc::stats::percentile(v, st.best)}};
             }
             plot_ = drawHistogram(p, 0, 0, w, h - 46, v, o);
+
             // statistics strip
             std::string s1 = "Mean " + niceNum(mc::stats::mean(v)) + "   Min " + niceNum(mc::stats::min(v)) + "   Max " + niceNum(mc::stats::max(v)) +
                              "   Std dev " + niceNum(mc::stats::stdev(v)) + "   Variance " + niceNum(mc::stats::variance(v));
@@ -248,18 +261,34 @@ public:
             break;
         }
         case Tornado: {
+            // correlation analysis: all inputs and outputs with the selected variable (Spearman)
             std::vector<std::pair<std::string, double>> t;
-            for (auto& [n, x] : inputs) {
-                double r = mc::stats::spearman(x, v);
-                t.push_back({n, std::isfinite(r) ? r : 0});
+            for (auto& x : vars_) {
+                if (x.name == var.name) continue;
+                double r = mc::stats::spearman(data(x.name), v);
+                t.push_back({x.name, std::isfinite(r) ? r : 0});
             }
+            if (t.size() > 25) t.resize(25);
             std::stable_sort(t.begin(), t.end(), [](auto& a, auto& b) { return std::fabs(a.second) > std::fabs(b.second); });
             tornadoRows_.clear();
             tornadoNames_.clear();
             for (auto& x : t) tornadoNames_.push_back(x.first);
-            drawTornado(p, 0, 0, w, h, "Tornado (Spearman rank correlation with " + var.name + ") - click a bar for details", t, &tornadoRows_);
+            std::stable_sort(t.begin(), t.end(), [](auto& a, auto& b) { return std::fabs(a.second) > std::fabs(b.second); });
+            tornadoNames_.clear();
+            for (auto& x : t) tornadoNames_.push_back(x.first);
+            tornadoRows_.clear();
+            drawTornado(p, 0, 0, w, h, "Correlation with " + var.name + " (Spearman) - click a bar for the regression", t, &tornadoRows_);
             break;
         }
+        case DynSens:
+            paintDynSens(p, w, h, var, v, inputs);
+            break;
+        case BoxWhisker:
+            paintBoxWhisker(p, w, h, var);
+            break;
+        case Overview:
+            paintOverview(p, w, h);
+            break;
         case Spider:
         case SpiderCum:
             drawSpider(p, 0, 0, w, h, var.name, v, inputs, view_ == SpiderCum);
@@ -294,44 +323,191 @@ public:
         }
     }
 
-    void paintDecision(Painter& p, int w, int, const mc::Variable& var, const Vec& v, const std::vector<std::pair<std::string, Vec>>& inputs) {
-        // decision matrix: target value, ambition level, probability, and the control effect of every input
-        double prob = 0, n = 0;
-        for (double x : v) if (std::isfinite(x)) { n += 1; prob += x >= target_; }
-        prob = n > 0 ? prob / n : 0;
-        p.text(10, 8, "Decision matrix for " + var.name, col::text, true);
-        p.text(10, 28, "Target value " + niceNum(target_) + "   ambition level " + pctText(1 - prob) + "   probability to reach the target " + pctText(prob),
-               col::text);
-        std::vector<std::vector<std::string>> rows{{"Input", "Rank corr.", "P(target) favourable", "P(target) unfavourable", "Control effect"}};
-        struct R { std::string name; double r, fav, unf, eff; };
+    // Dynamic sensitivity (MC FLO): range of the output's interval means for each input, sorted by
+    // range, with the expected value of the output as an orange line. Click a bar for the regression.
+    void paintDynSens(Painter& p, int w, int h, const mc::Variable& var, const Vec& v, const std::vector<std::pair<std::string, Vec>>& inputs) {
+        struct R { std::string name; double lo, hi; };
         std::vector<R> rs;
+        for (auto& [n, x] : inputs) {
+            Vec ds = mc::stats::dynamicSensitivity(x, v, 10);
+            if (ds.size() >= 3 && std::isfinite(ds[1]) && std::isfinite(ds[2])) rs.push_back({n, ds[1], ds[2]});
+        }
+        std::stable_sort(rs.begin(), rs.end(), [](const R& a, const R& b) { return a.hi - a.lo > b.hi - b.lo; });
+        if (rs.size() > 20) rs.resize(20);
+        tornadoNames_.clear();
+        tornadoRows_.clear();
+        p.rect(0, 0, w, h, &col::white, nullptr);
+        p.text(8, 4, "Dynamic sensitivity of " + var.name + " - click a bar for the regression", col::text, true);
+        if (rs.empty()) return;
+        double lo = rs[0].lo, hi = rs[0].hi, mean = mc::stats::mean(v);
+        for (auto& r : rs) { lo = std::min(lo, r.lo); hi = std::max(hi, r.hi); }
+        lo = std::min(lo, mean);
+        hi = std::max(hi, mean);
+        int labelW = 0;
+        for (auto& r : rs) labelW = std::max(labelW, p.textWidth(r.name));
+        labelW += 16;
+        int top = p.textHeight() + 18, rowH = std::max(14, std::min(28, (h - top - 30) / int(rs.size())));
+        Plot pl{labelW, top, w - labelW - 20, rowH * int(rs.size()), lo - (hi - lo) * 0.05, hi + (hi - lo) * 0.05, 0, 1};
+        Color bar = col::input.mix(col::white, 0.25);
+        for (size_t i = 0; i < rs.size(); ++i) {
+            int yy = top + int(i) * rowH;
+            p.rect(pl.px(rs[i].lo), yy + 2, std::max(1, pl.px(rs[i].hi) - pl.px(rs[i].lo)), rowH - 4, &bar, nullptr);
+            p.text(8, yy + (rowH - p.textHeight()) / 2, rs[i].name, col::text);
+            tornadoNames_.push_back(rs[i].name);
+            tornadoRows_.push_back({yy, yy + rowH});
+        }
+        p.line(pl.px(mean), top - 6, pl.px(mean), top + pl.h + 2, col::output, 2);
+        for (double t : ticks(pl.x0, pl.x1, 5)) {
+            std::string s = niceNum(t);
+            p.text(pl.px(t) - p.textWidth(s) / 2, top + pl.h + 6, s, col::muted);
+        }
+        p.text(pl.px(mean) + 4, top - 14, "mean " + niceNum(mean), col::output);
+    }
+
+    // Box-Whisker per variant (MC FLO: box 25%-75%, whiskers 15%-85%, median line, mean point)
+    void paintBoxWhisker(Painter& p, int w, int h, const mc::Variable& var) {
+        auto& sim = mc::Simulation::instance();
+        auto labels = sim.resultSetLabels();
+        std::vector<std::pair<std::string, Vec>> series;
+        if (labels.size() < 2) series.push_back({var.name, data(var.name)});
+        else
+            for (size_t i = 0; i < labels.size(); ++i) {
+                Vec d;
+                sim.samplesIn(int(i), var.name, d);
+                series.push_back({labels[i], d});
+            }
+        double lo = 1e300, hi = -1e300;
+        for (auto& [n, d] : series) if (!d.empty()) { lo = std::min(lo, mc::stats::min(d)); hi = std::max(hi, mc::stats::max(d)); }
+        if (!(hi > lo)) { p.text(10, 10, "No data.", col::text); return; }
+        Plot pl = axes(p, 0, 0, w, h, -0.5, double(series.size()) - 0.5, lo, hi, "Box-Whisker of " + var.name + " (box 25%-75%, whiskers 15%-85%)");
+        p.rect(pl.x - 20, pl.y + pl.h + 2, pl.w + 40, p.textHeight() + 6, &col::white, nullptr);   // no numeric x axis
+        int bw = std::max(10, pl.w / int(series.size()) / 3);
+        for (size_t i = 0; i < series.size(); ++i) {
+            const Vec& d = series[i].second;
+            if (d.empty()) continue;
+            int cx = pl.px(double(i));
+            double q15 = mc::stats::percentile(d, 0.15), q25 = mc::stats::percentile(d, 0.25), q50 = mc::stats::percentile(d, 0.5),
+                   q75 = mc::stats::percentile(d, 0.75), q85 = mc::stats::percentile(d, 0.85), m = mc::stats::mean(d);
+            Color c = col::series[i % 8], fill = c.mix(col::white, 0.6);
+            p.line(cx, pl.py(q15), cx, pl.py(q25), c, 2);
+            p.line(cx, pl.py(q75), cx, pl.py(q85), c, 2);
+            p.line(cx - bw / 3, pl.py(q15), cx + bw / 3, pl.py(q15), c, 2);
+            p.line(cx - bw / 3, pl.py(q85), cx + bw / 3, pl.py(q85), c, 2);
+            p.rect(cx - bw / 2, pl.py(q75), bw, std::max(1, pl.py(q25) - pl.py(q75)), &fill, &c);
+            p.line(cx - bw / 2, pl.py(q50), cx + bw / 2, pl.py(q50), c, 3);
+            p.ellipse(cx - 4, pl.py(m) - 4, 8, 8, &col::output, nullptr);
+            p.ellipse(cx - 2, pl.py(mc::stats::min(d)) - 2, 4, 4, &col::muted, nullptr);
+            p.ellipse(cx - 2, pl.py(mc::stats::max(d)) - 2, 4, 4, &col::muted, nullptr);
+            p.text(cx - p.textWidth(series[i].first) / 2, pl.y + pl.h + 4, series[i].first, col::text, true);
+        }
+    }
+
+    // several variables at a glance (cells selected before opening the window)
+    void paintOverview(Painter& p, int w, int h) {
+        std::vector<std::string> names = overview_;
+        if (names.empty())
+            for (auto& v : vars_) if (names.size() < 9) names.push_back(v.name);
+        int n = int(names.size()), cols = n <= 2 ? n : n <= 4 ? 2 : 3, rows = (n + cols - 1) / std::max(1, cols);
+        if (n == 0) return;
+        int cw = w / cols, ch = h / rows;
+        for (int i = 0; i < n; ++i) {
+            Vec d = data(names[i]);
+            HistogramOptions o;
+            o.title = names[i] + "  (mean " + niceNum(mc::stats::mean(d)) + ", P5 " + niceNum(mc::stats::percentile(d, 0.05)) + ", P95 " +
+                      niceNum(mc::stats::percentile(d, 0.95)) + ")";
+            o.bins = bins_;
+            bool isOut = false;
+            for (auto& v : vars_) if (v.name == names[i]) isOut = v.kind == mc::VarKind::Output;
+            o.color = isOut ? col::output : col::input;
+            drawHistogram(p, (i % cols) * cw, (i / cols) * ch, cw - 4, ch - 4, d, o);
+        }
+    }
+
+    // Decision matrix (MC FLO 7.8.8): for a target value, the conditional probability that a driver
+    // breaches its ambition level when the target is missed, against the conditional damage.
+    struct DecisionPoint { std::string name; double prob, damage, rho, compatLo, compatHi; int x, y; };
+    void paintDecision(Painter& p, int w, int h, const mc::Variable& var, const Vec& v, const std::vector<std::pair<std::string, Vec>>& inputs) {
+        bool above = selectedItemSafe("targetDir") != "<";   // ">": the result should exceed the target
+        double n = 0, ok = 0;
+        for (double x : v) if (std::isfinite(x)) { n += 1; ok += above ? x > target_ : x < target_; }
+        double pSuccess = n > 0 ? ok / n : 0, ambition = 1 - pSuccess;
+        decision_.clear();
+        double maxDamage = 0;
         for (auto& [name, x] : inputs) {
             double r = mc::stats::spearman(x, v);
-            if (!std::isfinite(r)) r = 0;
-            double med = mc::stats::percentile(x, 0.5);
-            double hf = 0, nf = 0, hu = 0, nu = 0;
+            if (!std::isfinite(r) || std::fabs(r) <= 0.05) continue;   // as in MC FLO
+            bool up = (r > 0) == above;   // a higher driver helps
+            double q = mc::stats::percentile(x, up ? ambition : 1 - ambition);
+            double miss = 0, both = 0, dsum = 0;
+            Vec good;
             for (size_t i = 0; i < x.size() && i < v.size(); ++i) {
                 if (!std::isfinite(x[i]) || !std::isfinite(v[i])) continue;
-                bool favourable = r >= 0 ? x[i] >= med : x[i] <= med;
-                (favourable ? nf : nu) += 1;
-                (favourable ? hf : hu) += v[i] >= target_;
+                bool success = above ? v[i] > target_ : v[i] < target_;
+                if (success) { good.push_back(x[i]); continue; }
+                miss += 1;
+                // strictly beyond the driver's ambition quantile (discrete drivers: yes/no counts correctly)
+                if (up ? x[i] < q : x[i] > q) { both += 1; dsum += v[i] - target_; }
             }
-            double fav = nf ? hf / nf : 0, unf = nu ? hu / nu : 0;
-            rs.push_back({name, r, fav, unf, fav - unf});
+            if (miss == 0) continue;
+            DecisionPoint d{name, both / miss, both > 0 ? std::fabs(dsum / both) : 0, r, kNaNd(), kNaNd(), 0, 0};
+            if (good.size() > 10) { d.compatLo = mc::stats::percentile(good, 0.025); d.compatHi = mc::stats::percentile(good, 0.975); }
+            maxDamage = std::max(maxDamage, d.damage);
+            decision_.push_back(d);
         }
-        std::stable_sort(rs.begin(), rs.end(), [](const R& a, const R& b) { return a.eff > b.eff; });
-        std::vector<Color> colors{col::white};
-        for (auto& r : rs) {
-            char b[16];
-            std::snprintf(b, sizeof b, "%+.2f", r.r);
-            rows.push_back({r.name, b, pctText(r.fav), pctText(r.unf), pctText(r.eff)});
-            colors.push_back(col::white.mix(col::green, std::min(1.0, std::max(0.0, r.eff)) * 0.8));
+        p.rect(0, 0, w, h, &col::white, nullptr);
+        std::string title = "Decision matrix " + var.name + ":  expected " + niceNum(mc::stats::mean(v)) + "   target " + std::string(above ? "> " : "< ") +
+                            niceNum(target_) + "   ambition " + pctText(ambition) + "   P(target reached) " + pctText(pSuccess);
+        p.text(8, 4, title, col::text, true);
+        if (decision_.empty()) { p.text(8, 26, "No driver with |rank correlation| > 0.05, or the target is never missed.", col::muted); return; }
+        int left = 60, top = p.textHeight() + 20, pw = w - left - 20, ph = h - top - 40;
+        // zones green - yellow - red from the lower left to the upper right
+        for (int i = 0; i < 3; ++i)
+            for (int j = 0; j < 3; ++j) {
+                int score = i + j;
+                Color c = score <= 1 ? Color{214, 240, 214} : score == 2 ? Color{252, 246, 200} : score == 3 ? Color{252, 222, 190} : Color{246, 196, 196};
+                p.rect(left + i * pw / 3, top + (2 - j) * ph / 3, pw / 3 + 1, ph / 3 + 1, &c, nullptr);
+            }
+        p.rect(left, top, pw, ph, nullptr, &col::axis);
+        double ymax = maxDamage > 0 ? maxDamage * 1.1 : 1;
+        std::vector<std::array<int, 4>> placed;   // label boxes, to avoid overlaps
+        for (auto& d : decision_) {
+            d.x = left + int(d.prob * pw);
+            d.y = top + ph - int(d.damage / ymax * ph);
+            Color c = d.rho >= 0 ? col::input : col::red;
+            p.ellipse(d.x - 6, d.y - 6, 12, 12, &c, &col::black);
+            int tw = p.textWidth(d.name), th = p.textHeight();
+            int lx = d.x + 8 + tw > left + pw ? d.x - 8 - tw : d.x + 8, ly = d.y - th / 2;
+            for (int tries = 0; tries < 12; ++tries) {
+                bool hit = false;
+                for (auto& b : placed)
+                    if (lx < b[0] + b[2] && lx + tw > b[0] && ly < b[1] + b[3] && ly + th > b[1]) { hit = true; break; }
+                if (!hit) break;
+                ly += th;
+            }
+            placed.push_back({lx, ly, tw, th});
+            p.text(lx, ly, d.name, col::text);
         }
-        int tw = std::min(w - 20, 620);
-        drawTable(p, 10, 50, tw, rows, {tw * 30 / 100, tw * 14 / 100, tw * 20 / 100, tw * 20 / 100, tw * 16 / 100}, &colors);
-        if (!rs.empty())
-            p.text(10, 56 + (p.textHeight() + 6) * int(rows.size()), "Most urgent control effect: " + rs[0].name, col::text, true);
+        p.text(left, top + ph + 6, "conditional probability (driver breaches its ambition level | target missed)", col::muted);
+        p.text(4, top - p.textHeight() - 2, "cond. damage", col::muted);
+        for (double t : {0.0, 0.5, 1.0}) p.text(left + int(t * pw) - 8, top + ph + 6 + p.textHeight(), pctText(t), col::muted);
+        p.text(4, top, niceNum(ymax), col::muted);
+        // tooltip of the point under the mouse
+        for (auto& d : decision_)
+            if (std::abs(mouseX_ - d.x) <= 8 && std::abs(mouseY_ - d.y) <= 8) {
+                std::vector<std::string> lines{d.name, "conditional probability " + pctText(d.prob), "conditional damage " + niceNum(d.damage),
+                                               "rank correlation " + niceNum(d.rho)};
+                if (std::isfinite(d.compatLo))
+                    lines.push_back("values compatible with the target (P95): " + niceNum(d.compatLo) + " to " + niceNum(d.compatHi));
+                int tw = 0, th = p.textHeight();
+                for (auto& l : lines) tw = std::max(tw, p.textWidth(l));
+                int bx = std::min(w - tw - 16, d.x + 12), by = std::min(h - th * int(lines.size()) - 12, d.y + 12);
+                Color bg{255, 252, 235};
+                p.roundRect(bx, by, tw + 12, th * int(lines.size()) + 8, 6, &bg, &col::axis);
+                for (size_t i = 0; i < lines.size(); ++i) p.text(bx + 6, by + 4 + int(i) * th, lines[i], col::text, i == 0);
+                break;
+            }
     }
+    static double kNaNd() { return std::nan(""); }
 
     std::string selectedItemSafe(const std::string& n) {
         try { return selectedItem(n); } catch (...) { return {}; }
@@ -340,7 +516,7 @@ public:
     void mouseDown(const MouseInfo& m) override {
         if (view_ == Histogram || view_ == Cumulative) {
             if (m.x >= plot_.x && m.x <= plot_.x + plot_.w) { stripeX_ = plot_.vx(m.x); repaint(); }
-        } else if (view_ == Tornado) {
+        } else if (view_ == Tornado || view_ == DynSens) {
             for (size_t i = 0; i < tornadoRows_.size(); ++i)
                 if (m.y >= tornadoRows_[i].first && m.y < tornadoRows_[i].second) {
                     auto inputs = itemsOf("input");
@@ -356,6 +532,7 @@ public:
             repaint();
         }
         if (view_ == Variants) { probe_ = m.x; probeOn_ = true; repaint(); }
+        if (view_ == Decision) { mouseX_ = m.x; mouseY_ = m.y; repaint(); }
     }
     std::vector<std::string> itemsOf(const std::string&) {
         std::vector<std::string> r;
@@ -364,9 +541,8 @@ public:
     }
     void setView(View v) {
         view_ = v;
-        std::vector<View> map = preview_ ? std::vector<View>{Histogram, Cumulative, Statistics}
-                                         : std::vector<View>{Histogram, Cumulative, Tornado, Spider, SpiderCum, Scatter, Variants, Decision, Statistics};
-        for (size_t i = 0; i < map.size(); ++i) if (map[i] == v) select("view", int(i));
+        auto vl = viewList();
+        for (size_t i = 0; i < vl.size(); ++i) if (vl[i].first == v) select("view", int(i));
         repaint();
     }
     bool key(int code, int, bool, bool) override {
@@ -383,9 +559,8 @@ public:
         if (name == "var") { cur_ = std::max(0, selected("var")); resetVariable(); }
         else if (name == "view") {
             int s = selected("view");
-            std::vector<View> map = preview_ ? std::vector<View>{Histogram, Cumulative, Statistics}
-                                             : std::vector<View>{Histogram, Cumulative, Tornado, Spider, SpiderCum, Scatter, Variants, Decision, Statistics};
-            if (s >= 0 && s < int(map.size())) view_ = map[s];
+            auto vl = viewList();
+            if (s >= 0 && s < int(vl.size())) view_ = vl[s].first;
         } else if (name == "variant") {
             int s = selected("variant");
             if (s >= 0) {
@@ -397,6 +572,21 @@ public:
     }
     void button(const std::string& b) override {
         if (b == "close") { close(); return; }
+        if (b == "zoomIn" || b == "zoomOut") { setZoom(b == "zoomIn" ? zoom() * 1.15 : zoom() / 1.15); return; }
+        if (b == "setCertainty") {
+            double c = parseOr(text("certainty"), -1);
+            if (c > 1) c /= 100;
+            if (!(c > 0 && c < 1)) { message("Enter a certainty level between 0 and 100%.", true); return; }
+            certainty_ = c;
+            Vec v = data(vars_[cur_].name);
+            lower_ = mc::stats::percentile(v, (1 - c) / 2);
+            upper_ = mc::stats::percentile(v, 1 - (1 - c) / 2);
+            setText("lower", niceNum(lower_));
+            setText("upper", niceNum(upper_));
+            if (view_ != Histogram && view_ != Cumulative) setView(Histogram);
+            repaint();
+            return;
+        }
         if (b == "prev" || b == "next") { key(b == "next" ? awt::Key::RIGHT : awt::Key::LEFT, 0, false, false); return; }
         if (b == "applyBins") {
             int nb = int(parseOr(text("bins"), bins_));
@@ -483,6 +673,10 @@ private:
     std::vector<std::string> tornadoNames_;
     int probe_ = 0;
     bool probeOn_ = false;
+    double certainty_ = 0.95;
+    int mouseX_ = -100, mouseY_ = -100;
+    std::vector<DecisionPoint> decision_;
+    std::vector<std::string> overview_;
 };
 
 void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& view, const std::string& exportTo) {
@@ -491,8 +685,23 @@ void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& var
     w->afterShow();
     static const std::map<std::string, ResultWindow::View> views = {
         {"Histogram", ResultWindow::Histogram}, {"Cumulative", ResultWindow::Cumulative}, {"Tornado", ResultWindow::Tornado},
-        {"Spider", ResultWindow::Spider}, {"SpiderCum", ResultWindow::SpiderCum}, {"Scatter", ResultWindow::Scatter},
-        {"Variants", ResultWindow::Variants}, {"Decision", ResultWindow::Decision}, {"Statistics", ResultWindow::Statistics}};
+        {"Correlation", ResultWindow::Tornado}, {"DynamicSensitivity", ResultWindow::DynSens}, {"Spider", ResultWindow::Spider},
+        {"SpiderCum", ResultWindow::SpiderCum}, {"Scatter", ResultWindow::Scatter}, {"Variants", ResultWindow::Variants},
+        {"BoxWhisker", ResultWindow::BoxWhisker}, {"Decision", ResultWindow::Decision}, {"Statistics", ResultWindow::Statistics},
+        {"Overview", ResultWindow::Overview}};
+    // several variable cells selected: show them at a glance (MC FLO "analyse multiple variables")
+    if (variable.empty() && view.empty()) {
+        ModelDoc d = docOf(frame);
+        table::CellRangeAddress r;
+        if (d.selectionRange(r) && (r.EndRow > r.StartRow || r.EndColumn > r.StartColumn)) {
+            std::vector<std::string> names;
+            for (auto& vc : d.scan())
+                if (vc.addr.Sheet == r.Sheet && vc.addr.Row >= r.StartRow && vc.addr.Row <= r.EndRow && vc.addr.Column >= r.StartColumn &&
+                    vc.addr.Column <= r.EndColumn && vc.kind != mc::VarKind::Correlation && hasResults(vc.name))
+                    names.push_back(vc.name);
+            if (names.size() > 1) { w->setOverview(names); w->setView(ResultWindow::Overview); }
+        }
+    }
     if (views.count(view)) w->setView(views.at(view));
     if (!exportTo.empty()) {
         w->exportImage(exportTo, "image/png", 900, 560);
@@ -520,9 +729,9 @@ public:
             addEdit("e" + std::to_string(i), "", x + w / 2 + 8, y, w / 2 - 8);
             y += 14;
         }
-        addLabel("lopt", "Options: Min / Max / Round / Number", x, y, w); y += 10;
-        addEdit("min", "", x, y, w / 4 - 2); addEdit("max", "", x + w / 4, y, w / 4 - 2);
-        addEdit("round", "", x + w / 2, y, w / 4 - 2); addEdit("number", "", x + 3 * w / 4, y, w / 4); y += 16;
+        addLabel("lopt", "Options: Number / Min / Max / Round", x, y, w); y += 10;
+        addEdit("number", "", x, y, w / 4 - 2); addEdit("min", "", x + w / 4, y, w / 4 - 2);
+        addEdit("max", "", x + w / 2, y, w / 4 - 2); addEdit("round", "", x + 3 * w / 4, y, w / 4); y += 16;
         addLabel("liter", "Number of iterations / bins", x, y, w); y += 10;
         addEdit("iter", "10000", x, y, w / 2 - 2); addEdit("bins", "30", x + w / 2, y, w / 2); y += 16;
         addButton("show", "Show", x, y, w / 2 - 1); addButton("real", "Load real data", x + w / 2 + 1, y, w / 2 - 1); y += 16;
@@ -537,7 +746,8 @@ public:
     void afterShow(const std::string& function = "") {
         int sel = 1;
         for (size_t i = 0; i < funcs_.size(); ++i)
-            if (!function.empty() && (mc::lower(funcs_[i]->label) == mc::lower(function) || mc::lower(funcs_[i]->name) == mc::lower(function)))
+            if (!function.empty() && (mc::lower(funcs_[i]->label) == mc::lower(function) || mc::lower(funcs_[i]->name) == mc::lower(function) ||
+                                      mc::lower(funcs_[i]->name) == "flosimula_" + mc::lower(function)))
                 sel = int(i);
         select("func", sel);
         updateParams();
@@ -547,13 +757,14 @@ public:
         int s = std::max(0, selected("func"));
         const auto* f = funcs_[s];
         static const std::map<std::string, std::vector<std::string>> defaults = {
-            {"Uniform", {"0", "1"}}, {"Triangle", {"80", "100", "140"}}, {"PERT", {"80", "100", "140"}}, {"Normal", {"100", "15"}},
-            {"Lognormal", {"100", "20"}}, {"Beta", {"2", "5", "0", "1"}}, {"Gumbel", {"0", "1"}}, {"Gamma", {"2", "3"}}, {"Exponential", {"0.5"}},
-            {"TruncatedNormal", {"0", "1", "-1", "2"}}, {"Weibull", {"2", "3"}}, {"Chi2", {"4"}}, {"StudentT", {"5"}}, {"Pareto", {"3", "1"}},
-            {"F", {"5", "10"}}, {"ArcSin", {"0", "1"}}, {"Cauchy", {"0", "1"}}, {"Frechet", {"3", "1", "0"}}, {"Logistic", {"0", "1"}},
-            {"DiscreteUniform", {"1", "6"}}, {"Bernoulli", {"0.3"}}, {"Binomial", {"20", "0.3"}}, {"Poisson", {"4"}}, {"Pascal", {"3", "0.4"}},
-            {"Geometric", {"0.25"}}, {"HyperGeometric", {"50", "10", "12"}}, {"AR1", {"10", "0.7", "1", "12"}}, {"MA1", {"10", "0.5", "1"}},
-            {"ARMA11", {"10", "0.6", "0.3", "1", "12"}}, {"ARCH1", {"0", "1", "0.5", "0"}}, {"WienerProcess", {"100", "0.05", "0.2", "1"}}};
+            {"Uniform", {"0", "1"}}, {"Triangular", {"80", "140", "100"}}, {"PERT", {"80", "140", "100"}}, {"Normal", {"100", "15"}},
+            {"LogNormal", {"0", "4.6", "0.2"}}, {"Beta", {"2", "5", "0", "1"}}, {"Gumbel", {"0", "1"}}, {"Gamma", {"0", "3", "2"}},
+            {"Exponential", {"0", "2"}}, {"TruncNormal", {"0", "1", "-1", "2"}}, {"Weibull", {"0", "3", "2"}}, {"chi2", {"4"}},
+            {"studentt", {"5"}}, {"Pareto", {"1", "3"}}, {"Fisher", {"5", "10"}}, {"ArcSin", {"0", "1"}}, {"Cauchy", {"0", "1"}},
+            {"Frechet", {"0", "1", "3"}}, {"Logistic", {"0", "1"}}, {"DiscreteUniform", {"1", "6"}}, {"Bernoulli", {"0.3"}},
+            {"Binomial", {"0.3", "20"}}, {"Poisson", {"4"}}, {"Pascal", {"0.4", "3"}}, {"Geometric", {"0.25"}},
+            {"Hypergeometric", {"10", "45", "20"}}, {"AR(1)", {"10", "0.7", "1", "0"}}, {"MA(1)", {"10", "0.5", "1"}},
+            {"ARMA(1,1)", {"10", "0.6", "1", "0.3"}}, {"ARCH(1)", {"0.1", "0.5"}}, {"Wiener", {"100", "0.2", "0.05", "1", "0"}}};
         auto d = defaults.count(f->label) ? defaults.at(f->label) : std::vector<std::string>{};
         for (int i = 0; i < 5; ++i) {
             bool used = i < int(f->params.size());
@@ -576,31 +787,31 @@ public:
             }
             a.push_back(mc::Value::array(rows));
             a.push_back(mc::Value::number(parseOr(text("bins"), 0)));
-            a.push_back(mc::Value());
+            a.push_back(mc::Value::text(kPreviewName));
         } else {
             const auto* f = funcs_[std::max(0, selected("func"))];
             for (size_t i = 0; i < f->params.size(); ++i) {
+                std::string t = text("e" + std::to_string(i));
+                if (t.empty() && f->minParams && i >= f->minParams) break;   // optional parameter
                 bool ok;
-                double v = parseOr(text("e" + std::to_string(i)), 0, &ok);
+                double v = parseOr(t, 0, &ok);
                 if (!ok) throw std::runtime_error(std::string("enter a number for ") + f->params[i].name);
                 a.push_back(mc::Value::number(v));
             }
+            // a (temporary) name so that a time series path continues over the preview iterations
+            a.push_back(mc::Value::text(kPreviewName));
         }
-        for (const char* o : {"min", "max", "round", "number"}) {
+        // MC FLO order after the name: Number; Min; Max; Round
+        for (const char* o : {"number", "min", "max", "round"}) {
             std::string t = text(o);
             bool ok;
             double v = parseOr(t, 0, &ok);
             a.push_back(t.empty() || !ok ? mc::Value() : mc::Value::number(v));
         }
-        if (funcs_[std::max(0, selected("func"))]->kind == mc::FloFunction::TimeSeries && !custom_) {
-            // time series take only Number as option
-            mc::Value number = a.back();
-            a.resize(a.size() - 4);
-            a.push_back(number);
-        }
         while (!a.empty() && a.back().kind == mc::Value::Empty) a.pop_back();
         return a;
     }
+    static constexpr const char* kPreviewName = "__MonteCalc_preview__";
 
     void sample() {
         auto& sim = mc::Simulation::instance();
@@ -613,7 +824,9 @@ public:
         try {
             auto a = args();
             sim.setMode(mc::Mode::Random);
+            sim.clearSeriesState();
             for (int i = 0; i < n; ++i) data_.push_back(mc::evalFlo(*f, a));
+            sim.clearSeriesState();
         } catch (const std::exception& e) {
             error_ = e.what();
         }
@@ -710,14 +923,18 @@ public:
                 d.currentCell(a);
                 std::string range = customRange_;
                 if (a.Sheet != customSheet_) range = "$'" + d.sheetNames()[customSheet_] + "'." + range;
-                f = "=FLOsimula_UserDefined(" + range + ";" + text("bins") + ";" + quote(name) + ")";
+                f = "=FLOsimula_UserDefined(" + range + ";" + text("bins") + ";" + quote(name) + ")";   // (Data; NumberOfBins; Name)
             } else {
                 const auto* fn = funcs_[std::max(0, selected("func"))];
-                std::vector<std::string> parts{quote(name)};
-                for (size_t i = 0; i < fn->params.size(); ++i) parts.push_back(text("e" + std::to_string(i)));
-                std::vector<std::string> opts;
-                if (fn->kind == mc::FloFunction::TimeSeries) opts = {text("number")};
-                else opts = {text("min"), text("max"), text("round"), text("number")};
+                // MC FLO order: parameters; Variable_name; Number; Min; Max; Round
+                std::vector<std::string> parts;
+                for (size_t i = 0; i < fn->params.size(); ++i) {
+                    std::string t = text("e" + std::to_string(i));
+                    if (t.empty() && fn->minParams && i >= fn->minParams) break;
+                    parts.push_back(t);
+                }
+                parts.push_back(quote(name));
+                std::vector<std::string> opts = {text("number"), text("min"), text("max"), text("round")};
                 while (!opts.empty() && opts.back().empty()) opts.pop_back();
                 for (auto& o : opts) parts.push_back(o);
                 f = "=" + fn->name + "(";
@@ -769,6 +986,7 @@ public:
         addLabel("lres", "Results (AIC window): select a formula", x, y, w); y += 10;
         addList("results", {}, x, y, w, 96, false); y += 100;
         addButton("simulate", "Simulate", x, y, w / 2 - 1); addButton("copy", "Copy results to sheet", x + w / 2 + 1, y, w / 2 - 1); y += 16;
+        addCheck("qq", "Q-Q plot of the selected fit", x, y, w, false); y += 13;
         addLabel("lname", "Name", x, y + 2, 24); addEdit("name", name_, x + 26, y, w - 26); y += 16;
         addButton("insert", "Insert formula into current cell", x, y, w); y += 16;
         addButton("close", "Close", x, y, w);
@@ -840,6 +1058,20 @@ public:
             o.title = "Historical data (" + std::to_string(data_.size()) + " values)";
             o.bins = std::max(5, int(std::sqrt(double(data_.size()))));
             o.color = col::input.mix(col::white, 0.35);
+            bool qq = false;
+            try { qq = checked("qq"); } catch (...) {}
+            if (qq && sel_ >= 0 && sel_ < int(dfits_.size()) && dfits_[sel_].ok) {
+                // Q-Q plot: sorted data against the quantiles of the fitted distribution
+                auto d = mc::makeFitted(dfits_[sel_]);
+                Vec srt = mc::stats::sorted(data_), th;
+                for (size_t i = 0; i < srt.size(); ++i) th.push_back(d->quantile((i + 0.5) / srt.size()));
+                double lo = std::min(srt.front(), th.front()), hi = std::max(srt.back(), th.back());
+                Plot pl = axes(p, 0, 0, w - statsW, h, lo, hi, lo, hi, "Q-Q plot: " + dfits_[sel_].formula + " (x: fitted, y: data)");
+                p.line(pl.px(lo), pl.py(lo), pl.px(hi), pl.py(hi), col::output, 2);
+                for (size_t i = 0; i < srt.size(); ++i)
+                    if (std::isfinite(th[i])) p.ellipse(pl.px(th[i]) - 3, pl.py(srt[i]) - 3, 6, 6, &col::input, nullptr);
+                return;
+            }
             Plot pl = drawHistogram(p, 0, 0, w - statsW, h, data_, o);
             if (sel_ >= 0 && sel_ < int(dfits_.size()) && dfits_[sel_].ok) {
                 auto d = mc::makeFitted(dfits_[sel_]);
@@ -889,6 +1121,7 @@ public:
     void itemChanged(const std::string& n) override {
         if (n == "results") { sel_ = std::max(0, selected("results")); simulate(); }
         if (n == "mode") { dfits_.clear(); tfits_.clear(); setItems("results", {}); tsMode_ = selected("mode") == 1; repaint(); }
+        if (n == "qq") repaint();
     }
 
     void button(const std::string& b) override {
@@ -901,10 +1134,10 @@ public:
             else if (tsMode_ && sel_ < int(tfits_.size())) f = tfits_[sel_].formula;
             if (f.empty()) { message("Fit the data and select a formula first (Holt-Winters models cannot be used as variables).", true); return; }
             std::string name = mc::formula::sanitizeName(text("name"));
-            if (!text("name").empty()) f.insert(f.find('(') + 1, quote(name) + ";");
-            if (tsMode_) {  // Number = forecast periods
-                f.insert(f.size() - 1, ";" + text("fc"));
-            }
+            // MC FLO order: parameters; Variable_name; Number (= forecast periods for time series)
+            std::string tail = ";" + (text("name").empty() ? std::string() : quote(name));
+            if (tsMode_ && !text("fc").empty()) tail += ";" + text("fc");
+            if (tail != ";") f.insert(f.size() - 1, tail);
             insertIntoCurrentCell(frame_, f, text("name").empty() ? "" : name, mc::VarKind::Input);
             return;
         }
@@ -1203,6 +1436,12 @@ std::string modelContextText(const Frame& frame) {
                << niceNum(mc::stats::percentile(s, 0.05)) << ", P50 " << niceNum(mc::stats::percentile(s, 0.5)) << ", P95 "
                << niceNum(mc::stats::percentile(s, 0.95)) << ", min " << niceNum(mc::stats::min(s)) << ", max " << niceNum(mc::stats::max(s))
                << ", skewness " << niceNum(mc::stats::skewness(s));
+            // compressed distribution (as in MC FLO: histograms instead of the iterations)
+            auto hg = mc::stats::histogram(s, 10);
+            if (!hg.count.empty()) {
+                os << "; histogram " << niceNum(hg.lo.front()) << ".." << niceNum(hg.hi.back()) << " in 10 bins: ";
+                for (size_t k = 0; k < hg.count.size(); ++k) os << (k ? " " : "") << int(hg.count[k]);
+            }
         }
         os << "\n";
     }
@@ -1233,12 +1472,15 @@ namespace montecalc {
 namespace {
 
 const std::vector<std::string>& copulaTypeNames() {
-    static const std::vector<std::string> t = {"0 - Normal", "1 - Student-t (4 df)", "2 - Clayton", "3 - r-Clayton", "4 - Gumbel",
-                                               "5 - r-Gumbel", "6 - asy. Gumbel", "7 - asy. Frechet", "8 - asy. Triangular"};
+    static const std::vector<std::string> t = [] {
+        std::vector<std::string> v;   // MC FLO type codes (wiki "Korrelationen")
+        for (int i = 0; i <= mc::kMaxCopulaType; ++i) v.push_back(std::to_string(i) + " - " + mc::copulaMcfloName(i));
+        return v;
+    }();
     return t;
 }
 
-// parses =FLOsimula_Correlation("a";"b";r;type) (also with , separators)
+// parses =FLOsimula_correlation("a";"b";r;type) (also with , separators; type = MC FLO code)
 bool parseCorrelationFormula(const std::string& f, std::string& a, std::string& b, double& r, int& type) {
     std::string u = f;
     for (auto& c : u) c = char(std::toupper((unsigned char)c));
@@ -1353,17 +1595,17 @@ public:
         if (!ok || !(r > -1 && r < 1)) return "The correlation coefficient must be between -1 and 1 (exclusive).";
         int type = std::max(0, selected("type"));
         const std::string &a = names_[i1], &b = names_[i2];
-        bool archNew = type >= 2;
+        bool archNew = mc::copulaIsBivariateOnly(type);
         for (auto& o : others_) {
             bool touches = o.a == a || o.b == a || o.a == b || o.b == b;
             if ((o.a == a && o.b == b) || (o.a == b && o.b == a))
                 return "A correlation between " + a + " and " + b + " is already defined in another cell.";
             if (archNew && touches) return "Archimedean / asymmetric copulas are bivariate: " + (o.a == a || o.b == a ? a : b) + " is already correlated with another variable.";
-            if (o.type >= 2 && touches) return "The variable is already part of an Archimedean / asymmetric correlation (bivariate only).";
+            if (mc::copulaIsBivariateOnly(o.type) && touches) return "The variable is already part of an Archimedean / asymmetric correlation (bivariate only).";
         }
         if (archNew)
             for (auto& o : others_)
-                if (o.type < 2) return "Note: with an Archimedean copula all correlations of the model must be bivariate.";
+                if (!mc::copulaIsBivariateOnly(o.type)) return "Note: with an Archimedean copula all correlations of the model must be bivariate.";
         return "";
     }
     void insert() {
@@ -1372,7 +1614,7 @@ public:
         bool ok;
         double r = parseNumber(text("r"), ok);
         int type = std::max(0, selected("type"));
-        d.cell(target_)->setFormula(ou("=FLOsimula_Correlation(" + quote(a) + ";" + quote(b) + ";" + fmtNum(r) + ";" + std::to_string(type) + ")"));
+        d.cell(target_)->setFormula(ou("=FLOsimula_correlation(" + quote(a) + ";" + quote(b) + ";" + fmtNum(r) + ";" + std::to_string(type) + ")"));
         d.removeNamedRangesWithPrefix("FLO_c_" + mc::formula::sanitizeName(a + "_" + b));
         d.setNamedRange("FLO_c_" + mc::formula::sanitizeName(a + "_" + b), target_);
         d.setBackground(target_, kColorCorrelation);
@@ -1396,15 +1638,21 @@ public:
             double pad = (hi - lo) * 0.03; lo -= pad; hi += pad;
         };
         mm(X, x0, x1); mm(Y, y0, y1);
-        Plot pl = axes(p, 6, 4, w - 12, h - 10, x0, x1, y0, y1, names_[sel1_] + " / " + names_[sel2_], false, names_[sel2_]);
-        Color dot = Color{60, 150, 160}, red = col::red, green = col::green;
+        Plot pl = axes(p, 6, 4, w - 12, h - 10, x0, x1, y0, y1, names_[sel1_] + " (x) / " + names_[sel2_] + " (y)");
+        // colours as in MC FLO: outside the 90% band of both variables in the direction of the
+        // correlation green (upper) / red (lower), one variable outside black, else blue
+        bool ok;
+        double rr = parseNumber(text("r"), ok);
+        bool neg = ok && rr < 0;
+        Color blue = Color{52, 120, 200}, red = col::red, green = col::green, black = Color{30, 30, 30};
         for (size_t i = 0; i < X.size(); ++i) {
-            bool ext2 = u2_[i] <= 0.05 || u2_[i] >= 0.95;
-            const Color* c = &dot;
-            int s = 3;
-            if (u1_[i] <= 0.05 && ext2) { c = &red; s = 5; }
-            else if (u1_[i] >= 0.95 && ext2) { c = &green; s = 5; }
-            p.rect(pl.px(X[i]) - s / 2, pl.py(Y[i]) - s / 2, s, s, c, nullptr);
+            bool hx = u1_[i] > 0.95, lx = u1_[i] < 0.05, hy = u2_[i] > 0.95, ly = u2_[i] < 0.05;
+            const Color* c = &blue;
+            int sz = 3;
+            if (hx && (neg ? ly : hy)) { c = &green; sz = 5; }
+            else if (lx && (neg ? hy : ly)) { c = &red; sz = 5; }
+            else if (hx || lx || hy || ly) c = &black;
+            p.rect(pl.px(X[i]) - sz / 2, pl.py(Y[i]) - sz / 2, sz, sz, c, nullptr);
         }
         p.text(pl.x + pl.w - p.textWidth(names_[sel1_]) - 4, pl.y + pl.h - p.textHeight() - 2, names_[sel1_], col::muted);
     }
@@ -1459,7 +1707,7 @@ private:
             const Vec& m2 = marginal(sel2_);
             if (m1.empty() || m2.empty()) throw std::runtime_error("the variables could not be previewed");
             std::mt19937_64 rng(20261103);   // fixed: the picture changes only with the inputs
-            auto res = mc::generateUniforms(2, 1000, {{0, 1, r, std::max(0, selected("type"))}}, rng);
+            auto res = mc::generateUniforms(2, 1000, {{0, 1, r, mc::copulaFromMcflo(std::max(0, selected("type")))}}, rng);
             u1_ = res.u[0]; u2_ = res.u[1];
             auto q = [](const Vec& s, double u) { size_t k = std::min(s.size() - 1, size_t(u * double(s.size()))); return s[k]; };
             for (size_t i = 0; i < u1_.size(); ++i) { xs_.push_back(q(m1, u1_[i])); ys_.push_back(q(m2, u2_[i])); }

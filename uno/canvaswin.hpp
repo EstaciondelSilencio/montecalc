@@ -68,12 +68,18 @@ public:
     void repaint();
     void close();
     bool closed() const { return closed_; }
+    // canvas size in drawing units (pixels divided by the zoom)
     void canvasSize(int& w, int& h);
+    // zoom of the canvas (text, shapes and mouse coordinates scale together); Ctrl + / Ctrl - / Ctrl 0
+    double zoom() const { return zoom_; }
+    void setZoom(double z);
+    static double& defaultZoom();   // shared by all windows, remembered for the next one
     // popup menu at a canvas position; returns the chosen item id (0 = none)
     int popup(int x, int y, const std::vector<std::pair<int, std::string>>& items);
     void message(const std::string& text, bool error = false);
     std::string svg(int w, int h, double scale = 1.0);   // canvas content as SVG
-    bool exportImage(const std::string& url, const std::string& mime, int w, int h, double scale = 1.0);  // png / jpeg / bmp
+    // png / jpeg / bmp; w, h in drawing units, the image has w*h*scale*zoom pixels
+    bool exportImage(const std::string& url, const std::string& mime, int w, int h, double scale = 1.0);
     // store the canvas as background image of a cell comment (manual: "store the window in the cell")
     bool storeAsComment(const css::uno::Reference<css::frame::XModel>& model, int sheet, int col, int row, const std::string& text);
 
@@ -101,6 +107,8 @@ private:
     css::uno::Reference<css::uno::XInterface> listener_;
     std::vector<std::string> buttons_, lists_, checks_, sliders_, watched_;
     int width_, height_, panelW_;
+    double zoom_ = defaultZoom();
+    bool exporting_ = false;
     bool closed_ = false;
     bool dragging_ = false;
     css::uno::Reference<css::beans::XPropertySet> addModel(const char* type, const std::string& name, int x, int y, int w, int h);

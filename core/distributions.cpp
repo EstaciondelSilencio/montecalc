@@ -259,6 +259,26 @@ DistPtr makeLogistic(double mu, double s) {
         [=](double u) { return mu + s * std::log(u / (1 - u)); }, mu);
 }
 
+namespace {
+class Shifted : public Distribution {
+public:
+    Shifted(DistPtr d, double s) : d_(std::move(d)), s_(s) {}
+    double cdf(double x) const override { return d_->cdf(x - s_); }
+    double quantile(double u) const override { return d_->quantile(u) + s_; }
+    double mean() const override { return d_->mean() + s_; }
+    bool isDiscrete() const override { return d_->isDiscrete(); }
+
+private:
+    DistPtr d_;
+    double s_;
+};
+} // namespace
+
+DistPtr makeShifted(DistPtr d, double shift) {
+    if (shift == 0) return d;
+    return std::make_unique<Shifted>(std::move(d), shift);
+}
+
 DistPtr makePiecewiseLinear(std::vector<double> x, std::vector<double> p) {
     require(x.size() >= 2 && x.size() == p.size(), "Custom: need at least two points");
     for (size_t i = 1; i < x.size(); ++i)

@@ -10,6 +10,7 @@
 #include <com/sun/star/table/CellRangeAddress.hpp>
 #include <com/sun/star/table/XCell.hpp>
 
+#include "../core/flofuncs.h"
 #include "../core/formula.h"
 #include "../core/simulation.h"
 
@@ -52,6 +53,7 @@ public:
     // Named ranges
     void setNamedRange(const std::string& name, const css::table::CellAddress& a);
     void removeNamedRangesWithPrefix(const std::string& prefix);
+    void removeNamedRange(const std::string& name);
     bool namedRange(const std::string& name, css::table::CellRangeAddress& r) const;
     std::vector<std::pair<std::string, css::table::CellRangeAddress>> namedRanges(const std::string& prefix) const;
 
@@ -83,5 +85,9 @@ constexpr sal_Int32 kColorLocked = 0xFF9999;
 constexpr sal_Int32 kColorVariant = 0xD9D9D9;
 
 std::string fmtNum(double v);  // readable number for messages
+
+// Position of the Variable_name argument of a FLOsimula_ call given as argument texts
+// (MC FLO order: parameters first, then the name).
+size_t nameArgIndex(const mc::FloFunction& f, const std::vector<std::string>& args);
 
 } // namespace montecalc

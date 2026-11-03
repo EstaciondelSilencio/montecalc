@@ -25,6 +25,15 @@ namespace mc {
 
 constexpr int kMaxCopulaType = 8;
 
+// MC FLO numbers the correlation types differently (wiki "Korrelationen"):
+//   0 Normal, 1 Clayton, 2 rClayton, 3 Gumbel, 4 rGumbel, 5 Student-t,
+//   6 asy. Gumbel, 7 asy. Triangular, 8 asy. Frechet.
+// Formulas, windows and fMC_FitC use these codes; the copula code below uses its own.
+int copulaFromMcflo(int mcfloType);
+int copulaToMcflo(int internalType);
+const char* copulaMcfloName(int mcfloType);   // "Normal", "Clayton", ...
+bool copulaIsBivariateOnly(int mcfloType);    // Archimedean and asymmetric types
+
 struct CorrelationSpec {
     int a = 0, b = 0;   // variable indices
     double rho = 0;     // Spearman rank correlation in (-1,1)

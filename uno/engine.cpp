@@ -580,7 +580,7 @@ void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>
             {"StoreResults", &Engine::cmdStoreResults}, {"Report", &Engine::cmdStoreResults}, {"SaveResults", &Engine::cmdSaveResults},
             {"Replay", &Engine::cmdReplay}, {"Expected", &Engine::cmdExpected}, {"Preview", &Engine::cmdPreview},
             {"SelectVariant", &Engine::cmdSelectVariant}, {"ChangeHistogram", &Engine::cmdChangeHistogram},
-            {"CalcCorrelations", &Engine::cmdCalcCorrelations}, {"Register", &Engine::cmdRegister}, {"InsertOutput", &Engine::cmdInsertOutput},
+            {"CalcCorrelations", &Engine::cmdCalcCorrelations}, {"Register", &Engine::cmdRegister}, {"Model", &Engine::cmdModel}, {"InsertOutput", &Engine::cmdInsertOutput},
             {"InsertCorrelation", &Engine::cmdInsertCorrelation}, {"Lock", &Engine::cmdLock}, {"MultipleSimulation", &Engine::cmdMultipleSimulation},
             {"Variables", &Engine::cmdVariables}, {"HideFormulas", &Engine::cmdHideFormulas}, {"LoadFormulas", &Engine::cmdLoadFormulas},
             {"ModelCheck", &Engine::cmdModelCheck}, {"ForecastTool", &Engine::cmdForecastTool}, {"StartBatch", &Engine::cmdStartBatch},
@@ -812,6 +812,66 @@ void Engine::cmdCalcCorrelations() {
 
 // ============================================================ model definition
 
+// "Model" (MC FLO "Modell"): brings the model up to date. Variables whose cell no longer holds an
+// MC FLO formula are removed, and every reference to them is replaced by 0 (wiki "Umgang mit
+// Variablen"); then the variables are registered again and the variable list is shown.
+void Engine::cmdModel() {
+    ModelDoc d(model());
+    auto cells = d.scan();
+    std::set<std::string> current;
+    for (auto& c : cells) {
+        std::string prefix = c.kind == mc::VarKind::Input ? "FLO_i_" : c.kind == mc::VarKind::Output ? "FLO_o_" : "FLO_c_";
+        current.insert(mc::lower(prefix + mc::formula::sanitizeName(c.name)));
+    }
+    std::vector<std::string> stale;
+    for (const char* pre : {"FLO_i_", "FLO_o_", "FLO_c_"})
+        for (auto& [n, r] : d.namedRanges(pre))
+            if (!current.count(mc::lower(n))) stale.push_back(n);
+    int replaced = 0;
+    if (!stale.empty()) {
+        auto names = d.sheetNames();
+        for (size_t si = 0; si < names.size(); ++si) {
+            Reference<sheet::XCellRangesQuery> q(d.sheet(int(si)), UNO_QUERY_THROW);
+            Reference<sheet::XSheetCellRanges> ranges = q->queryContentCells(sheet::CellFlags::FORMULA);
+            if (!ranges.is()) continue;
+            Reference<container::XEnumeration> en = ranges->getCells()->createEnumeration();
+            while (en->hasMoreElements()) {
+                Reference<table::XCell> c(en->nextElement(), UNO_QUERY);
+                if (!c.is()) continue;
+                std::string f = u8(c->getFormula()), uf = mc::lower(f);
+                bool changed = false;
+                for (auto& n : stale) {
+                    std::string ln = mc::lower(n);
+                    size_t pos = 0;
+                    while ((pos = uf.find(ln, pos)) != std::string::npos) {
+                        auto isId = [](char ch) { return std::isalnum((unsigned char)ch) || ch == '_' || ch == '.'; };
+                        bool left = pos == 0 || !isId(uf[pos - 1]), right = pos + ln.size() >= uf.size() || !isId(uf[pos + ln.size()]);
+                        if (left && right) {
+                            f.replace(pos, ln.size(), "0");
+                            uf.replace(pos, ln.size(), "0");
+                            changed = true;
+                            pos += 1;
+                        } else {
+                            pos += ln.size();
+                        }
+                    }
+                }
+                if (changed) { c->setFormula(ou(f)); ++replaced; }
+            }
+        }
+        for (auto& n : stale) d.removeNamedRange(n);
+    }
+    bool was = silent_;
+    silent_ = true;
+    cmdRegister();
+    silent_ = was;
+    if (!silent_ && (!stale.empty()))
+        message("MC FLO - Model", std::to_string(stale.size()) + " removed variable(s); references in " + std::to_string(replaced) +
+                                      " formula(s) were replaced by 0.");
+    if (!silent_) openVariableList(ctx_, frame_);
+}
+
+
 void Engine::cmdRegister() {
     ModelDoc d(model());
     auto cells = d.scan();
@@ -833,21 +893,18 @@ void Engine::cmdRegister() {
         size_t open, close;
         if (!callSpan(f, open, close)) continue;
         const mc::FloFunction* fl = mc::findFlo(c.function);
-        std::string nf;
-        if (fl && (fl->kind == mc::FloFunction::UserDefined || fl->kind == mc::FloFunction::DiscreteUserDefined)) {
-            std::string func;
-            std::vector<std::string> args;
-            mc::formula::findCall(f, "FLOSIMULA_", func, args);
-            while (args.size() < 2) args.push_back("");
-            if (args.size() >= 3) args[2] = quote(name);
-            else args.push_back(quote(name));
-            std::string inner;
-            for (size_t i = 0; i < args.size(); ++i) inner += (i ? ";" : "") + args[i];
-            nf = f.substr(0, open + 1) + inner + f.substr(close);
-        } else {
-            std::string inner = f.substr(open + 1, close - open - 1);
-            nf = f.substr(0, open + 1) + quote(name) + (inner.empty() ? "" : ";" + inner) + f.substr(close);
-        }
+        if (!fl) continue;
+        // MC FLO order: the name follows the parameters
+        std::string func;
+        std::vector<std::string> args;
+        mc::formula::findCall(f, "FLOSIMULA_", func, args);
+        size_t idx = nameArgIndex(*fl, args);
+        while (args.size() < idx) args.push_back("");
+        if (args.size() > idx) args[idx] = quote(name);
+        else args.push_back(quote(name));
+        std::string inner;
+        for (size_t i = 0; i < args.size(); ++i) inner += (i ? ";" : "") + args[i];
+        std::string nf = f.substr(0, open + 1) + inner + f.substr(close);
         d.cell(c.addr)->setFormula(ou(nf));
         c.name = name;
         c.named = true;

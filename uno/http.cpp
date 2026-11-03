@@ -32,7 +32,8 @@ std::wstring widen(const std::string& s) {
 }
 
 // POST JSON over HTTPS; returns the HTTP status (0 on transport error, message in `err`)
-long httpPostImpl(const std::string& url, const std::vector<std::string>& headers, const std::string& body, std::string& out, std::string& err) {
+long httpPostImpl(const std::string& url, const std::vector<std::string>& headers, const std::string& body, std::string& out, std::string& err,
+                  bool get = false) {
     // url is https://host/path
     std::string rest = url.substr(url.find("://") + 3);
     std::wstring host = widen(rest.substr(0, rest.find('/'))), path = widen(rest.substr(rest.find('/')));
@@ -42,10 +43,12 @@ long httpPostImpl(const std::string& url, const std::vector<std::string>& header
     WinHttpSetTimeouts(ses, 30000, 30000, 30000, 600000);
     long status = 0;
     HINTERNET con = WinHttpConnect(ses, host.c_str(), INTERNET_DEFAULT_HTTPS_PORT, 0);
-    HINTERNET req = con ? WinHttpOpenRequest(con, L"POST", path.c_str(), nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE) : nullptr;
+    HINTERNET req = con ? WinHttpOpenRequest(con, get ? L"GET" : L"POST", path.c_str(), nullptr, WINHTTP_NO_REFERER, WINHTTP_DEFAULT_ACCEPT_TYPES, WINHTTP_FLAG_SECURE) : nullptr;
     std::wstring hdr;
     for (auto& h : headers) hdr += widen(h) + L"\r\n";
-    if (req && WinHttpSendRequest(req, hdr.c_str(), DWORD(-1), (LPVOID)body.data(), DWORD(body.size()), DWORD(body.size()), 0) &&
+    bool sent = req && (get ? WinHttpSendRequest(req, WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, 0)
+                            : WinHttpSendRequest(req, hdr.c_str(), DWORD(-1), (LPVOID)body.data(), DWORD(body.size()), DWORD(body.size()), 0));
+    if (sent &&
         WinHttpReceiveResponse(req, nullptr)) {
         DWORD code = 0, len = sizeof(code);
         WinHttpQueryHeaders(req, WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &code, &len, WINHTTP_NO_HEADER_INDEX);
@@ -98,8 +101,9 @@ size_t writeCb(char* data, size_t size, size_t n, void* user) {
     return size * n;
 }
 
-// POST JSON; returns the HTTP status (0 on transport error, message in `err`)
-long httpPostImpl(const std::string& url, const std::vector<std::string>& headers, const std::string& body, std::string& out, std::string& err) {
+// POST JSON (or GET); returns the HTTP status (0 on transport error, message in `err`)
+long httpPostImpl(const std::string& url, const std::vector<std::string>& headers, const std::string& body, std::string& out, std::string& err,
+                  bool get = false) {
     static Curl curl;
     if (!curl.load()) { err = "libcurl was not found on this system; the AI mentor needs it to reach the API"; return 0; }
     void* h = curl.init();
@@ -110,8 +114,13 @@ long httpPostImpl(const std::string& url, const std::vector<std::string>& header
               POSTFIELDSIZE = 60, CAINFO = 10065;
     curl.setopt(h, URL, url.c_str());
     curl.setopt(h, HTTPHEADER, list);
-    curl.setopt(h, POSTFIELDS, body.c_str());
-    curl.setopt(h, POSTFIELDSIZE, long(body.size()));
+    if (get) {
+        curl.setopt(h, 80 /* CURLOPT_HTTPGET */, 1L);
+        curl.setopt(h, 52 /* CURLOPT_FOLLOWLOCATION */, 1L);
+    } else {
+        curl.setopt(h, POSTFIELDS, body.c_str());
+        curl.setopt(h, POSTFIELDSIZE, long(body.size()));
+    }
     curl.setopt(h, WRITEFUNCTION, &writeCb);
     curl.setopt(h, WRITEDATA, &out);
     curl.setopt(h, TIMEOUT, 600L);
@@ -132,6 +141,10 @@ long httpPostImpl(const std::string& url, const std::vector<std::string>& header
 long httpPost(const std::string& url, const std::vector<std::string>& headers, const std::string& body, std::string& out,
               std::string& err) {
     return httpPostImpl(url, headers, body, out, err);
+}
+
+long httpGet(const std::string& url, std::string& out, std::string& err) {
+    return httpPostImpl(url, {"User-Agent: MonteCalc"}, std::string(), out, err, true);
 }
 
 } // namespace montecalc

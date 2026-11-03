@@ -1,9 +1,11 @@
 // MonteCalc - Calc add-in exposing the MC FLO model and tool functions
 #include "addin.hpp"
+#include "model.hpp"
 #include "util.hpp"
 
 #include "../core/bayes.h"
 #include "../core/copula.h"
+#include "../core/fitting.h"
 #include "../core/flofuncs.h"
 #include "../core/formula.h"
 #include "../core/simulation.h"
@@ -21,6 +23,7 @@
 
 #include <algorithm>
 #include <bitset>
+#include <cstring>
 #include <cmath>
 #include <cstdio>
 #include <map>
@@ -277,10 +280,73 @@ bool noResults() {
     return sim.busy() || !sim.hasResults();
 }
 
+// Optional "Referenz" argument of the MC FLO result functions: the variant (result set of a
+// multiple simulation) to read. Set for the duration of one function call.
+thread_local int g_variant = -1;
+thread_local std::string g_variantError;
+
+struct VariantScope {
+    int prev;
+    std::string prevError;
+    explicit VariantScope(const Any& ref) : prev(g_variant), prevError(g_variantError) {
+        OUString s;
+        double d;
+        std::string want;
+        if ((ref >>= s) && !s.isEmpty()) want = u8(s);
+        else if (ref.getValueTypeClass() == uno::TypeClass_DOUBLE && (ref >>= d)) {
+            char b[40];
+            std::snprintf(b, sizeof b, "%.15g", d);
+            want = b;
+        }
+        if (want.empty()) return;
+        auto labels = mc::Simulation::instance().resultSetLabels();
+        for (size_t i = 0; i < labels.size(); ++i)
+            if (mc::lower(labels[i]) == mc::lower(want)) { g_variant = int(i); return; }
+        g_variantError = "unknown variant (Referenz): " + want;
+    }
+    ~VariantScope() { g_variant = prev; g_variantError = prevError; }
+};
+
 Vec samplesOf(const std::string& name) {
+    if (!g_variantError.empty()) throw std::invalid_argument(g_variantError);
     Vec v;
-    if (!mc::Simulation::instance().samples(name, v)) throw std::invalid_argument("unknown variable: " + name);
+    auto& sim = mc::Simulation::instance();
+    bool ok = g_variant >= 0 ? sim.samplesIn(g_variant, name, v) : sim.samples(name, v);
+    if (!ok) throw std::invalid_argument("unknown variable: " + name);
     return v;
+}
+
+// MC FLO percentile: the ROUNDUP(n * p)-th smallest value (wiki "Referenz")
+double percentileMcflo(const Vec& v0, double p) {
+    if (p < 0 || p > 1) throw std::invalid_argument("percentile must be in [0,1]");
+    Vec s = mc::stats::sorted(mc::stats::finite(v0));
+    if (s.empty()) return kNaN;
+    size_t k = size_t(std::ceil(double(s.size()) * p - 1e-9));
+    k = std::max<size_t>(1, std::min(k, s.size()));
+    return s[k - 1];
+}
+
+// MC FLO percentile value: position of the first value >= x among the sorted values, 0..1
+double percentValueMcflo(const Vec& v0, double x) {
+    Vec s = mc::stats::sorted(mc::stats::finite(v0));
+    if (s.empty()) return kNaN;
+    size_t i = size_t(std::lower_bound(s.begin(), s.end(), x) - s.begin());
+    if (i >= s.size()) return 1.0;
+    return s.size() > 1 ? double(i) / double(s.size() - 1) : 0.5;
+}
+
+// share of the iterations at x (integer data) or in the histogram column containing x
+double densityShare(const Vec& v0, double x, const Any& binsAny) {
+    Vec v = mc::stats::finite(v0);
+    if (v.empty()) return kNaN;
+    bool integers = std::all_of(v.begin(), v.end(), [](double d) { return d == std::floor(d); });
+    if (integers && x == std::floor(x)) return double(std::count(v.begin(), v.end(), x)) / double(v.size());
+    int bins = int(optNum(binsAny, 0));
+    if (bins < 1) bins = mc::Simulation::instance().settings().bins;
+    auto h = mc::stats::histogram(v, bins);
+    for (size_t i = 0; i < h.count.size(); ++i)
+        if (x >= h.lo[i] && (x < h.hi[i] || (i + 1 == h.count.size() && x <= h.hi[i]))) return h.count[i] / double(v.size());
+    return 0.0;
 }
 
 double withSamples(const OUString& name, const std::function<double(const Vec&)>& fn) {
@@ -349,33 +415,49 @@ double conditionalPercentile(const Vec& a, const Vec& b, const std::string& op, 
     return mc::stats::percentile(sub, p);
 }
 
-double bayesMulti(std::initializer_list<Any> args, const Any& percentile) {
+// Conditions: (Name; Comparison; Value) triples, or (Name; ">="&100) pairs as in the MC FLO examples.
+double bayesMulti(std::initializer_list<Any> args, bool meanOfA) {
     return guard([&] {
         if (noResults()) return -1.0;
         std::vector<Any> v(args);
         struct Ev { Vec x; std::string op; double val; };
         std::vector<Ev> ev;
-        for (size_t i = 0; i + 2 < v.size(); i += 3) {
+        size_t i = 0;
+        while (i < v.size()) {
             OUString n;
-            if (!(v[i] >>= n) || n.isEmpty()) continue;
+            if (!(v[i] >>= n) || n.isEmpty()) { ++i; continue; }
+            Ev e{samplesOf(u8(n)), "", 0};
+            ++i;
             OUString op;
-            v[i + 1] >>= op;
-            ev.push_back({samplesOf(u8(n)), u8(op), optNum(v[i + 2], 0)});
+            if (i < v.size() && (v[i] >>= op)) {
+                std::string o = u8(op);
+                size_t k = 0;
+                while (k < o.size() && std::strchr("<>=!", o[k])) ++k;
+                std::string rest = o.substr(k);
+                bool ok = false;
+                double num = parseNumber(rest, ok);
+                e.op = o.substr(0, k) == "!=" ? "<>" : o.substr(0, k);
+                ++i;
+                if (ok && !rest.empty()) e.val = num;                     // combined ">="&100
+                else if (i < v.size()) { e.val = optNum(v[i], 0); ++i; }  // separate value
+            }
+            ev.push_back(e);
         }
         if (ev.size() < 2) throw std::invalid_argument("at least events A and B are needed");
-        Vec sub;
-        double cb = 0, cab = 0;
+        double cb = 0, cab = 0, sum = 0;
         for (size_t it = 0; it < ev[0].x.size(); ++it) {
             bool ok = true;
             for (size_t e = 1; e < ev.size() && ok; ++e)
                 ok = it < ev[e].x.size() && std::isfinite(ev[e].x[it]) && mc::stats::compare(ev[e].x[it], ev[e].op, ev[e].val);
             if (!ok || !std::isfinite(ev[0].x[it])) continue;
             ++cb;
-            sub.push_back(ev[0].x[it]);
-            if (ev[0].op.empty() || mc::stats::compare(ev[0].x[it], ev[0].op, ev[0].val)) ++cab;
+            if (ev[0].op.empty() || mc::stats::compare(ev[0].x[it], ev[0].op, ev[0].val)) { ++cab; sum += ev[0].x[it]; }
         }
         if (cb == 0) throw std::invalid_argument("the conditions never occur together");
-        if (percentile.hasValue() && !toValue(percentile).isEmpty()) return mc::stats::percentile(sub, optNum(percentile, 0.5));
+        if (meanOfA) {
+            if (cab == 0) throw std::invalid_argument("event A never occurs under the conditions");
+            return sum / cab;
+        }
         return cab / cb;
     });
 }
@@ -385,7 +467,7 @@ std::vector<std::pair<std::string, double>> pearsonDrivers(const std::string& ou
     Vec out = samplesOf(output), in;
     std::vector<std::pair<std::string, double>> d;
     for (const auto& n : sim.resultNames(mc::VarKind::Input)) {
-        sim.samples(n, in);
+        in = samplesOf(n);
         double r = mc::stats::pearson(in, out);
         d.push_back({n, std::isfinite(r) ? r : 0.0});
     }
@@ -472,13 +554,188 @@ DoubleMatrix kernel(const OUString& name, double adapt, double bins, const Any& 
     });
 }
 
-DoubleMatrix kernel2(const AnyMatrix& data, const Any& lo, const Any& hi, const Any& bw, double bins, const Any& hist) {
+DoubleMatrix kernel2(const AnyMatrix& data, const Any& lo, const Any& hi, const Any& bw, const Any& binsAny, const Any& hist,
+                     const Any& retSample, const Any& sampleN) {
     return guard([&] {
-        auto h = mc::bayes::kdeHistogram(numbers(data), optNum(lo, 0), optNum(hi, 0), optNum(bw, 0), std::max(1, int(bins)));
-        if (optBool(hist, false)) return toMatrix(h);
+        Vec d = numbers(data);
+        int bins = std::max(1, int(optNum(binsAny, 30)));
+        if (optBool(retSample, false)) {
+            std::mt19937_64 rng(kDataSeed);
+            Vec smp = mc::bayes::kdeSample(d, std::max(1, int(optNum(sampleN, 1000))), optNum(bw, 0), 0, rng);
+            double l = optNum(lo, 0), h = optNum(hi, 0);
+            if (h > l) for (auto& x : smp) x = std::min(h, std::max(l, x));
+            return column(smp);
+        }
+        auto hgram = mc::bayes::kdeHistogram(d, optNum(lo, 0), optNum(hi, 0), optNum(bw, 0), bins);
+        if (optBool(hist, false)) return toMatrix(hgram);
         Rows r;
-        for (auto& x : h) r.push_back({x[2]});
+        for (auto& x : hgram) r.push_back({x[2]});
         return toMatrix(r);
+    });
+}
+
+// ---------------------------------------------------------------- Holt-Winters with given factors
+DoubleMatrix hwModel(double a, double b, double g, double period, const AnyMatrix& data, const Any& number, const Any& order, bool mult) {
+    return guard([&] {
+        Vec y = numbers(data);
+        int m = std::max(1, int(std::lround(period)));
+        if (y.size() < size_t(2 * m)) throw std::invalid_argument("at least 2 x Period values are needed");
+        if (a < 0 || a > 1 || b < 0 || b > 1 || g < 0 || g > 1) throw std::invalid_argument("alpha, beta and gamma must be in [0,1]");
+        auto hw = mc::runHoltWinters(y, m, mult, a, b, g);
+        if (!hw.ok) throw std::invalid_argument(mult ? "the multiplicative model needs positive data" : "the model could not be computed");
+        int h = std::max(1, int(optNum(number, 1)));
+        Vec out;
+        if (optNum(order, 0) == 1) out = hw.fitted;
+        for (double f : hw.forecast(h)) out.push_back(f);
+        return column(out);
+    });
+}
+
+// ---------------------------------------------------------------- Memory Calculation vector functions
+Vec vectorOf(const Any& a) {
+    mc::Value v = toValue(a);
+    if (v.kind == mc::Value::Array) return v.numbers();
+    if (v.isNumeric()) return {v.num};
+    return {};
+}
+
+std::mt19937_64& memRng() {
+    static std::mt19937_64 r(std::random_device{}());
+    return r;
+}
+
+DoubleMatrix simulaMC(const char* flo, std::initializer_list<Any> params, const Any& countAny) {
+    return guard([&] {
+        const mc::FloFunction* f = mc::findFlo(flo);
+        if (!f) throw std::invalid_argument("unknown distribution");
+        std::vector<double> p;
+        for (const auto& a : params) {
+            mc::Value v = toValue(a);
+            if (v.isEmpty()) throw std::invalid_argument("a parameter is missing");
+            p.push_back(v.asNumber());
+        }
+        double n = optNum(countAny, 30000);
+        if (n < 1 || n > 1048576) throw std::invalid_argument("Count must be between 1 and 1,048,576");
+        std::unique_ptr<mc::Distribution> d;
+        mc::Bounds bnd;
+        if (f->make) d = f->make(p);
+        else {   // TruncNormal
+            d = mc::makeNormal(p[0], p[1]);
+            bnd.lo = p[2];
+            bnd.hi = p[3];
+        }
+        std::uniform_real_distribution<double> uni(0.0, 1.0);
+        Vec out(static_cast<size_t>(n));
+        auto& rng = memRng();
+        for (auto& x : out) x = mc::compoundSample(*d, bnd, uni(rng), 1, rng);
+        return column(out);
+    });
+}
+
+DoubleMatrix calculationMC(const Any& a1, const Any& a2, const OUString& opU) {
+    return guard([&] {
+        std::string op = u8(opU);
+        mc::Value m1 = toValue(a1);
+        Vec v2 = vectorOf(a2);
+        auto& rng = memRng();
+        if (op == "inc" || op == "const") {
+            int n = int(optNum(a1, 0));
+            double s = v2.empty() ? 0 : v2[0];
+            Vec out;
+            for (int i = 0; i < n; ++i) out.push_back(op == "inc" ? s + i + 1 : s);
+            return column(out);
+        }
+        Rows rows;   // Vector1 as rows (n x m for + and *)
+        if (m1.kind == mc::Value::Array)
+            for (auto& r : *m1.arr) {
+                Vec line;
+                for (auto& c : r) if (c.kind == mc::Value::Number) line.push_back(c.num);
+                if (!line.empty()) rows.push_back(line);
+            }
+        else if (m1.isNumeric()) rows.push_back({m1.num});
+        if (op == "com") {   // compound: values (Vector1) summed over a random number of events (Vector2)
+            Vec val;
+            for (auto& r : rows) for (double x : r) val.push_back(x);
+            if (val.empty()) throw std::invalid_argument("Vector1 is empty");
+            std::uniform_int_distribution<size_t> pick(0, val.size() - 1);
+            Vec out;
+            for (double c : v2) {
+                double s = 0;
+                for (int k = 0; k < int(std::max(0.0, std::round(c))); ++k) s += val[pick(rng)];
+                out.push_back(s);
+            }
+            return column(out);
+        }
+        if (op == "csme") {   // combine experts: draw from each column (expert) in turn
+            Vec out;
+            size_t cols = rows.empty() ? 0 : rows[0].size();
+            if (cols == 0) throw std::invalid_argument("Vector1 is empty");
+            std::uniform_int_distribution<size_t> pr(0, rows.size() - 1), pc(0, cols - 1);
+            size_t n = v2.empty() ? rows.size() : size_t(std::max(1.0, v2[0]));
+            for (size_t i = 0; i < n; ++i) {
+                auto& r = rows[pr(rng)];
+                out.push_back(r[std::min(r.size() - 1, pc(rng))]);
+            }
+            return column(out);
+        }
+        size_t n = std::max(rows.size(), v2.size());
+        auto at2 = [&](size_t i) { return v2.empty() ? 0.0 : v2.size() == 1 ? v2[0] : v2[i % v2.size()]; };
+        Vec out;
+        for (size_t i = 0; i < n; ++i) {
+            const Vec& r = rows.empty() ? Vec{0.0} : rows[rows.size() == 1 ? 0 : i % rows.size()];
+            double x = r[0], y = at2(i), z;
+            if (op == "+") { z = 0; for (double c : r) z += c; z += (r.size() == 1 ? y : 0); }
+            else if (op == "*") { z = 1; for (double c : r) z *= c; z *= (r.size() == 1 ? y : 1); }
+            else if (op == "-") z = x - y;
+            else if (op == "/") z = x / y;
+            else if (op == "*/+") z = x + x * y;
+            else if (op == "*/-") z = x - x * y;
+            else if (op == "//+") z = x + x / y;
+            else if (op == "//-") z = x - x / y;
+            else if (mc::lower(op) == "max") z = std::max(x, y);
+            else if (mc::lower(op) == "min") z = std::min(x, y);
+            else throw std::invalid_argument("unknown MMOperation: " + op);
+            out.push_back(z);
+        }
+        return column(out);
+    });
+}
+
+DoubleMatrix correlationMC(const Any& a1, const Any& a2, double r, const Any& type, const Any& doSort) {
+    return guard([&] {
+        Vec x = vectorOf(a1), y = vectorOf(a2);
+        size_t n = std::min(x.size(), y.size());
+        if (n < 2) throw std::invalid_argument("two vectors with at least 2 values are needed");
+        x.resize(n);
+        y.resize(n);
+        std::sort(x.begin(), x.end());
+        std::sort(y.begin(), y.end());
+        auto res = mc::generateUniforms(2, int(n), {{0, 1, r, mc::copulaFromMcflo(int(optNum(type, 0)))}}, memRng());
+        Vec rx = mc::stats::ranks(res.u[0]), ry = mc::stats::ranks(res.u[1]);
+        Rows out;
+        for (size_t i = 0; i < n; ++i) {
+            size_t ix = std::min(n - 1, size_t(std::max(0.0, rx[i] - 1))), iy = std::min(n - 1, size_t(std::max(0.0, ry[i] - 1)));
+            out.push_back({x[ix], y[iy]});
+        }
+        if (optBool(doSort, false)) std::sort(out.begin(), out.end(), [](const Vec& p, const Vec& q) { return p[0] < q[0]; });
+        return toMatrix(out);
+    });
+}
+
+DoubleMatrix boundedMC(const Any& a1, double lo, double hi, const Any& number) {
+    return guard([&] {
+        if (lo > hi) throw std::invalid_argument("LowerBound must not exceed UpperBound");
+        Vec in;
+        for (double x : vectorOf(a1)) if (x >= lo && x <= hi) in.push_back(x);
+        if (in.empty()) throw std::invalid_argument("no value lies within the bounds");
+        double n = optNum(number, 0);
+        if (n >= 1) {   // resample to the requested size
+            std::uniform_int_distribution<size_t> pick(0, in.size() - 1);
+            Vec out(static_cast<size_t>(n));
+            for (auto& x : out) x = in[pick(memRng())];
+            return column(out);
+        }
+        return column(in);
     });
 }
 
@@ -600,7 +857,7 @@ OUString variableInCell(const Reference<table::XCellRange>& range) {
         std::vector<std::string> args;
         if (!mc::formula::findCall(f, "FLOSIMULA_", func, args)) throw std::invalid_argument("the cell contains no MC FLO formula");
         const mc::FloFunction* fl = mc::findFlo(func);
-        size_t nameArg = fl && (fl->kind == mc::FloFunction::UserDefined || fl->kind == mc::FloFunction::DiscreteUserDefined) ? 2 : 0;
+        size_t nameArg = fl ? nameArgIndex(*fl, args) : 0;   // MC FLO order: the name follows the parameters
         if (fl && fl->kind == mc::FloFunction::Correlation) return ou(func);
         if (nameArg < args.size()) {
             bool isStr;
@@ -1012,7 +1269,7 @@ AnyMatrix portfolioCorr(const AnyMatrix& names, const Any& fill) {
             for (size_t j = i + 1; j < n.size(); ++j) {
                 char c[32];
                 std::snprintf(c, sizeof c, "%.3f", rnd ? u(rng) : 0.0);
-                rows.push_back({anyText("=FLOsimula_Correlation(\"" + n[i] + "\";\"" + n[j] + "\";" + c + ")")});
+                rows.push_back({anyText("=FLOsimula_correlation(\"" + n[i] + "\";\"" + n[j] + "\";" + c + ")")});
             }
         if (rows.empty()) throw std::invalid_argument("at least two titles are needed");
         return toAnyMatrix(rows);

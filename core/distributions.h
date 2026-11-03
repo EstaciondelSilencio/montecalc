@@ -51,6 +51,8 @@ DistPtr makeArcsine(double min, double max);
 DistPtr makeCauchy(double location, double scale);
 DistPtr makeFrechet(double shape, double scale, double location);
 DistPtr makeLogistic(double location, double scale);
+// X + shift (MC FLO "Shift" parameter of LogNormal, Gamma, Weibull, Exponential, ...)
+DistPtr makeShifted(DistPtr d, double shift);
 // Piecewise-linear CDF through (x[i], p[i]); x ascending, p ascending from 0 to 1.
 DistPtr makePiecewiseLinear(std::vector<double> x, std::vector<double> p);
 // Histogram from raw data (bins >= 1) or the empirical CDF of the data (bins == 0).
