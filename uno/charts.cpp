@@ -119,7 +119,7 @@ Plot drawOverlay(Painter& p, int x, int y, int w, int h, const std::vector<std::
         for (double s : c) top = std::max(top, s);
         shares.push_back(c);
     }
-    Plot pl = axes(p, x, y, w, h - 22, lo, hi, 0, top > 0 ? top * 1.12 : 1, "", true, "frequency");
+    Plot pl = axes(p, x, y, w, h - p.textHeight() - 10, lo, hi, 0, top > 0 ? top * 1.12 : 1, "", true, "frequency");
     for (size_t k = 0; k < series.size(); ++k) {
         const Color& c = col::series[k % 8];
         std::vector<int> xs, ys;
@@ -146,7 +146,7 @@ Plot drawOverlay(Painter& p, int x, int y, int w, int h, const std::vector<std::
         }
     }
     // legend Name / c_Name
-    int lx = x + 8, ly = y + h - 16;
+    int lx = x + 8, ly = y + h - p.textHeight() - 3;
     for (size_t k = 0; k < series.size(); ++k) {
         const Color& c = col::series[k % 8];
         p.rect(lx, ly + 3, 10, 8, &c, nullptr);
@@ -178,7 +178,7 @@ void drawTornado(Painter& p, int x, int y, int w, int h, const std::string& titl
     int labelW = 0;
     for (auto& [n, v] : items) labelW = std::max(labelW, p.textWidth(n));
     labelW += 16;
-    int top = y + p.textHeight() + 14, rowH = std::max(14, std::min(28, (h - (top - y) - 24) / int(items.size())));
+    int top = y + p.textHeight(kBoldFont) + 14, rowH = std::max(p.textHeight() + 4, std::min(30, (h - (top - y) - p.textHeight() - 12) / int(items.size())));
     int cx = x + labelW + (w - labelW - 20) / 2, half = (w - labelW - 20) / 2;
     p.line(cx, top - 4, cx, top + rowH * int(items.size()), col::axis);
     for (size_t i = 0; i < items.size(); ++i) {
@@ -255,12 +255,12 @@ void drawDynamicSensitivity(Painter& p, int x, int y, int w, int h, const Vec& i
 void drawSpider(Painter& p, int x, int y, int w, int h, const std::string& output, const Vec& out,
                 const std::vector<std::pair<std::string, Vec>>& inputs, bool cumulative) {
     const int Q = 10;
-    Plot pl = axes(p, x, y, w, h - 20, 0, 1, -1, 1,
+    Plot pl = axes(p, x, y, w, h - p.textHeight() - 8, 0, 1, -1, 1,
                    std::string("Spider: Pearson correlation with ") + output + " by 10% quantile" + (cumulative ? " (cumulative)" : ""));
     p.line(pl.x, pl.py(0), pl.x + pl.w, pl.py(0), col::axis);
     double q[Q + 1];
     for (int k = 0; k <= Q; ++k) q[k] = mc::stats::percentile(out, k / double(Q));
-    int lx = x + 8, ly = y + h - 16;
+    int lx = x + 8, ly = y + h - p.textHeight() - 3;
     for (size_t i = 0; i < inputs.size(); ++i) {
         std::vector<int> xs, ys;
         bool strong = false;
@@ -300,7 +300,7 @@ void drawTable(Painter& p, int x, int y, int w, const std::vector<std::vector<st
             int cw = c < widths.size() ? widths[c] : 80;
             if (c + 1 == rows[r].size()) cw = std::max(cw, x + w - xx);   // the last column may use the rest of the row
             // shorten text that does not fit its column (UTF-8 aware) instead of running into the next one
-            std::string t = rows[r][c];
+            std::string t = tr(rows[r][c]);
             if (p.textWidth(t, fontSize) > cw - 8) {
                 while (!t.empty() && p.textWidth(t + "...", fontSize) > cw - 8) {
                     t.pop_back();
@@ -359,14 +359,14 @@ void drawLineChart(Painter& p, int x, int y, int w, int h, const std::string& ti
     }
     if (n < 2) return;
     if (hi == lo) { lo -= 1; hi += 1; }
-    Plot pl = axes(p, x, y, w, h - 20, 0, double(n - 1), lo, hi, title);
+    Plot pl = axes(p, x, y, w, h - p.textHeight() - 8, 0, double(n - 1), lo, hi, title);
     if (firstForecast > 0) {
         int fx = pl.px(firstForecast - 0.5);
         Color shade = col::panel;
         p.rect(fx, pl.y, pl.x + pl.w - fx, pl.h, &shade, nullptr);
         p.text(fx + 4, pl.y + 2, "forecast", col::muted);
     }
-    int lx = x + 8, ly = y + h - 16;
+    int lx = x + 8, ly = y + h - p.textHeight() - 3;
     for (size_t k = 0; k < lines.size(); ++k) {
         std::vector<int> xs, ys;
         for (size_t i = 0; i < lines[k].second.size(); ++i) {

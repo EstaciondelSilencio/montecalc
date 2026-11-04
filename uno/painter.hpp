@@ -5,6 +5,8 @@
 #include <com/sun/star/awt/XFont.hpp>
 #include <com/sun/star/awt/XGraphics.hpp>
 
+#include "i18n.hpp"
+
 #include <algorithm>
 #include <map>
 #include <string>
@@ -20,6 +22,10 @@ struct Color {
     std::string hex() const;
     Color mix(const Color& o, double t) const;
 };
+
+// font sizes in points (before the window zoom): diagram text and bold captions
+constexpr int kTextFont = 11;
+constexpr int kBoldFont = 12;
 
 namespace col {
 const Color white{255, 255, 255}, black{0, 0, 0}, grid{225, 228, 232}, axis{110, 115, 125}, text{40, 44, 52},
@@ -86,8 +92,9 @@ public:
         p_.polygon(V(xs), V(ys), fill, stroke);
     }
     void polyline(const std::vector<int>& xs, const std::vector<int>& ys, const Color& c, int width) override { p_.polyline(V(xs), V(ys), c, W(width)); }
-    void text(int x, int y, const std::string& s, const Color& c, bool bold, int size) override { p_.text(S(x), S(y), s, c, bold, F(size)); }
-    int textWidth(const std::string& s, int size) override { return int(p_.textWidth(s, F(size)) / z_ + 0.5); }
+    void text(int x, int y, const std::string& s, const Color& c, bool bold, int size) override { p_.text(S(x), S(y), tr(s), c, bold, FB(size, bold)); }
+    // diagram texts are written in English and shown in the user interface language
+    int textWidth(const std::string& s, int size) override { return int(p_.textWidth(tr(s), F(size)) / z_ + 0.5); }
     int textHeight(int size) override { return int(p_.textHeight(F(size)) / z_ + 0.5); }
 
 private:
@@ -95,7 +102,8 @@ private:
     double z_;
     int S(int v) const { return int(v * z_ + (v >= 0 ? 0.5 : -0.5)); }
     int W(int w) const { return std::max(1, S(std::max(1, w))); }
-    int F(int size) const { return std::max(6, int((size > 0 ? size : 9) * z_ + 0.5)); }
+    int F(int size) const { return std::max(6, int((size > 0 ? size : kTextFont) * z_ + 0.5)); }
+    int FB(int size, bool bold) const { return F(size > 0 ? size : bold ? kBoldFont : kTextFont); }
     std::vector<int> V(const std::vector<int>& v) const {
         std::vector<int> r(v.size());
         for (size_t i = 0; i < v.size(); ++i) r[i] = S(v[i]);

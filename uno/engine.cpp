@@ -1,5 +1,6 @@
 // MonteCalc - simulation engine and MC FLO commands
 #include "engine.hpp"
+#include "i18n.hpp"
 #include "model.hpp"
 #include "report.hpp"
 #include "ui.hpp"
@@ -545,6 +546,7 @@ bool Engine::ask(const std::string& title, std::vector<FormField>& fields) {
 
 void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>& args) {
     args_ = args;
+    i18nSetContext(ctx_);
     std::string cmd = u8(url.Path);
     // menu entries pass arguments in the URL: org.montecalc:Wizard?Function=Normal&x=1
     std::string query = u8(url.Arguments);
@@ -621,6 +623,7 @@ void Engine::cmdSettings() {
         {"Store results in a result workbook after each run", "", true, o.report},
         {"Use DIP (store outputs as FLO_r_ arrays in the model)", "", true, o.dip},
         {"Use correlations", "", true, o.s.useCorrelations},
+        {"Language (MonteCalc windows and messages)", languageSetting(), false, false, {"Auto", "English", "Deutsch", "Español"}},
     };
     if (!ask("MonteCalc - Settings", f)) return;
     bool ok = true;
@@ -641,6 +644,7 @@ void Engine::cmdSettings() {
     if (!ok) err = "Please enter numbers only.";
     if (!err.empty() || !validateOptions(n, err)) { message("MonteCalc", err, true); return; }
     saveOptions(m, n);
+    if (f[11].value != languageSetting()) setLanguageSetting(f[11].value);   // menus follow LibreOffice's language
     auto& sim = mc::Simulation::instance();
     sim.setSettings(n.s);
     // seed -1: preview mode (every recalculation draws random values)

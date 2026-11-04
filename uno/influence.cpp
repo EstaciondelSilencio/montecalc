@@ -694,7 +694,7 @@ private:
     std::set<int> hidden_;
     std::set<std::string> expanded_;
     std::vector<std::string> resNames_;
-    static constexpr int kNameSize = 10;   // node names (points, before zoom)
+    static constexpr int kNameSize = 12;   // node names (points, before zoom)
     int selectedVisible_ = -1, hover_ = -1, dragNode_ = -1, mouseX_ = 0, mouseY_ = 0;
     bool loaded_ = false, resultsTab_ = false, probe_ = false;
     std::string status_ = "Press 'Variables'";

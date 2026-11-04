@@ -15,7 +15,7 @@
     </node>
     <node oor:name="PanelList">
       <node oor:name="MonteCalcPanelModel" oor:op="replace">
-        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Model specification</value></prop>
+        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Model specification</value><value xml:lang="de">Modellspezifikation</value><value xml:lang="es">Especificación del modelo</value></prop>
         <prop oor:name="TitleBarIsOptional" oor:type="xs:boolean"><value>false</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcPanelModel</value></prop>
         <prop oor:name="DeckId" oor:type="xs:string"><value>MonteCalcDeck</value></prop>
@@ -27,7 +27,7 @@
         <prop oor:name="DefaultMenuCommand" oor:type="xs:string"><value></value></prop>
       </node>
       <node oor:name="MonteCalcPanelInformation" oor:op="replace">
-        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Information</value></prop>
+        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Information</value><value xml:lang="de">Information</value><value xml:lang="es">Información</value></prop>
         <prop oor:name="TitleBarIsOptional" oor:type="xs:boolean"><value>false</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcPanelInformation</value></prop>
         <prop oor:name="DeckId" oor:type="xs:string"><value>MonteCalcDeck</value></prop>
@@ -39,7 +39,7 @@
         <prop oor:name="DefaultMenuCommand" oor:type="xs:string"><value></value></prop>
       </node>
       <node oor:name="MonteCalcPanelSimulation" oor:op="replace">
-        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Simulation</value></prop>
+        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Simulation</value><value xml:lang="de">Simulation</value><value xml:lang="es">Simulación</value></prop>
         <prop oor:name="TitleBarIsOptional" oor:type="xs:boolean"><value>false</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcPanelSimulation</value></prop>
         <prop oor:name="DeckId" oor:type="xs:string"><value>MonteCalcDeck</value></prop>
@@ -51,7 +51,7 @@
         <prop oor:name="DefaultMenuCommand" oor:type="xs:string"><value></value></prop>
       </node>
       <node oor:name="MonteCalcPanelStatistics" oor:op="replace">
-        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Statistics</value></prop>
+        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Statistics</value><value xml:lang="de">Statistik</value><value xml:lang="es">Estadística</value></prop>
         <prop oor:name="TitleBarIsOptional" oor:type="xs:boolean"><value>false</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcPanelStatistics</value></prop>
         <prop oor:name="DeckId" oor:type="xs:string"><value>MonteCalcDeck</value></prop>
@@ -63,7 +63,7 @@
         <prop oor:name="DefaultMenuCommand" oor:type="xs:string"><value></value></prop>
       </node>
       <node oor:name="MonteCalcPanelCorrelations" oor:op="replace">
-        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Correlations and sensitivities</value></prop>
+        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Correlations and sensitivities</value><value xml:lang="de">Korrelationen und Sensitivitäten</value><value xml:lang="es">Correlaciones y sensibilidades</value></prop>
         <prop oor:name="TitleBarIsOptional" oor:type="xs:boolean"><value>false</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcPanelCorrelations</value></prop>
         <prop oor:name="DeckId" oor:type="xs:string"><value>MonteCalcDeck</value></prop>
@@ -75,7 +75,7 @@
         <prop oor:name="DefaultMenuCommand" oor:type="xs:string"><value></value></prop>
       </node>
       <node oor:name="MonteCalcPanelIteration" oor:op="replace">
-        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Individual analysis of iteration</value></prop>
+        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Individual analysis of iteration</value><value xml:lang="de">Analyse einzelner Iterationen</value><value xml:lang="es">Análisis individual de iteraciones</value></prop>
         <prop oor:name="TitleBarIsOptional" oor:type="xs:boolean"><value>false</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcPanelIteration</value></prop>
         <prop oor:name="DeckId" oor:type="xs:string"><value>MonteCalcDeck</value></prop>
@@ -87,7 +87,7 @@
         <prop oor:name="DefaultMenuCommand" oor:type="xs:string"><value></value></prop>
       </node>
       <node oor:name="MonteCalcPanelResults" oor:op="replace">
-        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Results</value></prop>
+        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Results</value><value xml:lang="de">Ergebnisse</value><value xml:lang="es">Resultados</value></prop>
         <prop oor:name="TitleBarIsOptional" oor:type="xs:boolean"><value>false</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcPanelResults</value></prop>
         <prop oor:name="DeckId" oor:type="xs:string"><value>MonteCalcDeck</value></prop>
@@ -99,7 +99,7 @@
         <prop oor:name="DefaultMenuCommand" oor:type="xs:string"><value></value></prop>
       </node>
       <node oor:name="MonteCalcPanelOther" oor:op="replace">
-        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Other</value></prop>
+        <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Other</value><value xml:lang="de">Sonstiges</value><value xml:lang="es">Otros</value></prop>
         <prop oor:name="TitleBarIsOptional" oor:type="xs:boolean"><value>false</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcPanelOther</value></prop>
         <prop oor:name="DeckId" oor:type="xs:string"><value>MonteCalcDeck</value></prop>

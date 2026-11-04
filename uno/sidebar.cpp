@@ -8,6 +8,8 @@
 #include "engine.hpp"
 #include "model.hpp"
 #include "util.hpp"
+#include "i18n.hpp"
+#include "ui.hpp"
 
 #include "../core/flofuncs.h"
 #include "../core/simulation.h"
@@ -113,6 +115,7 @@ public:
     Panel(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame, const Reference<awt::XWindow>& parent,
           const OUString& url, const std::string& group)
         : ctx_(ctx), frame_(frame), url_(url), group_(group) {
+        i18nSetContext(ctx);
         auto smgr = ctx->getServiceManager();
         container_.set(smgr->createInstanceWithContext("com.sun.star.awt.UnoControlContainer", ctx), UNO_QUERY_THROW);
         Reference<awt::XControlModel> cm(smgr->createInstanceWithContext("com.sun.star.awt.UnoControlContainerModel", ctx), UNO_QUERY_THROW);
@@ -122,6 +125,7 @@ public:
         build();
         Reference<awt::XWindow> w(container_, UNO_QUERY_THROW);
         w->setPosSize(0, 0, 260, height_, awt::PosSize::POSSIZE);
+        for (const auto& c : Reference<awt::XControlContainer>(container_, UNO_QUERY_THROW)->getControls()) fitControlText(c);
         w->addMouseListener(listener_.get());
         w->addWindowListener(listener_.get());   // controls stretch with the sidebar width
         w->setVisible(true);
@@ -196,6 +200,7 @@ private:
     int height_ = 10, y_ = 6;
     bool updating_ = false;
     std::map<std::string, std::function<void()>> actions_, changes_;
+    std::map<std::string, std::vector<std::string>> items_;   // English list entries
     std::vector<std::string> variableLists_;
     std::vector<std::pair<std::string, std::array<int, 4>>> rects_;   // design rectangles (pixels, width 260)
     int lastWidth_ = 0;
@@ -250,8 +255,8 @@ private:
     }
     void button(const std::string& name, const std::string& label, int x, int y, int w, std::function<void()> f, const std::string& tip = "") {
         auto m = add("com.sun.star.awt.UnoControlButton", "com.sun.star.awt.UnoControlButtonModel", name, x, y, w, kH);
-        m->setPropertyValue("Label", Any(ou(label)));
-        if (!tip.empty()) m->setPropertyValue("HelpText", Any(ou(tip)));
+        m->setPropertyValue("Label", Any(ou(tr(label))));
+        if (!tip.empty()) m->setPropertyValue("HelpText", Any(ou(tr(tip))));
         Reference<awt::XButton> b(control(name), UNO_QUERY_THROW);
         b->setActionCommand(ou(name));
         b->addActionListener(listener_.get());
@@ -259,7 +264,7 @@ private:
     }
     void label(const std::string& name, const std::string& text, int x, int y, int w) {
         add("com.sun.star.awt.UnoControlFixedText", "com.sun.star.awt.UnoControlFixedTextModel", name, x, y + 4, w, kH - 6)
-            ->setPropertyValue("Label", Any(ou(text)));
+            ->setPropertyValue("Label", Any(ou(tr(text))));
     }
     void edit(const std::string& name, int x, int y, int w, std::function<void()> f) {
         add("com.sun.star.awt.UnoControlEdit", "com.sun.star.awt.UnoControlEditModel", name, x, y, w, kH);
@@ -268,7 +273,7 @@ private:
     }
     void check(const std::string& name, const std::string& text, int x, int y, int w, std::function<void()> f) {
         add("com.sun.star.awt.UnoControlCheckBox", "com.sun.star.awt.UnoControlCheckBoxModel", name, x, y, w, kH)
-            ->setPropertyValue("Label", Any(ou(text)));
+            ->setPropertyValue("Label", Any(ou(tr(text))));
         Reference<awt::XCheckBox>(control(name), UNO_QUERY_THROW)->addItemListener(listener_.get());
         changes_[name] = std::move(f);
     }
@@ -282,7 +287,8 @@ private:
     }
     void setItems(const std::string& name, const std::vector<std::string>& items, int sel) {
         Sequence<OUString> s(sal_Int32(items.size()));
-        for (size_t i = 0; i < items.size(); ++i) s.getArray()[i] = ou(items[i]);
+        for (size_t i = 0; i < items.size(); ++i) s.getArray()[i] = ou(trExact(items[i]));
+        items_[name] = items;
         Reference<beans::XPropertySet> m(control(name)->getModel(), UNO_QUERY_THROW);
         m->setPropertyValue("StringItemList", Any(s));
         if (sel >= 0 && sel < int(items.size())) m->setPropertyValue("SelectedItems", Any(seq<sal_Int16>({sal_Int16(sel)})));
@@ -293,7 +299,14 @@ private:
     }
     bool checked(const std::string& name) const { return Reference<awt::XCheckBox>(control(name), UNO_QUERY_THROW)->getState() == 1; }
     void setChecked(const std::string& name, bool on) { Reference<awt::XCheckBox>(control(name), UNO_QUERY_THROW)->setState(on ? 1 : 0); }
-    std::string selectedItem(const std::string& name) const { return u8(Reference<awt::XListBox>(control(name), UNO_QUERY_THROW)->getSelectedItem()); }
+    // the English entry (entries are shown translated)
+    std::string selectedItem(const std::string& name) const {
+        auto it = items_.find(name);
+        if (it != items_.end()) {
+            int pos = selected(name);
+            if (pos >= 0 && pos < int(it->second.size())) return it->second[pos];
+        }
+        return u8(Reference<awt::XListBox>(control(name), UNO_QUERY_THROW)->getSelectedItem()); }
     int selected(const std::string& name) const { return Reference<awt::XListBox>(control(name), UNO_QUERY_THROW)->getSelectedItemPos(); }
     void selectPos(const std::string& name, int i) { Reference<awt::XListBox>(control(name), UNO_QUERY_THROW)->selectItemPos(sal_Int16(i), true); }
 

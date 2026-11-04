@@ -36,12 +36,12 @@ ScreenPainter::ScreenPainter(const Reference<awt::XGraphics>& g) : g_(g) {
     bold_ = fontFor(0, true);
     if (font_.is()) {
         g_->setFont(font_);
-        charH_ = sizedH_[9];
+        charH_ = sizedH_[kTextFont];
     }
 }
 
 Reference<awt::XFont> ScreenPainter::fontFor(int size, bool bold) {
-    int pt = size > 0 ? size : 9;
+    int pt = size > 0 ? size : kTextFont;
     auto& cache = sized_[bold ? 1 : 0];
     auto it = cache.find(pt);
     if (it != cache.end()) return it->second;
@@ -134,11 +134,11 @@ void ScreenPainter::text(int x, int y, const std::string& s, const Color& c, boo
 int ScreenPainter::textWidth(const std::string& s, int size) {
     auto f = fontFor(size, false);
     if (f.is()) return f->getStringWidth(ou(s));
-    return int(s.size() * 7 * (size > 0 ? size : 9) / 9);
+    return int(s.size() * 7 * (size > 0 ? size : kTextFont) / 9);
 }
 
 int ScreenPainter::textHeight(int size) {
-    int pt = size > 0 ? size : 9;
+    int pt = size > 0 ? size : kTextFont;
     fontFor(size, false);
     auto it = sizedH_.find(pt);
     return it != sizedH_.end() ? it->second : charH_;
@@ -237,9 +237,9 @@ std::vector<double> ticks(double lo, double hi, int n) {
 
 Plot axes(Painter& p, int x, int y, int w, int h, double x0, double x1, double y0, double y1, const std::string& title, bool percentY,
           const std::string& ylabel) {
-    const int th = p.textHeight();
+    const int th = p.textHeight(), tth = p.textHeight(kBoldFont);
     p.rect(x, y, w, h, &col::white, nullptr);
-    int top = y + (title.empty() ? 6 : th + 10);
+    int top = y + (title.empty() ? th / 2 + 4 : tth + 12);
     if (!title.empty()) p.text(x + 8, y + 4, title, col::text, true);
     std::string widest = percentY ? "100%" : niceNum(y1);
     int left = x + std::max(36, p.textWidth(widest) + 12), bottom = y + h - th - 10, right = x + w - 12;
@@ -252,7 +252,7 @@ Plot axes(Painter& p, int x, int y, int w, int h, double x0, double x1, double y
         std::string s = percentY ? b : niceNum(t);
         p.text(pl.x - p.textWidth(s) - 5, yy - th / 2, s, col::muted);
     }
-    for (double t : ticks(x0, x1, std::max(2, pl.w / 80))) {
+    for (double t : ticks(x0, x1, std::max(2, pl.w / std::max(80, p.textWidth("-000.0k") + 16)))) {
         int xx = pl.px(t);
         p.line(xx, pl.y + pl.h, xx, pl.y + pl.h + 4, col::axis);
         std::string s = niceNum(t);

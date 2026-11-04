@@ -134,7 +134,7 @@ public:
     }
 
     ResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& previewName = "", Vec previewData = {})
-        : CanvasWindow(ctx, frame, previewName.empty() ? "MonteCalc - Results" : "MonteCalc - Preview " + previewName, 440, 270, 120),
+        : CanvasWindow(ctx, frame, previewName.empty() ? "MonteCalc - Results" : "MonteCalc - Preview " + previewName, 452, 270, 132),
           preview_(!previewName.empty()) {
         auto& sim = mc::Simulation::instance();
         if (preview_) {
@@ -171,7 +171,7 @@ public:
         addList("view", views, x, y, w, 12, true); y += 16;
         addLabel("lbins", "Number of bins", x, y + 2, 60);
         addEdit("bins", std::to_string(bins_), x + 62, y, 26);
-        addButton("applyBins", "Apply", x + 90, y, w - 90, 12); y += 16;
+        addButton("applyBins", "Set", x + 90, y, w - 90, 12); y += 16;
         addLabel("lcert", "Certainty level %", x, y + 2, 62);
         addEdit("certainty", "95", x + 64, y, w - 90);
         addButton("setCertainty", "Set", x + w - 24, y, 24, 12); y += 14;
@@ -249,15 +249,16 @@ public:
             if (!preview_) {
                 o.markers = {{"worst", mc::stats::percentile(v, st.worst)}, {"best", mc::stats::percentile(v, st.best)}};
             }
-            plot_ = drawHistogram(p, 0, 0, w, h - 46, v, o);
+            int sth = p.textHeight();   // two statistics lines below the chart
+            plot_ = drawHistogram(p, 0, 0, w, h - 2 * sth - 18, v, o);
 
             // statistics strip
             std::string s1 = "Mean " + niceNum(mc::stats::mean(v)) + "   Min " + niceNum(mc::stats::min(v)) + "   Max " + niceNum(mc::stats::max(v)) +
                              "   Std dev " + niceNum(mc::stats::stdev(v)) + "   Variance " + niceNum(mc::stats::variance(v));
             std::string s2;
             for (double q : {0.05, 0.10, 0.25, 0.5, 0.75, 0.90, 0.95}) s2 += "P" + std::to_string(int(q * 100)) + " " + niceNum(mc::stats::percentile(v, q)) + "   ";
-            p.text(8, h - 42, s1, col::text);
-            p.text(8, h - 24, s2, col::muted);
+            p.text(8, h - 2 * sth - 12, s1, col::text);
+            p.text(8, h - sth - 6, s2, col::muted);
             break;
         }
         case Tornado: {
@@ -311,7 +312,7 @@ public:
                 series.push_back({labels[i], d});
             }
             p.text(8, 4, var.name + " by variant", col::text, true);
-            drawOverlay(p, 0, 18, w, h - 18, series, bins_, true, probe_, probeOn_);
+            drawOverlay(p, 0, p.textHeight(kBoldFont) + 8, w, h - p.textHeight(kBoldFont) - 8, series, bins_, true, probe_, probeOn_);
             break;
         }
         case Decision:
@@ -489,7 +490,11 @@ public:
         }
         p.text(left, top + ph + 6, "conditional probability (driver breaches its ambition level | target missed)", col::muted);
         p.text(4, top - p.textHeight() - 2, "cond. damage", col::muted);
-        for (double t : {0.0, 0.5, 1.0}) p.text(left + int(t * pw) - 8, top + ph + 6 + p.textHeight(), pctText(t), col::muted);
+        for (double t : {0.0, 0.5, 1.0}) {
+            std::string lb = pctText(t);
+            int lw = p.textWidth(lb);
+            p.text(left + int(t * pw) - (t == 0 ? 0 : t == 1 ? lw : lw / 2), top + ph + 6 + p.textHeight(), lb, col::muted);
+        }
         p.text(4, top, niceNum(ymax), col::muted);
         // tooltip of the point under the mouse
         for (auto& d : decision_)

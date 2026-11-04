@@ -117,6 +117,7 @@ private:
     struct Rect { int x, y, w, h; };
     std::vector<std::pair<std::string, Rect>> rects_;   // original control rectangles (dialog units)
     std::map<std::string, int> anchors_;
+    std::map<std::string, std::vector<std::string>> items_;   // English list entries
     std::string title_;
     int baseWpx_ = 0, baseHpx_ = 0;   // window size the layout was designed for (pixels)
     bool relayouting_ = false;

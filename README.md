@@ -61,6 +61,18 @@ all running the same commands:
 5. Analyse in the result window, the result workbook (*Store results*), the `fmc_` functions,
    the influence diagram (**Variables**) or the AI mentor.
 
+### Languages: English, German, Spanish
+
+As in MC FLO, the user interface is available in English, German and Spanish: windows,
+dialogs, messages, the sidebar panels and the diagram captions. MonteCalc follows the
+LibreOffice user interface language. To choose another one, open *MC FLO → Settings… →
+Language* (Auto, English, Deutsch, Español); the choice is stored in
+`Documents/MC_FLO_language.txt` and applies to every window opened afterwards. The menu,
+toolbar, Tabbed-interface and sidebar titles always follow the LibreOffice language.
+Function names (`FLOsimula_…`, `fMC_…`), variable names and the sheets of the result
+workbook stay the same in every language, so a model works in any language version. All texts
+are in one table, `tools/i18n_catalog.py`.
+
 ## What is implemented
 
 **Model functions (`FLOsimula_`)**, with the wiki's names and argument order
@@ -230,9 +242,10 @@ uno/    addin (132 functions, generated), engine (all commands), model (cell sca
         charts/canvaswin (drawing, modeless windows), windows (result window, wizard,
         correlation window, fitting, correlogram, variable list, context), influence (diagram),
         mentor (Claude), sidebar (MC FLO deck: one panel per ribbon group)
+        i18n (English / German / Spanish texts, applied where texts reach the screen)
 tools/  gen_functions.py: one table generating IDL, C++, wizard metadata and docs
         gen_ui.py (+ gen_icons.py): one ribbon table generating the menu, toolbar, Notebookbar
-        tab, sidebar deck registration and icons
+        tab, sidebar deck registration and icons, and uno/i18n_catalog.inc from i18n_catalog.py
 tests/  core_tests.cpp, integration_test.py (headless LibreOffice, run as a normal user)
 ```
 

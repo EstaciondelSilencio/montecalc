@@ -1,5 +1,6 @@
 // MonteCalc - modeless window with a painted canvas
 #include "canvaswin.hpp"
+#include "i18n.hpp"
 #include "ui.hpp"
 #include "util.hpp"
 
@@ -221,7 +222,8 @@ CanvasWindow::CanvasWindow(const Reference<uno::XComponentContext>& ctx, const R
     dp->setPropertyValue("PositionY", Any(sal_Int32(30)));
     dp->setPropertyValue("Width", Any(sal_Int32(width)));
     dp->setPropertyValue("Height", Any(sal_Int32(height)));
-    dp->setPropertyValue("Title", Any(ou(title)));
+    i18nSetContext(ctx);
+    dp->setPropertyValue("Title", Any(ou(tr(title))));
     title_ = title;
     dp->setPropertyValue("Moveable", Any(true));
     dp->setPropertyValue("Closeable", Any(true));
@@ -247,13 +249,13 @@ Reference<beans::XPropertySet> CanvasWindow::addModel(const char* type, const st
 }
 
 void CanvasWindow::addButton(const std::string& name, const std::string& label, int x, int y, int w, int h) {
-    addModel("com.sun.star.awt.UnoControlButtonModel", name, x, y, w, h)->setPropertyValue("Label", Any(ou(label)));
+    addModel("com.sun.star.awt.UnoControlButtonModel", name, x, y, w, h)->setPropertyValue("Label", Any(ou(tr(label))));
     buttons_.push_back(name);
 }
 
 void CanvasWindow::addLabel(const std::string& name, const std::string& text, int x, int y, int w, int h) {
     auto m = addModel("com.sun.star.awt.UnoControlFixedTextModel", name, x, y, w, h);
-    m->setPropertyValue("Label", Any(ou(text)));
+    m->setPropertyValue("Label", Any(ou(tr(text))));
     m->setPropertyValue("MultiLine", Any(h > 12));
 }
 
@@ -272,7 +274,8 @@ void CanvasWindow::addEdit(const std::string& name, const std::string& text, int
 void CanvasWindow::addList(const std::string& name, const std::vector<std::string>& items, int x, int y, int w, int h, bool dropdown, bool multi) {
     auto m = addModel("com.sun.star.awt.UnoControlListBoxModel", name, x, y, w, h);
     Sequence<OUString> s(sal_Int32(items.size()));
-    for (size_t i = 0; i < items.size(); ++i) s.getArray()[i] = ou(items[i]);
+    for (size_t i = 0; i < items.size(); ++i) s.getArray()[i] = ou(trExact(items[i]));
+    items_[name] = items;
     m->setPropertyValue("StringItemList", Any(s));
     m->setPropertyValue("Dropdown", Any(dropdown));
     m->setPropertyValue("MultiSelection", Any(multi));
@@ -282,7 +285,7 @@ void CanvasWindow::addList(const std::string& name, const std::vector<std::strin
 
 void CanvasWindow::addCheck(const std::string& name, const std::string& label, int x, int y, int w, bool on) {
     auto m = addModel("com.sun.star.awt.UnoControlCheckBoxModel", name, x, y, w, 12);
-    m->setPropertyValue("Label", Any(ou(label)));
+    m->setPropertyValue("Label", Any(ou(tr(label))));
     m->setPropertyValue("State", Any(sal_Int16(on ? 1 : 0)));
     checks_.push_back(name);
 }
@@ -368,6 +371,7 @@ void CanvasWindow::show() {
         relayouting_ = false;
         relayout();
     }
+    for (const auto& c : cc->getControls()) fitControlText(c);   // longer translations
     w->setVisible(true);
 }
 
@@ -451,7 +455,8 @@ void CanvasWindow::setText(const std::string& name, const std::string& t) {
 }
 
 void CanvasWindow::setLabel(const std::string& name, const std::string& t) {
-    Reference<beans::XPropertySet>(control(name)->getModel(), UNO_QUERY_THROW)->setPropertyValue("Label", Any(ou(t)));
+    Reference<beans::XPropertySet>(control(name)->getModel(), UNO_QUERY_THROW)->setPropertyValue("Label", Any(ou(tr(t))));
+    if (dialog_.is()) fitControlText(control(name));
 }
 
 int CanvasWindow::selected(const std::string& name) {
@@ -465,12 +470,19 @@ std::vector<int> CanvasWindow::selectedAll(const std::string& name) {
 }
 
 std::string CanvasWindow::selectedItem(const std::string& name) {
+    // the English entry (list entries are shown translated)
+    auto it = items_.find(name);
+    if (it != items_.end()) {
+        int pos = selected(name);
+        if (pos >= 0 && pos < int(it->second.size())) return it->second[pos];
+    }
     return u8(Reference<awt::XListBox>(control(name), UNO_QUERY_THROW)->getSelectedItem());
 }
 
 void CanvasWindow::setItems(const std::string& name, const std::vector<std::string>& items, int sel) {
     Sequence<OUString> s(sal_Int32(items.size()));
-    for (size_t i = 0; i < items.size(); ++i) s.getArray()[i] = ou(items[i]);
+    for (size_t i = 0; i < items.size(); ++i) s.getArray()[i] = ou(trExact(items[i]));
+    items_[name] = items;
     auto m = Reference<beans::XPropertySet>(control(name)->getModel(), UNO_QUERY_THROW);
     m->setPropertyValue("StringItemList", Any(s));
     if (sel >= 0 && sel < int(items.size())) m->setPropertyValue("SelectedItems", Any(seq<sal_Int16>({sal_Int16(sel)})));
@@ -540,7 +552,7 @@ int CanvasWindow::popup(int x, int y, const std::vector<std::pair<int, std::stri
     sal_Int16 pos = 0;
     for (auto& [id, text] : items) {
         if (text.empty()) menu->insertSeparator(pos++);
-        else menu->insertItem(sal_Int16(id), ou(text), 0, pos++);
+        else menu->insertItem(sal_Int16(id), ou(tr(text)), 0, pos++);
     }
     Reference<awt::XWindowPeer> peer(dialog_->getPeer(), UNO_QUERY_THROW);
     return menu->execute(peer, awt::Rectangle(int(x * zoom_), int(y * zoom_), 1, 1), awt::PopupMenuDirection::EXECUTE_DEFAULT);
@@ -549,15 +561,16 @@ int CanvasWindow::popup(int x, int y, const std::vector<std::pair<int, std::stri
 void CanvasWindow::message(const std::string& text, bool error) {
     std::fprintf(stderr, "[MonteCalc] %s\n", text.c_str());
     try {
-        showMessage(ctx_, frame_, "MonteCalc", text, error);
+        showMessage(ctx_, frame_, "MonteCalc", text, error);   // translated there
     } catch (...) {
     }
 }
 
 std::string CanvasWindow::svg(int w, int h, double scale) {
-    SvgPainter p(w, h, scale);
+    SvgPainter sp(w, h, scale);
+    ZoomPainter p(sp, 1.0);   // same fonts and translations as on screen
     paint(p, w, h);
-    return p.svg();
+    return sp.svg();
 }
 
 bool CanvasWindow::exportImage(const std::string& url, const std::string& mime, int w, int h, double scale) {

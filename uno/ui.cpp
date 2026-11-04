@@ -1,6 +1,7 @@
 // MonteCalc - UI helpers
 #include "ui.hpp"
 #include "util.hpp"
+#include "i18n.hpp"
 
 #include <com/sun/star/awt/MessageBoxType.hpp>
 #include <com/sun/star/awt/PushButtonType.hpp>
@@ -8,7 +9,11 @@
 #include <com/sun/star/awt/XCheckBox.hpp>
 #include <com/sun/star/awt/XControl.hpp>
 #include <com/sun/star/awt/XControlContainer.hpp>
+#include <com/sun/star/awt/FontDescriptor.hpp>
 #include <com/sun/star/awt/XDialog.hpp>
+#include <com/sun/star/awt/XLayoutConstrains.hpp>
+#include <com/sun/star/awt/XVclWindowPeer.hpp>
+#include <com/sun/star/awt/XWindow.hpp>
 #include <com/sun/star/awt/XListBox.hpp>
 #include <com/sun/star/awt/XMessageBoxFactory.hpp>
 #include <com/sun/star/awt/XTextComponent.hpp>
@@ -31,17 +36,46 @@ namespace montecalc {
 
 void showMessage(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame, const std::string& title,
                  const std::string& text, bool error) {
+    i18nSetContext(ctx);
     Reference<awt::XToolkit> tk(awt::Toolkit::create(ctx), UNO_QUERY_THROW);
     Reference<awt::XMessageBoxFactory> mbf(tk, UNO_QUERY_THROW);
     Reference<awt::XWindowPeer> parent;
     if (frame.is()) parent.set(frame->getContainerWindow(), UNO_QUERY);
     auto box = mbf->createMessageBox(parent, error ? awt::MessageBoxType_ERRORBOX : awt::MessageBoxType_INFOBOX, 1,
-                                     ou(title), ou(text));
+                                     ou(tr(title)), ou(tr(text)));
     box->execute();
     Reference<lang::XComponent>(box, UNO_QUERY_THROW)->dispose();
 }
 
+void fitControlText(const Reference<uno::XInterface>& obj) {
+    try {
+        Reference<awt::XControl> c(obj, UNO_QUERY);
+        Reference<awt::XLayoutConstrains> lc(obj, UNO_QUERY);
+        Reference<awt::XWindow> w(obj, UNO_QUERY);
+        if (!c.is() || !lc.is() || !w.is()) return;
+        Reference<beans::XPropertySet> m(c->getModel(), UNO_QUERY);
+        Reference<awt::XVclWindowPeer> peer(c->getPeer(), UNO_QUERY);
+        if (!m.is() || !peer.is()) return;
+        bool multi = false;
+        try { m->getPropertyValue("MultiLine") >>= multi; } catch (...) {}
+        if (multi) return;
+        int avail = w->getPosSize().Width - 4;
+        if (avail <= 0 || lc->getPreferredSize().Width <= avail) return;
+        awt::FontDescriptor fd;
+        peer->getProperty("FontDescriptor") >>= fd;
+        // controls without their own font report height 0: the default user interface font (9 pt)
+        const int base = fd.Height > 0 ? fd.Height : 9;
+        for (int h = base - 1; h * 4 >= base * 3; --h) {
+            fd.Height = sal_Int16(h);
+            m->setPropertyValue("FontDescriptor", Any(fd));
+            if (lc->getPreferredSize().Width <= avail) break;
+        }
+    } catch (...) {
+    }
+}
+
 bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& title, std::vector<FormField>& fields, int width) {
+    i18nSetContext(ctx);
     auto smgr = ctx->getServiceManager();
     Reference<lang::XMultiServiceFactory> mf(
         smgr->createInstanceWithContext("com.sun.star.awt.UnoControlDialogModel", ctx), UNO_QUERY_THROW);
@@ -58,7 +92,7 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
     dp->setPropertyValue("PositionY", Any(sal_Int32(40)));
     dp->setPropertyValue("Width", Any(sal_Int32(width)));
     dp->setPropertyValue("Height", Any(height));
-    dp->setPropertyValue("Title", Any(ou(title)));
+    dp->setPropertyValue("Title", Any(ou(tr(title))));
     Reference<container::XNameContainer> cont(mf, UNO_QUERY_THROW);
     auto add = [&](const char* type, const OUString& name, sal_Int32 x, sal_Int32 yy, sal_Int32 w, sal_Int32 h) {
         Reference<beans::XPropertySet> m(mf->createInstance(OUString::createFromAscii(type)), UNO_QUERY_THROW);
@@ -76,12 +110,12 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
         sal_Int32 yy = rowY[i];
         if (f.isCheck) {
             auto m = add("com.sun.star.awt.UnoControlCheckBoxModel", id, 8, yy, width - 16, 12);
-            m->setPropertyValue("Label", Any(ou(f.label)));
+            m->setPropertyValue("Label", Any(ou(tr(f.label))));
             m->setPropertyValue("State", Any(sal_Int16(f.checked ? 1 : 0)));
         } else if (f.lines > 1) {
             if (!f.label.empty()) {
                 auto l = add("com.sun.star.awt.UnoControlFixedTextModel", "l" + id, 8, yy, width - 16, 10);
-                l->setPropertyValue("Label", Any(ou(f.label)));
+                l->setPropertyValue("Label", Any(ou(tr(f.label))));
             }
             auto m = add("com.sun.star.awt.UnoControlEditModel", id, 8, yy + 10, width - 16, 10 * f.lines - 2);
             m->setPropertyValue("MultiLine", Any(true));
@@ -90,13 +124,13 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
             m->setPropertyValue("Text", Any(ou(f.value)));
         } else {
             auto l = add("com.sun.star.awt.UnoControlFixedTextModel", "l" + id, 8, yy + 2, labelW - 4, 10);
-            l->setPropertyValue("Label", Any(ou(f.label)));
+            l->setPropertyValue("Label", Any(ou(tr(f.label))));
             if (!f.options.empty()) {
                 auto m = add("com.sun.star.awt.UnoControlListBoxModel", id, labelW + 8, yy, width - labelW - 16, 12);
                 Sequence<OUString> items(sal_Int32(f.options.size()));
                 sal_Int16 sel = 0;
                 for (size_t k = 0; k < f.options.size(); ++k) {
-                    items.getArray()[k] = ou(f.options[k]);
+                    items.getArray()[k] = ou(trExact(f.options[k]));
                     if (f.options[k] == f.value) sel = sal_Int16(k);
                 }
                 m->setPropertyValue("StringItemList", Any(items));
@@ -110,16 +144,17 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
         }
     }
     auto ok = add("com.sun.star.awt.UnoControlButtonModel", "ok", width - 108, height - 20, 48, 14);
-    ok->setPropertyValue("Label", Any(OUString("OK")));
+    ok->setPropertyValue("Label", Any(ou(tr("OK"))));
     ok->setPropertyValue("PushButtonType", Any(sal_Int16(awt::PushButtonType_OK)));
     ok->setPropertyValue("DefaultButton", Any(true));
     auto cancel = add("com.sun.star.awt.UnoControlButtonModel", "cancel", width - 56, height - 20, 48, 14);
-    cancel->setPropertyValue("Label", Any(OUString("Cancel")));
+    cancel->setPropertyValue("Label", Any(ou(tr("Cancel"))));
     cancel->setPropertyValue("PushButtonType", Any(sal_Int16(awt::PushButtonType_CANCEL)));
 
     Reference<awt::XControl> dlg(smgr->createInstanceWithContext("com.sun.star.awt.UnoControlDialog", ctx), UNO_QUERY_THROW);
     dlg->setModel(Reference<awt::XControlModel>(mf, UNO_QUERY_THROW));
     dlg->createPeer(Reference<awt::XToolkit>(awt::Toolkit::create(ctx), UNO_QUERY_THROW), Reference<awt::XWindowPeer>());
+    for (const auto& c : Reference<awt::XControlContainer>(dlg, UNO_QUERY_THROW)->getControls()) fitControlText(c);
     bool accepted = Reference<awt::XDialog>(dlg, UNO_QUERY_THROW)->execute() == 1;
     if (accepted) {
         Reference<awt::XControlContainer> cc(dlg, UNO_QUERY_THROW);
@@ -127,7 +162,10 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
             auto c = cc->getControl("f" + OUString::number(sal_Int32(i)));
             if (fields[i].isCheck) fields[i].checked = Reference<awt::XCheckBox>(c, UNO_QUERY_THROW)->getState() == 1;
             else if (!fields[i].options.empty() && fields[i].lines <= 1)
-                fields[i].value = u8(Reference<awt::XListBox>(c, UNO_QUERY_THROW)->getSelectedItem());
+            {   // the option as written by the caller (the list shows it translated)
+                int pos = Reference<awt::XListBox>(c, UNO_QUERY_THROW)->getSelectedItemPos();
+                if (pos >= 0 && pos < int(fields[i].options.size())) fields[i].value = fields[i].options[pos];
+            }
             else fields[i].value = u8(Reference<awt::XTextComponent>(c, UNO_QUERY_THROW)->getText());
         }
     }
