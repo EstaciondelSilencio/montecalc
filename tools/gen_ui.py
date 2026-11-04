@@ -75,6 +75,16 @@ RIBBON = [
 ]
 
 
+# icons of the main menu's submenus (ribbon groups and distribution pickers)
+GROUP_ICONS = {
+    "Model specification": "wizard", "Information": "about", "Simulation": "start", "Statistics": "statistics",
+    "Correlations and sensitivities": "calccorr", "Individual analysis of iteration": "iteration", "Results": "store",
+    "Other": "settings",
+}
+PICKERS = [("Choose continuous variable", "cont", "dist_Normal"), ("Choose discrete variable", "disc", "dist_Binomial"),
+           ("Choose time series", "ts", "dist_TemporalS_ARmodel")]
+
+
 def flo_lists():
     """(continuous, discrete, time series) labels in the order of core/flofuncs.cpp"""
     import re
@@ -153,12 +163,14 @@ def menu():
     out.append('        <node oor:name="Submenu">\n')
     n = 0
 
-    def sub(title, children, ind=10):
+    def sub(title, children, ind=10, icon=None):
         nonlocal n
         n += 1
         pad = " " * ind
         s = pad + '<node oor:name="g%02d" oor:op="replace">\n' % n
         s += pad + "  " + prop("Title", title, localized=True) + "\n"
+        if icon:   # submenus take their icon from <ImageIdentifier>_16.bmp / _26.bmp
+            s += pad + "  " + prop("ImageIdentifier", "%origin%/../icons/" + icon) + "\n"
         s += pad + "  " + prop("Context", CTX) + "\n"
         s += pad + '  <node oor:name="Submenu">\n' + "".join(children) + pad + "  </node>\n" + pad + "</node>\n"
         return s
@@ -166,12 +178,18 @@ def menu():
     for gi, (group, _, cmds) in enumerate(RIBBON):
         children = []
         if gi == 0:
-            for title, names in (("Choose continuous variable", cont), ("Choose discrete variable", disc), ("Choose time series", ts)):
+            for title, names, icon in PICKERS:
+                names = {"cont": cont, "disc": disc, "ts": ts}[names]
                 kids = [item("f%02d" % i, "org.montecalc:Wizard?Function=" + nm, nm, 16) for i, nm in enumerate(names)]
-                children.append(sub(title, kids, 14))
+                children.append(sub(title, kids, 14, icon))
         for i, (cmd, title, _, _, _) in enumerate(cmds):
             children.append(item("m%d%02d" % (gi, i), "org.montecalc:" + cmd, title, 14))
-        out.append(sub(group, children))
+        out.append(sub(group, children, icon=GROUP_ICONS[group]))
+    # direct entries: LibreOffice loads the icons of a popup menu only if it contains a command
+    out.append('          <node oor:name="z00" oor:op="replace">\n            ' + prop("URL", "private:separator") +
+               "\n            " + prop("Context", CTX) + "\n          </node>\n")
+    out.append(item("z01", "org.montecalc:Start", "Start simulation", 10))
+    out.append(item("z02", "org.montecalc:About", "About MonteCalc", 10))
     out.append("        </node>\n      </node>\n")
     return "".join(out)
 
@@ -330,6 +348,7 @@ def main():
     icons = sorted({c[3] for _, _, cmds in RIBBON for c in cmds} | {"deck"})
     gen_icons.write_all(os.path.join(EXT, "icons"), icons)
     gen_icons.write_distributions(os.path.join(EXT, "icons"), [nm for names in flo_lists() for nm in names])
+    gen_icons.write_bmp(os.path.join(EXT, "icons"), sorted(set(GROUP_ICONS.values()) | {p[2] for p in PICKERS}))
 
 
 if __name__ == "__main__":

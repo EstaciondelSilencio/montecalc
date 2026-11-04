@@ -34,7 +34,8 @@ all running the same commands:
 - the **MC FLO** toolbar, with icons and text;
 - the **MC FLO** menu, whose submenus follow the ribbon groups and include the distribution
   pickers; each distribution shows the shape of its density (continuous), its probabilities
-  (discrete) or a typical path (time series).
+  (discrete) or a typical path (time series). Every submenu has an icon as well, and the
+  menu ends with *Start simulation* and *About MonteCalc*.
 
 ![MC FLO sidebar deck, Extension tab and correlation window](docs/screenshots/mcflo_interface.png)
 

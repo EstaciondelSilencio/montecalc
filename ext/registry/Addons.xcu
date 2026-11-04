@@ -11,10 +11,12 @@
         <node oor:name="Submenu">
           <node oor:name="g04" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Model specification</value><value xml:lang="de">Modellspezifikation</value><value xml:lang="es">Especificación del modelo</value></prop>
+            <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/wizard</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
             <node oor:name="Submenu">
               <node oor:name="g01" oor:op="replace">
                 <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Choose continuous variable</value><value xml:lang="de">Wähle stetige Variable</value><value xml:lang="es">Elegir variable continua</value></prop>
+                <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/dist_Normal</value></prop>
                 <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
                 <node oor:name="Submenu">
                 <node oor:name="f00" oor:op="replace">
@@ -141,6 +143,7 @@
               </node>
               <node oor:name="g02" oor:op="replace">
                 <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Choose discrete variable</value><value xml:lang="de">Wähle diskrete Variable</value><value xml:lang="es">Elegir variable discreta</value></prop>
+                <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/dist_Binomial</value></prop>
                 <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
                 <node oor:name="Submenu">
                 <node oor:name="f00" oor:op="replace">
@@ -195,6 +198,7 @@
               </node>
               <node oor:name="g03" oor:op="replace">
                 <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Choose time series</value><value xml:lang="de">Wähle Zeitreihe</value><value xml:lang="es">Elegir serie temporal</value></prop>
+                <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_ARmodel</value></prop>
                 <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
                 <node oor:name="Submenu">
                 <node oor:name="f00" oor:op="replace">
@@ -269,6 +273,7 @@
           </node>
           <node oor:name="g05" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Information</value><value xml:lang="de">Information</value><value xml:lang="es">Información</value></prop>
+            <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/about</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
             <node oor:name="Submenu">
               <node oor:name="m100" oor:op="replace">
@@ -305,6 +310,7 @@
           </node>
           <node oor:name="g06" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Simulation</value><value xml:lang="de">Simulation</value><value xml:lang="es">Simulación</value></prop>
+            <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/start</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
             <node oor:name="Submenu">
               <node oor:name="m200" oor:op="replace">
@@ -335,6 +341,7 @@
           </node>
           <node oor:name="g07" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Statistics</value><value xml:lang="de">Statistik</value><value xml:lang="es">Estadística</value></prop>
+            <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/statistics</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
             <node oor:name="Submenu">
               <node oor:name="m300" oor:op="replace">
@@ -359,6 +366,7 @@
           </node>
           <node oor:name="g08" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Correlations and sensitivities</value><value xml:lang="de">Korrelationen und Sensitivitäten</value><value xml:lang="es">Correlaciones y sensibilidades</value></prop>
+            <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/calccorr</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
             <node oor:name="Submenu">
               <node oor:name="m400" oor:op="replace">
@@ -377,6 +385,7 @@
           </node>
           <node oor:name="g09" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Individual analysis of iteration</value><value xml:lang="de">Analyse einzelner Iterationen</value><value xml:lang="es">Análisis individual de iteraciones</value></prop>
+            <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/iteration</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
             <node oor:name="Submenu">
               <node oor:name="m500" oor:op="replace">
@@ -401,6 +410,7 @@
           </node>
           <node oor:name="g10" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Results</value><value xml:lang="de">Ergebnisse</value><value xml:lang="es">Resultados</value></prop>
+            <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/store</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
             <node oor:name="Submenu">
               <node oor:name="m600" oor:op="replace">
@@ -419,6 +429,7 @@
           </node>
           <node oor:name="g11" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Other</value><value xml:lang="de">Sonstiges</value><value xml:lang="es">Otros</value></prop>
+            <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/settings</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
             <node oor:name="Submenu">
               <node oor:name="m700" oor:op="replace">
@@ -476,6 +487,22 @@
                 <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
               </node>
             </node>
+          </node>
+          <node oor:name="z00" oor:op="replace">
+            <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
+            <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          </node>
+          <node oor:name="z01" oor:op="replace">
+            <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Start</value></prop>
+            <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Start simulation</value><value xml:lang="de">Starte Simulation</value><value xml:lang="es">Iniciar simulación</value></prop>
+            <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+            <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          </node>
+          <node oor:name="z02" oor:op="replace">
+            <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:About</value></prop>
+            <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">About MonteCalc</value><value xml:lang="de">Über MonteCalc</value><value xml:lang="es">Acerca de MonteCalc</value></prop>
+            <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+            <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           </node>
         </node>
       </node>

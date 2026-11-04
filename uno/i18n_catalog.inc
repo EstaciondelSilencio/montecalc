@@ -79,6 +79,7 @@
 {{"Variables (text summary)", "Variablen (Text\xc3""\xbc""bersicht)", "Variables (resumen de texto)"}},
 {{"Variables (text)", "Variablen (Text)", "Variables (texto)"}},
 {{"About MonteCalc", "\xc3""\x9c""ber MonteCalc", "Acerca de MonteCalc"}},
+{{"Start simulation", "Starte Simulation", "Iniciar simulaci\xc3""\xb3""n"}},
 {{"About", "\xc3""\x9c""ber", "Acerca de"}},
 {{"Variables (diagram)", "Variablen (Diagramm)", "Variables (diagrama)"}},
 {{"Best-case:", "Best Case:", "Mejor caso:"}},

@@ -308,6 +308,22 @@ def write_all(folder, names):
     print("wrote %d icons to %s" % (len(names) * 2, os.path.relpath(folder)))
 
 
+
+def write_bmp(folder, names):
+    """copies of icons as BMP: LibreOffice reads submenu icons (ImageIdentifier) only as .bmp"""
+    for n in names:
+        for size in (16, 26):
+            # LibreOffice ignores the alpha channel of a BMP and makes light magenta transparent
+            src = Image.open(os.path.join(folder, "%s_%d.png" % (n, size))).convert("RGBA")
+            out = Image.new("RGB", src.size, (255, 0, 255))
+            solid = Image.new("RGB", src.size, (240, 240, 240))
+            solid.paste(src, (0, 0), src)
+            mask = src.getchannel("A").point(lambda a: 255 if a >= 96 else 0)
+            out.paste(solid, (0, 0), mask)
+            out.save(os.path.join(folder, "%s_%d.bmp" % (n, size)))
+    print("wrote %d menu icons (bmp)" % (len(names) * 2))
+
+
 if __name__ == "__main__":
     import sys
     write_all(sys.argv[1], sys.argv[2:])

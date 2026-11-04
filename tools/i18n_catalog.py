@@ -95,6 +95,7 @@ CATALOG = [
     ("Variables (text summary)", "Variablen (Textübersicht)", "Variables (resumen de texto)"),
     ("Variables (text)", "Variablen (Text)", "Variables (texto)"),
     ("About MonteCalc", "Über MonteCalc", "Acerca de MonteCalc"),
+    ("Start simulation", "Starte Simulation", "Iniciar simulación"),
     ("About", "Über", "Acerca de"),
     ("Variables (diagram)", "Variablen (Diagramm)", "Variables (diagrama)"),
     ("Best-case:", "Best Case:", "Mejor caso:"),

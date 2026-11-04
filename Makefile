@@ -52,7 +52,7 @@ $(B)/obj/uno/%.o: uno/%.cpp uno/*.hpp core/*.h $(INC)/.own $(GEN)/functions_impl
 $(B)/libmontecalc.so: $(CORE_OBJ) $(UNO_OBJ)
 	$(CXX) -shared -Wl,--no-undefined -Wl,-z,origin -o $@ $^ $(LDLIBS)
 
-$(B)/MonteCalc.oxt: $(B)/libmontecalc.so $(B)/montecalc.rdb ext/*.xml ext/*.txt ext/montecalc.components ext/registry/*.xcu ext/icons/*.png ext/META-INF/manifest.xml
+$(B)/MonteCalc.oxt: $(B)/libmontecalc.so $(B)/montecalc.rdb ext/*.xml ext/*.txt ext/montecalc.components ext/registry/*.xcu ext/icons/*.png ext/icons/*.bmp ext/META-INF/manifest.xml
 	rm -rf $(B)/oxt && mkdir -p $(B)/oxt
 	cp -r ext/. $(B)/oxt/
 	cp $(B)/libmontecalc.so $(B)/montecalc.rdb $(B)/oxt/
