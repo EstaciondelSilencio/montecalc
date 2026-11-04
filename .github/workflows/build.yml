@@ -120,3 +120,4 @@ jobs:
           files: |
             MonteCalc-linux_x86_64.oxt
             MonteCalc-windows_x86_64.oxt
+            examples/business_case.ods
