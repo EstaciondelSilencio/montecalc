@@ -18,11 +18,7 @@ make            # builds build/MonteCalc.oxt (needs the LibreOffice SDK)
 make install    # unopkg add (run as a normal user)
 ```
 
-Open `examples/business_case.ods` (also attached to every release). It is laid out like the MC
-FLO examples: known parameters, uncertain parameters, correlations, a calculation block with
-the years as columns, output variables, result functions (`fMC_Average("NPV";"Monopoly")`)
-and a variant table for the multiple simulation (Competition / Monopoly / Hybrid); the
-*Read me* sheet walks through the flow. MonteCalc adds the MC FLO ribbon to Calc in four places,
+Open `examples/business_case.ods` (also attached to every release). MonteCalc adds the MC FLO ribbon to Calc in four places,
 all running the same commands:
 
 - the **MC FLO sidebar deck** (sidebar icon on the right, or *View → Sidebar*). It has one
