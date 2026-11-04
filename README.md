@@ -29,10 +29,12 @@ all running the same commands:
   Reset), *Statistics* (Variable, Show statistical parameters), *Correlations and
   sensitivities* (X-/Y-variable, Calc correlations), *Individual analysis of iteration*,
   *Results* (Close and save results) and *Other*;
-- the **Extension** tab of the tabbed interface (*View → User Interface → Tabbed*);
+- the **Extension** tab of the tabbed interface (*View → User Interface → Tabbed*), every
+  command with its icon and label;
 - the **MC FLO** toolbar, with icons and text;
 - the **MC FLO** menu, whose submenus follow the ribbon groups and include the distribution
-  pickers.
+  pickers; each distribution shows the shape of its density (continuous), its probabilities
+  (discrete) or a typical path (time series).
 
 ![MC FLO sidebar deck, Extension tab and correlation window](docs/screenshots/mcflo_interface.png)
 

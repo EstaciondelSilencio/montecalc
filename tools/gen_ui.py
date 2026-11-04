@@ -189,24 +189,32 @@ def toolbar_items(ind, prefix, notebook=False):
                        prop("URL", "private:separator") + "\n" + " " * ind + "  " + prop("Context", CTX) + "\n" + " " * ind + "</node>\n")
             k += 1
         for cmd, _, short, _, _ in shown:
-            # Notebookbar items show either text or an icon ("Text" / "Icon"); text reads like the ribbon
-            extra = (" " * (ind + 2) + prop("Style", "Text") + "\n") if notebook else ""
-            out.append(item("%s%02d" % (prefix, k), "org.montecalc:" + cmd, short, ind, extra))
-            k += 1
+            if notebook:
+                # a Notebookbar item shows either its icon ("Icon") or its text ("Text"), so every
+                # command gets two items next to each other: the icon, then the label (same command)
+                for style in ("Icon", "Text"):
+                    extra = " " * (ind + 2) + prop("Style", style) + "\n"
+                    out.append(item("%s%02d" % (prefix, k), "org.montecalc:" + cmd, short, ind, extra))
+                    k += 1
+            else:
+                out.append(item("%s%02d" % (prefix, k), "org.montecalc:" + cmd, short, ind))
+                k += 1
     return "".join(out)
 
 
 def images(ind):
     out = []
-    for _, _, cmds in RIBBON:
-        for cmd, _, _, icon, _ in cmds:
-            pad = " " * ind
-            out.append(pad + '<node oor:name="org.montecalc.img.%s" oor:op="replace">\n' % cmd +
-                       pad + "  " + prop("URL", "org.montecalc:" + cmd) + "\n" +
-                       pad + '  <node oor:name="UserDefinedImages">\n' +
-                       pad + "    " + prop("ImageSmallURL", "%origin%/../icons/" + icon + "_16.png") + "\n" +
-                       pad + "    " + prop("ImageBigURL", "%origin%/../icons/" + icon + "_26.png") + "\n" +
-                       pad + "  </node>\n" + pad + "</node>\n")
+    entries = [(cmd, "org.montecalc:" + cmd, icon) for _, _, cmds in RIBBON for cmd, _, _, icon, _ in cmds]
+    # the distribution pickers of the menu: one shape icon per distribution
+    entries += [("dist." + nm, "org.montecalc:Wizard?Function=" + nm, "dist_" + nm) for names in flo_lists() for nm in names]
+    for cmd, url, icon in entries:
+        pad = " " * ind
+        out.append(pad + '<node oor:name="org.montecalc.img.%s" oor:op="replace">\n' % cmd +
+                   pad + "  " + prop("URL", url) + "\n" +
+                   pad + '  <node oor:name="UserDefinedImages">\n' +
+                   pad + "    " + prop("ImageSmallURL", "%origin%/../icons/" + icon + "_16.png") + "\n" +
+                   pad + "    " + prop("ImageBigURL", "%origin%/../icons/" + icon + "_26.png") + "\n" +
+                   pad + "  </node>\n" + pad + "</node>\n")
     return "".join(out)
 
 
@@ -321,6 +329,7 @@ def main():
     import gen_icons
     icons = sorted({c[3] for _, _, cmds in RIBBON for c in cmds} | {"deck"})
     gen_icons.write_all(os.path.join(EXT, "icons"), icons)
+    gen_icons.write_distributions(os.path.join(EXT, "icons"), [nm for names in flo_lists() for nm in names])
 
 
 if __name__ == "__main__":

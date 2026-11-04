@@ -145,10 +145,12 @@ def draw(name):
         d.rectangle([10, 12, 94, 30], fill=GREEN)
         bars(d, [14, 30, 22, 40], GREEN, 22, 82, 84)
     elif name == "save":
-        d.rounded_rectangle([12, 10, 92, 94], 6, fill=GREEN)
-        d.rectangle([28, 10, 76, 40], fill=(255, 255, 255))
-        d.rectangle([60, 16, 70, 34], fill=GREEN)
-        d.rectangle([26, 56, 78, 94], fill=(255, 255, 255))
+        # floppy disk (save) with the results on its label
+        d.polygon([(10, 10), (78, 10), (94, 26), (94, 94), (10, 94)], fill=BLUE)
+        d.rectangle([26, 10, 70, 38], fill=(225, 230, 238))
+        d.rectangle([56, 15, 66, 33], fill=BLUE)
+        d.rectangle([22, 52, 82, 94], fill=(255, 255, 255))
+        bars(d, [12, 22, 32], GREEN, 32, 72, 88, 6)
     elif name in ("sortasc", "sortdesc"):
         hs = [20, 36, 52, 68, 84] if name == "sortasc" else [84, 68, 52, 36, 20]
         for i, h in enumerate(hs):
@@ -187,6 +189,114 @@ def draw(name):
     else:
         raise SystemExit("gen_icons.py: no drawing for icon " + name)
     return im
+
+
+# ---------------------------------------------------------------------------- distribution icons
+# Menu entries "Choose continuous / discrete variable / time series": every distribution shows
+# the shape of its density (continuous), its probabilities (discrete) or a typical path.
+def _beta(t, a, b):
+    return t ** (a - 1) * (1 - t) ** (b - 1) if 0 < t < 1 else 0.0
+
+
+def _gamma(x, k, th=1.0):
+    return x ** (k - 1) * math.exp(-x / th) if x > 0 else 0.0
+
+
+CONTINUOUS = {
+    "Uniform": lambda t: 1.0 if 0.15 <= t <= 0.85 else 0.0,
+    "Triangular": lambda t: max(0.0, (t - 0.1) / 0.25 if t < 0.35 else (0.9 - t) / 0.55),
+    "PERT": lambda t: _beta((t - 0.08) / 0.84, 2.2, 3.8) if 0.08 < t < 0.92 else 0.0,
+    "Normal": lambda t: math.exp(-((t - 0.5) ** 2) / 0.02),
+    "LogNormal": lambda t: (math.exp(-(math.log(t * 4) - 0.1) ** 2 / 0.32) / t) if t > 0.01 else 0.0,
+    "Beta": lambda t: _beta((t - 0.08) / 0.84, 5, 2) if 0.08 < t < 0.92 else 0.0,
+    "Gumbel": lambda t: (lambda z: math.exp(-(z + math.exp(-z))))((t - 0.35) * 8),
+    "Gamma": lambda t: _gamma(t * 10, 2.0),
+    "Exponential": lambda t: math.exp(-t * 5) if t > 0.06 else 0.0,
+    "TruncNormal": lambda t: math.exp(-((t - 0.42) ** 2) / 0.03) if 0.25 <= t <= 0.75 else 0.0,
+    "Weibull": lambda t: (lambda x: x ** 2.5 * math.exp(-x ** 3.5))(t * 1.9) if t > 0 else 0.0,
+    "chi2": lambda t: _gamma(t * 12, 1.5, 2.0),
+    "studentt": lambda t: (1 + ((t - 0.5) * 8) ** 2 / 1.5) ** -1.25,
+    "Pareto": lambda t: (t / 0.15) ** -3.0 if t >= 0.15 else 0.0,
+    "Fisher": lambda t: (lambda x: x ** 1.5 / (1 + 0.5 * x) ** 7.5)(t * 6) if t > 0 else 0.0,
+    "ArcSin": lambda t: min(4.0, 1 / math.sqrt(max(1e-6, (t - 0.1) * (0.9 - t)))) if 0.1 < t < 0.9 else 0.0,
+    "Cauchy": lambda t: 1 / (1 + ((t - 0.5) * 22) ** 2),
+    "Frechet": lambda t: (lambda x: 2 * x ** -3 * math.exp(-x ** -2))(t * 3.2) if t > 0.03 else 0.0,
+    "Logistic": lambda t: (lambda z: math.exp(-z) / (1 + math.exp(-z)) ** 2)((t - 0.5) * 12),
+}
+DISCRETE = {
+    "DiscreteUniform": [1, 1, 1, 1, 1, 1],
+    "Bernoulli": [0.7, 0.3],
+    "Binomial": [math.comb(8, k) * 0.4 ** k * 0.6 ** (8 - k) for k in range(9)],
+    "Poisson": [math.exp(-2.5) * 2.5 ** k / math.factorial(k) for k in range(9)],
+    "Pascal": [math.comb(k + 2, k) * 0.5 ** 3 * 0.5 ** k for k in range(9)],
+    "Geometric": [0.4 * 0.6 ** k for k in range(8)],
+    "Hypergeometric": [math.comb(6, k) * math.comb(14, 6 - k) / math.comb(20, 6) for k in range(7)],
+    "DiscreteUserDefined": [0.5, 0.2, 0.9, 0.35, 0.7, 0.15],
+}
+
+
+def _series(kind):
+    import random
+    rnd = random.Random(7)
+    y, e1, sig, out = 0.0, 0.0, 1.0, []
+    for i in range(30):
+        e = rnd.gauss(0, 1)
+        if kind == "TemporalS_ARmodel":
+            y = 0.75 * y + e
+        elif kind == "TemporalS_MAmodel":
+            y = e + 0.8 * e1
+        elif kind == "TemporalS_ARMAmodel":
+            y = 0.6 * y + e + 0.5 * e1
+        elif kind == "TemporalS_ARCHmodel":
+            y = (0.25 if i < 11 or i > 21 else 1.6) * e   # calm, a volatility cluster, calm
+        else:   # Wiener process: random walk with drift
+            y = y + 0.35 + e
+        e1 = e
+        out.append(y)
+    return out
+
+
+def draw_distribution(name):
+    im = Image.new("RGBA", (S, S), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    base = 94
+    if name in CONTINUOUS or name == "UserDefined":
+        if name == "UserDefined":   # free shape: a step density
+            steps = [0.35, 0.75, 1.0, 0.55, 0.8, 0.3]
+            g = lambda t: steps[min(5, int(t * 6))]
+        else:
+            g = CONTINUOUS[name]
+        xs = list(range(6, 99, 1))
+        vals = [g((x - 6) / 92.0) for x in xs]
+        top = max(vals) or 1.0
+        pts = [(x, base - 80 * v / top) for x, v in zip(xs, vals)]
+        d.polygon([(6, base)] + pts + [(98, base)], fill=(250, 214, 178, 255))
+        d.line(pts, fill=ORANGE, width=7, joint="curve")
+        d.line([(4, base), (100, base)], fill=GREY, width=4)
+    elif name in DISCRETE:
+        p = DISCRETE[name]
+        top = max(p)
+        bars(d, [max(3, 80 * v / top) for v in p], BLUE, 8, 96, base, 4 if len(p) < 8 else 3)
+        d.line([(4, base + 2), (100, base + 2)], fill=GREY, width=4)
+    else:
+        y = _series(name)
+        lo, hi = min(y), max(y)
+        pts = [(6 + i * 92 / (len(y) - 1), 86 - 72 * (v - lo) / ((hi - lo) or 1)) for i, v in enumerate(y)]
+        if name != "TemporalS_WPmodel":
+            m = 86 - 72 * (sum(y) / len(y) - lo) / ((hi - lo) or 1)
+            for x in range(6, 98, 12):
+                d.line([(x, m), (x + 6, m)], fill=GREY, width=3)
+        d.line(pts, fill=TEAL, width=6, joint="curve")
+        d.line([(4, base), (100, base)], fill=GREY, width=4)
+    return im
+
+
+def write_distributions(folder, names):
+    for n in names:
+        im = draw_distribution(n)
+        for size in (16, 26):
+            im.resize((size, size), Image.LANCZOS).save(os.path.join(folder, "dist_%s_%d.png" % (n, size)), optimize=True)
+    print("wrote %d distribution icons" % (len(names) * 2))
 
 
 def write_all(folder, names):

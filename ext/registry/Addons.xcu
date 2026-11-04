@@ -611,131 +611,243 @@
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Choose Wizard</value><value xml:lang="de">Wähle Wizard</value><value xml:lang="es">Elegir asistente</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
-          <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
         </node>
         <node oor:name="n01" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Choose Wizard</value><value xml:lang="de">Wähle Wizard</value><value xml:lang="es">Elegir asistente</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
+        </node>
+        <node oor:name="n02" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertCorrelation</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Insert correlation</value><value xml:lang="de">Gebe Korrelation ein</value><value xml:lang="es">Insertar correlación</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n03" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertCorrelation</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Insert correlation</value><value xml:lang="de">Gebe Korrelation ein</value><value xml:lang="es">Insertar correlación</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n02" oor:op="replace">
+        <node oor:name="n04" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertOutput</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Insert output variable</value><value xml:lang="de">Gebe Output ein</value><value xml:lang="es">Insertar salida</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n05" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertOutput</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Insert output variable</value><value xml:lang="de">Gebe Output ein</value><value xml:lang="es">Insertar salida</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n03" oor:op="replace">
+        <node oor:name="n06" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Register</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Register variables</value><value xml:lang="de">Übernehme Eingabe</value><value xml:lang="es">Registrar variables</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n07" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Register</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Register variables</value><value xml:lang="de">Übernehme Eingabe</value><value xml:lang="es">Registrar variables</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n04" oor:op="replace">
+        <node oor:name="n08" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Lock</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Lock/Unlock</value><value xml:lang="de">Sperre/Entsperre</value><value xml:lang="es">Bloquear/Desbloquear</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n09" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Lock</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Lock/Unlock</value><value xml:lang="de">Sperre/Entsperre</value><value xml:lang="es">Bloquear/Desbloquear</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n05" oor:op="replace">
+        <node oor:name="n10" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Fit</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Fit distribution</value><value xml:lang="de">Schätze Verteilung</value><value xml:lang="es">Ajustar distribución</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n11" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Fit</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Fit distribution</value><value xml:lang="de">Schätze Verteilung</value><value xml:lang="es">Ajustar distribución</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n06" oor:op="replace">
+        <node oor:name="n12" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="n07" oor:op="replace">
+        <node oor:name="n13" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Model</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Model</value><value xml:lang="de">Modell</value><value xml:lang="es">Modelo</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n14" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Model</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Model</value><value xml:lang="de">Modell</value><value xml:lang="es">Modelo</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n08" oor:op="replace">
+        <node oor:name="n15" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InfluenceDiagram</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Variables</value><value xml:lang="de">Variablen</value><value xml:lang="es">Variables</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n16" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InfluenceDiagram</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Variables</value><value xml:lang="de">Variablen</value><value xml:lang="es">Variables</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n09" oor:op="replace">
+        <node oor:name="n17" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="n10" oor:op="replace">
+        <node oor:name="n18" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Settings</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Settings</value><value xml:lang="de">Einstellungen</value><value xml:lang="es">Ajustes</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n19" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Settings</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Settings</value><value xml:lang="de">Einstellungen</value><value xml:lang="es">Ajustes</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n11" oor:op="replace">
+        <node oor:name="n20" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:MultipleSimulation</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Multiple simulation</value><value xml:lang="de">Mehrfachsimulation</value><value xml:lang="es">Simulación múltiple</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n21" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:MultipleSimulation</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Multiple simulation</value><value xml:lang="de">Mehrfachsimulation</value><value xml:lang="es">Simulación múltiple</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n12" oor:op="replace">
+        <node oor:name="n22" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Start</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Start</value><value xml:lang="de">Starten</value><value xml:lang="es">Iniciar</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n23" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Start</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Start</value><value xml:lang="de">Starten</value><value xml:lang="es">Iniciar</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n13" oor:op="replace">
+        <node oor:name="n24" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Reset</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Reset</value><value xml:lang="de">Zurücksetzen</value><value xml:lang="es">Restablecer</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n25" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Reset</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Reset</value><value xml:lang="de">Zurücksetzen</value><value xml:lang="es">Restablecer</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n14" oor:op="replace">
+        <node oor:name="n26" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="n15" oor:op="replace">
+        <node oor:name="n27" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Results</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Show statistical parameters</value><value xml:lang="de">Zeige statistische Parameter</value><value xml:lang="es">Mostrar parámetros estadísticos</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n28" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Results</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Show statistical parameters</value><value xml:lang="de">Zeige statistische Parameter</value><value xml:lang="es">Mostrar parámetros estadísticos</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n16" oor:op="replace">
+        <node oor:name="n29" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="n17" oor:op="replace">
+        <node oor:name="n30" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:CalcCorrelations</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Calc correlations</value><value xml:lang="de">Berechne Korrelationen</value><value xml:lang="es">Calcular correlaciones</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n31" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:CalcCorrelations</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Calc correlations</value><value xml:lang="de">Berechne Korrelationen</value><value xml:lang="es">Calcular correlaciones</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n18" oor:op="replace">
+        <node oor:name="n32" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="n19" oor:op="replace">
+        <node oor:name="n33" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Replay</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Analyze selected iteration</value><value xml:lang="de">Analysiere gewählte Iteration</value><value xml:lang="es">Analizar iteración seleccionada</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n34" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Replay</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Analyze selected iteration</value><value xml:lang="de">Analysiere gewählte Iteration</value><value xml:lang="es">Analizar iteración seleccionada</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n20" oor:op="replace">
+        <node oor:name="n35" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="n21" oor:op="replace">
+        <node oor:name="n36" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:SaveResults</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Close and save results</value><value xml:lang="de">Schliesse und speichere Ergebnisse</value><value xml:lang="es">Cerrar y guardar resultados</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n37" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:SaveResults</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Close and save results</value><value xml:lang="de">Schliesse und speichere Ergebnisse</value><value xml:lang="es">Cerrar y guardar resultados</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
@@ -981,6 +1093,237 @@
         <node oor:name="UserDefinedImages">
           <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/about_16.png</value></prop>
           <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/about_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Uniform" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Uniform</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Uniform_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Uniform_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Triangular" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Triangular</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Triangular_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Triangular_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.PERT" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=PERT</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_PERT_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_PERT_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Normal" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Normal</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Normal_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Normal_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.LogNormal" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=LogNormal</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_LogNormal_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_LogNormal_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Beta" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Beta</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Beta_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Beta_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Gumbel" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Gumbel</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Gumbel_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Gumbel_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Gamma" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Gamma</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Gamma_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Gamma_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Exponential" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Exponential</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Exponential_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Exponential_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.TruncNormal" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=TruncNormal</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_TruncNormal_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_TruncNormal_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Weibull" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Weibull</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Weibull_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Weibull_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.chi2" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=chi2</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_chi2_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_chi2_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.studentt" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=studentt</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_studentt_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_studentt_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Pareto" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Pareto</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Pareto_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Pareto_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Fisher" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Fisher</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Fisher_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Fisher_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.ArcSin" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=ArcSin</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_ArcSin_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_ArcSin_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Cauchy" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Cauchy</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Cauchy_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Cauchy_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Frechet" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Frechet</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Frechet_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Frechet_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Logistic" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Logistic</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Logistic_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Logistic_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.UserDefined" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=UserDefined</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_UserDefined_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_UserDefined_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.DiscreteUniform" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=DiscreteUniform</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_DiscreteUniform_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_DiscreteUniform_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Bernoulli" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Bernoulli</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Bernoulli_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Bernoulli_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Binomial" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Binomial</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Binomial_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Binomial_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Poisson" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Poisson</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Poisson_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Poisson_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Pascal" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Pascal</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Pascal_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Pascal_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Geometric" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Geometric</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Geometric_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Geometric_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.Hypergeometric" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=Hypergeometric</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_Hypergeometric_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_Hypergeometric_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.DiscreteUserDefined" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=DiscreteUserDefined</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_DiscreteUserDefined_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_DiscreteUserDefined_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.TemporalS_ARmodel" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=TemporalS_ARmodel</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_ARmodel_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_ARmodel_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.TemporalS_MAmodel" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=TemporalS_MAmodel</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_MAmodel_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_MAmodel_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.TemporalS_ARMAmodel" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=TemporalS_ARMAmodel</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_ARMAmodel_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_ARMAmodel_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.TemporalS_ARCHmodel" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=TemporalS_ARCHmodel</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_ARCHmodel_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_ARCHmodel_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.dist.TemporalS_WPmodel" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Wizard?Function=TemporalS_WPmodel</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_WPmodel_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/dist_TemporalS_WPmodel_26.png</value></prop>
         </node>
       </node>
     </node>
