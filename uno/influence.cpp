@@ -461,7 +461,8 @@ public:
         mc::Variable info;
         for (auto& x : mc::Simulation::instance().resultVariables()) if (x.name == sv) info = x;
         if (mc::Simulation::instance().samples(sv, v))
-            drawStatsGrid(p, w - gridW + 4, 4, gridW - 8, sv, info.description, info.cell, v, mc::Simulation::instance().settings().bins);
+            drawStatsGrid(p, w - gridW + 4, 4, gridW - 8, sv, info.description, info.cell, v, mc::Simulation::instance().settings().bins,
+                          kTableFont, h - 8);
     }
 
     // ---------------------------------------------------------------- interaction

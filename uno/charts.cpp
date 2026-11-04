@@ -285,9 +285,11 @@ void drawSpider(Painter& p, int x, int y, int w, int h, const std::string& outpu
     }
 }
 
+int tableRowHeight(Painter& p, int fontSize) { return p.textHeight(fontSize) + 8; }
+
 void drawTable(Painter& p, int x, int y, int w, const std::vector<std::vector<std::string>>& rows, const std::vector<int>& widths,
-               const std::vector<Color>* rowColors, int highlightRow) {
-    int th = p.textHeight() + 6;
+               const std::vector<Color>* rowColors, int highlightRow, int fontSize) {
+    int th = tableRowHeight(p, fontSize);
     for (size_t r = 0; r < rows.size(); ++r) {
         int yy = y + int(r) * th;
         if (r == 0) p.rect(x, yy, w, th, &col::panel, nullptr);
@@ -295,14 +297,26 @@ void drawTable(Painter& p, int x, int y, int w, const std::vector<std::vector<st
         else if (rowColors && r < rowColors->size()) p.rect(x, yy, w, th, &(*rowColors)[r], nullptr);
         int xx = x + 4;
         for (size_t c = 0; c < rows[r].size(); ++c) {
-            p.text(xx, yy + 3, rows[r][c], col::text, r == 0);
-            xx += c < widths.size() ? widths[c] : 80;
+            int cw = c < widths.size() ? widths[c] : 80;
+            if (c + 1 == rows[r].size()) cw = std::max(cw, x + w - xx);   // the last column may use the rest of the row
+            // shorten text that does not fit its column (UTF-8 aware) instead of running into the next one
+            std::string t = rows[r][c];
+            if (p.textWidth(t, fontSize) > cw - 8) {
+                while (!t.empty() && p.textWidth(t + "...", fontSize) > cw - 8) {
+                    t.pop_back();
+                    while (!t.empty() && (static_cast<unsigned char>(t.back()) & 0xC0) == 0x80) t.pop_back();
+                }
+                t += "...";
+            }
+            p.text(xx, yy + 4, t, col::text, r == 0, fontSize);
+            xx += cw;
         }
         p.line(x, yy + th, x + w, yy + th, col::grid);
     }
 }
 
-void drawStatsGrid(Painter& p, int x, int y, int w, const std::string& name, const std::string& def, const std::string& cell, const Vec& v, int bins) {
+void drawStatsGrid(Painter& p, int x, int y, int w, const std::string& name, const std::string& def, const std::string& cell, const Vec& v, int bins,
+                   int fontSize, int maxHeight) {
     std::vector<std::vector<std::string>> rows{{"Statistic", "Value"}};
     auto add = [&](const std::string& a, const std::string& b) { rows.push_back({a, b}); };
     add("Variable", name);
@@ -321,7 +335,18 @@ void drawStatsGrid(Painter& p, int x, int y, int w, const std::string& name, con
     add("Std. deviation", niceNum(mc::stats::stdev(v)));
     add("Coeff. of variation", niceNum(mc::stats::cv(v)));
     for (double q : {0.01, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.99}) add("P" + std::to_string(int(std::round(q * 100))), niceNum(mc::stats::percentile(v, q)));
-    drawTable(p, x, y, w, rows, {w * 55 / 100, w * 45 / 100});
+    int th = tableRowHeight(p, fontSize);
+    if (maxHeight > 0 && int(rows.size()) * th > maxHeight && w >= 360) {
+        // not enough height: two tables side by side, each with the heading
+        size_t half = (rows.size() + 1) / 2;
+        std::vector<std::vector<std::string>> a(rows.begin(), rows.begin() + half), b{rows[0]};
+        b.insert(b.end(), rows.begin() + half, rows.end());
+        int cw = (w - 12) / 2;
+        drawTable(p, x, y, cw, a, {cw * 50 / 100, cw * 50 / 100}, nullptr, -1, fontSize);
+        drawTable(p, x + cw + 12, y, cw, b, {cw * 50 / 100, cw * 50 / 100}, nullptr, -1, fontSize);
+        return;
+    }
+    drawTable(p, x, y, w, rows, {w * 50 / 100, w * 50 / 100}, nullptr, -1, fontSize);
 }
 
 void drawLineChart(Painter& p, int x, int y, int w, int h, const std::string& title, const std::vector<std::pair<std::string, Vec>>& lines,

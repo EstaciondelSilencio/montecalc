@@ -318,7 +318,7 @@ public:
             paintDecision(p, w, h, var, v, inputs);
             break;
         case Statistics:
-            drawStatsGrid(p, 10, 10, std::min(w - 20, 420), var.name, var.description, var.cell, v, bins_);
+            drawStatsGrid(p, 10, 10, std::min(w - 20, 900), var.name, var.description, var.cell, v, bins_, 11, h - 20);
             break;
         }
     }
@@ -846,7 +846,7 @@ public:
         o.stripe = true;
         o.stripeX = stripe_;
         o.realData = real_.empty() ? nullptr : &real_;
-        int statsW = 150;
+        int statsW = 180;
         plot_ = drawHistogram(p, 0, 0, w - statsW, h, data_, o);
         std::vector<std::vector<std::string>> rows{{"Statistic", "Value"}};
         rows.push_back({"Mean", niceNum(mc::stats::mean(data_))});
@@ -856,7 +856,7 @@ public:
         rows.push_back({"Std deviation", niceNum(mc::stats::stdev(data_))});
         for (double q : {0.01, 0.05, 0.10, 0.25, 0.5, 0.75, 0.90, 0.95, 0.99})
             rows.push_back({"P" + std::to_string(int(std::round(q * 100))), niceNum(mc::stats::percentile(data_, q))});
-        drawTable(p, w - statsW + 4, 6, statsW - 8, rows, {80, 70});
+        drawTable(p, w - statsW + 4, 6, statsW - 8, rows, {95, 77});
     }
 
     void mouseDown(const MouseInfo& m) override {
@@ -1061,7 +1061,7 @@ public:
 
     void paint(Painter& p, int w, int h) override {
         p.rect(0, 0, w, h, &col::white, nullptr);
-        int statsW = 150;
+        int statsW = 180;
         if (!tsMode_) {
             HistogramOptions o;
             o.title = "Historical data (" + std::to_string(data_.size()) + " values)";
@@ -1106,7 +1106,7 @@ public:
             for (double q : {0.05, 0.25, 0.5, 0.75, 0.95})
                 rows.push_back({"P" + std::to_string(int(q * 100)), niceNum(mc::stats::percentile(data_, q))});
             rows.push_back({"Number of iterations", std::to_string(data_.size())});
-            drawTable(p, w - statsW + 4, 6, statsW - 8, rows, {90, 60});
+            drawTable(p, w - statsW + 4, 6, statsW - 8, rows, {105, 67});
         } else {
             size_t n = data_.size(), h2 = mid_.size();
             Vec hist = data_, fitted, fc(n + h2, std::nan("")), lo(n + h2, std::nan("")), hi(n + h2, std::nan("")), sim(n + h2, std::nan(""));
@@ -1307,10 +1307,11 @@ public:
                             niceNum(d.cell(v.addr)->getValue())});
             colors.push_back(v.kind == mc::VarKind::Input ? Color{221, 235, 247} : v.kind == mc::VarKind::Output ? Color{252, 228, 214} : Color{255, 242, 204});
         }
-        rowH_ = p.textHeight() + 6;
+        const int font = 11;   // larger than the other tables: this list is read, not glanced at
+        rowH_ = tableRowHeight(p, font);
         drawTable(p, 6, 6, w - 12, rows, {(w - 12) * 22 / 100, (w - 12) * 12 / 100, (w - 12) * 16 / 100, (w - 12) * 38 / 100, (w - 12) * 12 / 100},
-                  &colors, sel_ + 1);
-        p.text(6, h - 20, "Click a row to select the cell; double-click for details (result window or preview).", col::muted);
+                  &colors, sel_ + 1, font);
+        p.text(6, h - p.textHeight(10) - 8, "Click a row to select the cell; double-click for details (result window or preview).", col::muted, false, 10);
     }
     void mouseDown(const MouseInfo& m) override {
         int row = (m.y - 6) / std::max(1, rowH_) - 1;
