@@ -990,6 +990,15 @@ public:
         addLabel("lname", "Name", x, y + 2, 24); addEdit("name", name_, x + 26, y, w - 26); y += 16;
         addButton("insert", "Insert formula into current cell", x, y, w); y += 16;
         addButton("close", "Close", x, y, w);
+
+        setAnchor("results", AnchorRight | StretchH);
+        setAnchor("simulate", AnchorRight | AnchorBottom);
+        setAnchor("copy", AnchorRight | AnchorBottom);
+        setAnchor("qq", AnchorRight | AnchorBottom);
+        setAnchor("lname", AnchorRight | AnchorBottom);
+        setAnchor("name", AnchorRight | AnchorBottom);
+        setAnchor("insert", AnchorRight | AnchorBottom);
+        setAnchor("close", AnchorRight | AnchorBottom);
     }
 
     void fit() {

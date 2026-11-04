@@ -103,7 +103,13 @@ bivariate is enforced.
   test model, that falls back to spreadsheet recalculation when a function
   isn't supported.
 
-**Result window** (wiki "Output"), zoomable like all windows (Ctrl +/−/0, starts at 125%):
+**All windows** can be resized and maximised: the chart fills the window, the control column
+stays on the right edge, long lists and the mentor's conversation grow with the window, and a
+minimum size keeps every control visible. Charts are drawn off screen and copied in one step,
+so nothing flickers while resizing; each kind of window reopens with the size and position it
+had last. Zoom with Ctrl +/−/0 (starts at 125%). The sidebar panels stretch with the sidebar.
+
+**Result window** (wiki "Output"):
 - variant choice at the top (multiple simulation) and *Store results* (result workbook);
 - histogram and cumulative curve with the magic stripe (drag it, or enter `x` or `;p`),
   worst/best markers and the **certainty level** (e.g. 95%) with its lower and upper limit;

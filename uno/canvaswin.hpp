@@ -12,6 +12,7 @@
 #include <com/sun/star/uno/XComponentContext.hpp>
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -46,6 +47,13 @@ public:
     // edit fields registered here call itemChanged(name) on every text change
     void watchText(const std::string& name) { watched_.push_back(name); }
     int panelX() const { return width_ - panelW_ + 4; }
+    // Resize behaviour of a control (default: controls in the right panel follow the right edge,
+    // all others stay put). Combine: AnchorRight moves with the right edge, StretchW grows with
+    // the width, AnchorBottom moves with the bottom edge, StretchH grows with the height.
+    enum Anchor { AnchorLeft = 0, AnchorRight = 1, StretchW = 2, AnchorBottom = 4, StretchH = 8 };
+    void setAnchor(const std::string& name, int flags) { anchors_[name] = flags; }
+    // false for windows without a painted canvas (the AI mentor): nothing is drawn behind the controls
+    virtual bool hasCanvas() const { return true; }
     int panelW() const { return panelW_ - 8; }
     void show();   // creates the peer and shows the window (modeless)
 
@@ -106,6 +114,15 @@ private:
     css::uno::Reference<css::awt::XControl> dialog_;
     css::uno::Reference<css::uno::XInterface> listener_;
     std::vector<std::string> buttons_, lists_, checks_, sliders_, watched_;
+    struct Rect { int x, y, w, h; };
+    std::vector<std::pair<std::string, Rect>> rects_;   // original control rectangles (dialog units)
+    std::map<std::string, int> anchors_;
+    std::string title_;
+    int baseWpx_ = 0, baseHpx_ = 0;   // window size the layout was designed for (pixels)
+    bool relayouting_ = false;
+    void relayout();
+    void rememberGeometry();
+    std::string geometryKey() const;
     int width_, height_, panelW_;
     double zoom_ = defaultZoom();
     bool exporting_ = false;

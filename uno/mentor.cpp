@@ -359,6 +359,11 @@ public:
         addLabel("lq", "Your question", 4, 218, cw);
         addEdit("question", "Which inputs drive the outputs most, and where does the downside concentrate?", 4, 228, cw, 40, true);
         addLabel("status", "", 4, 272, cw);
+        // the conversation grows with the window; question and status stay at the bottom
+        setAnchor("history", StretchW | StretchH);
+        setAnchor("lq", AnchorBottom);
+        setAnchor("question", AnchorBottom | StretchW);
+        setAnchor("status", AnchorBottom | StretchW);
     }
 
     void afterShow() {
@@ -367,6 +372,7 @@ public:
     }
 
     void paint(Painter&, int, int) override {}
+    bool hasCanvas() const override { return false; }
 
     std::string transcript() const {
         std::string t;

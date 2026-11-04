@@ -43,11 +43,14 @@
 #include <com/sun/star/ui/XUIElement.hpp>
 #include <cppuhelper/implbase4.hxx>
 #include <cppuhelper/implbase5.hxx>
+#include <cppuhelper/implbase6.hxx>
+#include <com/sun/star/awt/XWindowListener.hpp>
 #include <cppuhelper/supportsservice.hxx>
 #include <rtl/ref.hxx>
 #include <com/sun/star/lang/IllegalArgumentException.hpp>
 
 #include <algorithm>
+#include <array>
 #include <set>
 
 #include <cstdio>
@@ -81,8 +84,8 @@ std::vector<std::string> floLabels(int which) {   // 0 continuous, 1 discrete, 2
 
 class Panel;
 
-class PanelListener : public cppu::WeakImplHelper5<awt::XActionListener, awt::XItemListener, awt::XTextListener,
-                                                   awt::XMouseListener, awt::XFocusListener> {
+class PanelListener : public cppu::WeakImplHelper6<awt::XActionListener, awt::XItemListener, awt::XTextListener,
+                                                   awt::XMouseListener, awt::XFocusListener, awt::XWindowListener> {
 public:
     explicit PanelListener(Panel* p) : p_(p) {}
     void detach() { p_ = nullptr; }
@@ -95,6 +98,10 @@ public:
     void SAL_CALL mouseExited(const awt::MouseEvent&) override {}
     void SAL_CALL focusGained(const awt::FocusEvent& e) override;
     void SAL_CALL focusLost(const awt::FocusEvent&) override {}
+    void SAL_CALL windowResized(const awt::WindowEvent& e) override;
+    void SAL_CALL windowMoved(const awt::WindowEvent&) override {}
+    void SAL_CALL windowShown(const lang::EventObject&) override {}
+    void SAL_CALL windowHidden(const lang::EventObject&) override {}
     void SAL_CALL disposing(const lang::EventObject&) override {}
 
 private:
@@ -116,6 +123,7 @@ public:
         Reference<awt::XWindow> w(container_, UNO_QUERY_THROW);
         w->setPosSize(0, 0, 260, height_, awt::PosSize::POSSIZE);
         w->addMouseListener(listener_.get());
+        w->addWindowListener(listener_.get());   // controls stretch with the sidebar width
         w->setVisible(true);
         refresh();
     }
@@ -154,6 +162,19 @@ public:
         auto it = changes_.find(name);
         if (it != changes_.end()) safe(it->second);
     }
+    // the sidebar changes the panel width: controls keep their columns and stretch proportionally
+    void resized(int width) {
+        if (width <= 0 || width == lastWidth_) return;
+        lastWidth_ = width;
+        double f = std::max(1.0, double(width - 2 * kX) / kW);
+        for (auto& [name, r] : rects_) {
+            auto c = control(name);
+            if (!c.is()) continue;
+            int x = kX + int((r[0] - kX) * f + 0.5), w = int(r[2] * f + 0.5);
+            Reference<awt::XWindow>(c, UNO_QUERY_THROW)->setPosSize(x, r[1], w, r[3], awt::PosSize::POSSIZE);
+        }
+    }
+
     void refresh() {
         updating_ = true;
         try {
@@ -176,6 +197,8 @@ private:
     bool updating_ = false;
     std::map<std::string, std::function<void()>> actions_, changes_;
     std::vector<std::string> variableLists_;
+    std::vector<std::pair<std::string, std::array<int, 4>>> rects_;   // design rectangles (pixels, width 260)
+    int lastWidth_ = 0;
 
     static constexpr int kX = 6, kW = 248, kH = 24, kGap = 4;
 
@@ -218,6 +241,7 @@ private:
         c->setModel(Reference<awt::XControlModel>(m, UNO_QUERY_THROW));
         Reference<awt::XControlContainer>(container_, UNO_QUERY_THROW)->addControl(ou(name), c);
         Reference<awt::XWindow>(c, UNO_QUERY_THROW)->setPosSize(x, y, w, h, awt::PosSize::POSSIZE);
+        rects_.push_back({name, {x, y, w, h}});
         height_ = std::max(height_, y + h + 6);
         return m;
     }
@@ -445,6 +469,7 @@ void PanelListener::itemStateChanged(const awt::ItemEvent& e) { if (p_) p_->item
 void PanelListener::textChanged(const awt::TextEvent& e) { if (p_) p_->item(controlName(e.Source)); }
 void PanelListener::mouseEntered(const awt::MouseEvent&) { if (p_) p_->refresh(); }
 void PanelListener::focusGained(const awt::FocusEvent&) { if (p_) p_->refresh(); }
+void PanelListener::windowResized(const awt::WindowEvent& e) { if (p_) p_->resized(e.Width); }
 
 } // namespace
 

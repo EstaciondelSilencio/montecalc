@@ -75,6 +75,9 @@ public:
         addList("resvars", {}, x, y, w, 40, false, true); y += 42;
         addList("statvar", {}, x, y, w, 12, true); y += 16;
         addButton("close", "Close", x, y, w);
+        setAnchor("resvars", AnchorRight | StretchH);   // the results list grows with the window
+        setAnchor("statvar", AnchorRight | AnchorBottom);
+        setAnchor("close", AnchorRight | AnchorBottom);
     }
 
     // ---------------------------------------------------------------- data

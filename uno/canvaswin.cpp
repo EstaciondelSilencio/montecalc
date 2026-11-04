@@ -9,6 +9,7 @@
 #include <com/sun/star/awt/MouseButton.hpp>
 #include <com/sun/star/awt/PopupMenu.hpp>
 #include <com/sun/star/awt/PopupMenuDirection.hpp>
+#include <com/sun/star/awt/PosSize.hpp>
 #include <com/sun/star/awt/Rectangle.hpp>
 #include <com/sun/star/awt/Size.hpp>
 #include <com/sun/star/awt/Toolkit.hpp>
@@ -73,19 +74,33 @@ class WindowListener
 public:
     explicit WindowListener(CanvasWindow* w) : w_(w) {}
     void detach() { w_ = nullptr; }
+    Reference<awt::XToolkit> tk_;
 
     void SAL_CALL windowPaint(const awt::PaintEvent&) override {
         if (!w_ || w_->closed_) return;
         try {
+            if (!w_->hasCanvas()) return;
             Reference<awt::XDevice> dev(w_->dialog_->getPeer(), UNO_QUERY);
             if (!dev.is()) return;
             Reference<awt::XGraphics> g = dev->createGraphics();
             int cw, ch;
             w_->canvasSize(cw, ch);
-            g->intersectClipRegion(nullptr);
-            ScreenPainter sp(g);
-            ZoomPainter p(sp, w_->zoom_);
-            w_->paint(p, cw, ch);
+            awt::Rectangle r = Reference<awt::XWindow>(w_->dialog_, UNO_QUERY_THROW)->getPosSize();
+            int pw = std::max(50, int(r.Width) - w_->panelPixels()), ph = std::max(50, int(r.Height));
+            // draw off screen and copy in one step: no flicker and no half-drawn charts while resizing
+            if (!tk_.is()) tk_.set(awt::Toolkit::create(w_->ctx_), UNO_QUERY);
+            Reference<awt::XDevice> buf = tk_.is() ? tk_->createScreenCompatibleDevice(pw, ph) : Reference<awt::XDevice>();
+            Reference<awt::XGraphics> bg = buf.is() ? buf->createGraphics() : Reference<awt::XGraphics>();
+            Reference<awt::XGraphics> target = bg.is() ? bg : g;
+            target->intersectClipRegion(nullptr);
+            {
+                ScreenPainter sp(target);
+                Color white = col::white;
+                sp.rect(0, 0, pw, ph, &white, nullptr);
+                ZoomPainter p(sp, w_->zoom_);
+                w_->paint(p, cw, ch);
+            }
+            if (bg.is()) g->copy(buf, 0, 0, pw, ph, 0, 0, pw, ph);
         } catch (const std::exception& e) {
             std::fprintf(stderr, "[MonteCalc] paint error: %s\n", e.what());
         } catch (const uno::Exception& e) {
@@ -168,8 +183,11 @@ public:
     void SAL_CALL windowNormalized(const lang::EventObject&) override {}
     void SAL_CALL windowActivated(const lang::EventObject&) override {}
     void SAL_CALL windowDeactivated(const lang::EventObject&) override {}
-    void SAL_CALL windowResized(const awt::WindowEvent&) override { if (w_) w_->repaint(); }
-    void SAL_CALL windowMoved(const awt::WindowEvent&) override {}
+    void SAL_CALL windowResized(const awt::WindowEvent&) override {
+        if (!w_ || w_->closed_) return;
+        safe([&] { w_->relayout(); w_->repaint(); });
+    }
+    void SAL_CALL windowMoved(const awt::WindowEvent&) override { if (w_ && !w_->closed_) w_->rememberGeometry(); }
     void SAL_CALL windowShown(const lang::EventObject&) override {}
     void SAL_CALL windowHidden(const lang::EventObject&) override {}
     void SAL_CALL disposing(const lang::EventObject&) override {}
@@ -204,6 +222,7 @@ CanvasWindow::CanvasWindow(const Reference<uno::XComponentContext>& ctx, const R
     dp->setPropertyValue("Width", Any(sal_Int32(width)));
     dp->setPropertyValue("Height", Any(sal_Int32(height)));
     dp->setPropertyValue("Title", Any(ou(title)));
+    title_ = title;
     dp->setPropertyValue("Moveable", Any(true));
     dp->setPropertyValue("Closeable", Any(true));
     dp->setPropertyValue("Sizeable", Any(true));
@@ -223,6 +242,7 @@ Reference<beans::XPropertySet> CanvasWindow::addModel(const char* type, const st
     m->setPropertyValue("Height", Any(sal_Int32(h)));
     m->setPropertyValue("Name", Any(ou(name)));
     container_->insertByName(ou(name), Any(m));
+    rects_.push_back({name, {x, y, w, h}});
     return m;
 }
 
@@ -291,6 +311,11 @@ void CanvasWindow::setTextColor(const std::string& name, sal_Int32 rgb) {
     Reference<beans::XPropertySet>(control(name)->getModel(), UNO_QUERY_THROW)->setPropertyValue("TextColor", Any(rgb));
 }
 
+std::map<std::string, awt::Rectangle>& geometries() {
+    static std::map<std::string, awt::Rectangle> g;
+    return g;
+}
+
 void CanvasWindow::show() {
     auto smgr = ctx_->getServiceManager();
     dialog_.set(smgr->createInstanceWithContext("com.sun.star.awt.UnoControlDialog", ctx_), UNO_QUERY_THROW);
@@ -331,7 +356,85 @@ void CanvasWindow::show() {
     }
     // keyboard shortcuts also when a control has the focus
     for (const auto& c : cc->getControls()) Reference<awt::XWindow>(c, UNO_QUERY_THROW)->addKeyListener(l);
+    awt::Rectangle r0 = w->getPosSize();
+    baseWpx_ = r0.Width;
+    baseHpx_ = r0.Height;
+    // reopen with the size and position the user gave this kind of window last time
+    auto& geo = geometries();
+    auto it = geo.find(geometryKey());
+    if (it != geo.end()) {
+        relayouting_ = true;
+        w->setPosSize(it->second.X, it->second.Y, it->second.Width, it->second.Height, awt::PosSize::POSSIZE);
+        relayouting_ = false;
+        relayout();
+    }
     w->setVisible(true);
+}
+
+std::string CanvasWindow::geometryKey() const {
+    // one entry per kind of window ("... into D13" etc. ignored)
+    std::string k = title_;
+    for (const char* cut : {" into ", " - Preview", " - Formula"}) {
+        size_t p = k.find(cut);
+        if (p != std::string::npos) k = k.substr(0, p);
+    }
+    return k;
+}
+
+void CanvasWindow::rememberGeometry() {
+    if (!dialog_.is() || relayouting_) return;
+    try {
+        geometries()[geometryKey()] = Reference<awt::XWindow>(dialog_, UNO_QUERY_THROW)->getPosSize();
+    } catch (...) {
+    }
+}
+
+// Moves / stretches the controls after a resize, following their anchors. Positions are set on
+// the control models (dialog units), so the layout stays right on any screen scaling.
+void CanvasWindow::relayout() {
+    if (relayouting_ || !dialog_.is() || baseWpx_ <= 0) return;
+    Reference<awt::XWindow> w(dialog_, UNO_QUERY_THROW);
+    awt::Rectangle r = w->getPosSize();
+    // minimum size: the control column and a useful canvas stay visible
+    // minimum: every control that does not stretch must stay visible
+    int needH = 0;
+    for (auto& [name, rc] : rects_) {
+        auto a = anchors_.find(name);
+        int flags = a != anchors_.end() ? a->second : 0;
+        needH = std::max(needH, rc.y + ((flags & StretchH) ? 12 : rc.h));   // stretching lists keep 12 units
+    }
+    Reference<awt::XUnitConversion> uc0(dialog_, UNO_QUERY);
+    int needPx = uc0.is() ? uc0->convertSizeToPixel(awt::Size(10, needH + 6), util::MeasureUnit::APPFONT).Height : baseHpx_;
+    int minW = std::max(panelPixels() + 240, baseWpx_ * 55 / 100), minH = std::max(240, std::min(baseHpx_, needPx));
+    if (r.Width < minW || r.Height < minH) {
+        relayouting_ = true;
+        w->setPosSize(0, 0, std::max<int>(r.Width, minW), std::max<int>(r.Height, minH), awt::PosSize::SIZE);
+        relayouting_ = false;
+        r = w->getPosSize();
+    }
+    Reference<awt::XUnitConversion> uc(dialog_, UNO_QUERY);
+    if (!uc.is()) return;
+    awt::Size d = uc->convertSizeToLogic(awt::Size(r.Width - baseWpx_, r.Height - baseHpx_), util::MeasureUnit::APPFONT);
+    int dW = d.Width, dH = d.Height;
+    relayouting_ = true;
+    for (auto& [name, rc] : rects_) {
+        int flags;
+        auto a = anchors_.find(name);
+        if (a != anchors_.end()) flags = a->second;
+        else flags = rc.x >= width_ - panelW_ ? AnchorRight : AnchorLeft;
+        int x = rc.x + ((flags & AnchorRight) ? dW : 0), y = rc.y + ((flags & AnchorBottom) ? dH : 0);
+        int ww = rc.w + ((flags & StretchW) ? dW : 0), hh = rc.h + ((flags & StretchH) ? dH : 0);
+        try {
+            Reference<beans::XPropertySet> m(control(name)->getModel(), UNO_QUERY_THROW);
+            m->setPropertyValue("PositionX", Any(sal_Int32(x)));
+            m->setPropertyValue("PositionY", Any(sal_Int32(y)));
+            m->setPropertyValue("Width", Any(sal_Int32(std::max(8, ww))));
+            m->setPropertyValue("Height", Any(sal_Int32(std::max(8, hh))));
+        } catch (...) {
+        }
+    }
+    relayouting_ = false;
+    rememberGeometry();
 }
 
 Reference<awt::XControl> CanvasWindow::control(const std::string& name) {
@@ -418,11 +521,12 @@ void CanvasWindow::repaint() {
     if (!peer.is()) return;
     awt::Rectangle r = Reference<awt::XWindow>(dialog_, UNO_QUERY_THROW)->getPosSize();
     peer->invalidateRect(awt::Rectangle(0, 0, std::max(50, int(r.Width) - panelPixels()), std::max(50, int(r.Height))),
-                         awt::InvalidateStyle::NOCHILDREN);
+                         awt::InvalidateStyle::NOCHILDREN | awt::InvalidateStyle::NOERASE);
 }
 
 void CanvasWindow::close() {
     if (closed_) return;
+    rememberGeometry();
     closed_ = true;
     if (auto* l = dynamic_cast<WindowListener*>(listener_.get())) l->detach();
     try {
