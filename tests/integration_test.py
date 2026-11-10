@@ -416,7 +416,9 @@ def run_tests(ctx):
     for name, opt in [("diagram", ""), ("dist", "dist,sens"), ("group", "group,ortho"), ("results", "results")]:
         cmd("InfluenceDiagram", Options=opt, ExportTo=pathlib.Path(outdir, f"id_{name}.png").as_uri())
     sizes = {f: os.path.getsize(os.path.join(outdir, f)) for f in os.listdir(outdir)}
-    check(len(sizes) == 13 and min(sizes.values()) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
+    wanted = {f"{v}.png" for v in ["Histogram", "Tornado", "Correlation", "Spider", "Scatter", "Decision", "Statistics"]} | \
+        {f"id_{n}.png" for n in ["diagram", "dist", "group", "results"]} | {"url_args.png"}
+    check(wanted <= set(sizes) and min(sizes[f] for f in wanted) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
     shutil.rmtree(outdir, ignore_errors=True)
     # function picker (MC FLO ribbon "Functions"): writes the function into the selected empty cell
     select("E43")
