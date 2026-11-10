@@ -337,6 +337,23 @@ private:
         });
         y_ += kH + kGap;
     }
+    // all fMC_ functions, grouped by category ("-- category --" rows); choosing one inserts it
+    void functionChooser(const std::string& name) {
+        std::vector<std::string> items{"Insert function"};
+        for (const auto& c : functionMenu()) {
+            items.push_back("-- " + tr(c.name) + " --");
+            for (const char* f : c.functions) items.push_back(f);
+        }
+        list(name, items, kX, y_, kW, [this, name] {
+            if (selected(name) <= 0) return;
+            std::string f = selectedItem(name);
+            updating_ = true;
+            selectPos(name, 0);
+            updating_ = false;
+            if (f.rfind("--", 0) != 0) dispatch("InsertFunction", {{"Name", Any(ou(f))}});
+        });
+        y_ += kH + kGap;
+    }
     void variableList(const std::string& name, const std::string& text) {
         label("l_" + name, text, kX, y_, 96);
         list(name, {}, kX + 100, y_, kW - 100, [] {});
@@ -419,6 +436,7 @@ private:
             buttons2("lock", "Lock/Unlock", cmd("Lock"), "fit", "Fit distribution", cmd("Fit"));
         } else if (group_ == "Information") {
             buttons2("model", "Model", cmd("Model"), "influence", "Variables (diagram)", cmd("InfluenceDiagram"));
+            functionChooser("functions");
             buttons2("check", "Excel-Check", cmd("ModelCheck"), "context", "FLO_Context sheet", cmd("WriteContext"));
             buttons2("mentor", "AI mentor", cmd("Mentor"), "about", "About", cmd("About"));
         } else if (group_ == "Simulation") {

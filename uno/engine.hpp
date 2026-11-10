@@ -102,6 +102,13 @@ private:
     void cmdStartBatch();
     void cmdWriteContext();
     void cmdAbout();
+    void cmdFunctions();
+    void cmdInsertFunction();
+    void insertFunction(const std::string& name);
 };
+
+// fMC_ functions by MC FLO category (tools/gen_ui.py: FUNCTION_MENU)
+struct FunctionCategory { const char* name; std::vector<const char*> functions; };
+const std::vector<FunctionCategory>& functionMenu();
 
 } // namespace montecalc

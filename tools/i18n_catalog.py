@@ -12,6 +12,28 @@
 # Function names (FLOsimula_, fMC_) and variable names are never translated, as in MC FLO.
 
 CATALOG = [
+    # ------------------------------------------------------------------ tornado chart
+    ("Tornado chart", "Tornado-Diagramm", "Diagrama de tornado"),
+    ("Tornado: mean of {} with each input at its lowest / highest {}%", "Tornado: Mittelwert von {} mit jedem Input in seinen tiefsten / höchsten {}%",
+     "Tornado: media de {} con cada entrada en su {}% más bajo / más alto"),
+    ("No input varies in this simulation.", "Kein Input variiert in dieser Simulation.", "Ninguna entrada varía en esta simulación."),
+    ("expected {}", "Erwartungswert {}", "valor esperado {}"),
+    ("input low (<= P{})", "Input tief (<= P{})", "entrada baja (<= P{})"),
+    ("input high (>= P{})", "Input hoch (>= P{})", "entrada alta (>= P{})"),
+    # ------------------------------------------------------------------ fMC_ function picker
+    ("Functions", "Funktionen", "Funciones"),
+    ("Functions...", "Funktionen...", "Funciones..."),
+    ("Function Wizard...", "Funktions-Assistent...", "Asistente de funciones..."),
+    ("Descriptive Statistics", "Deskriptive Statistik", "Estadística descriptiva"),
+    ("Relationship functions", "Zusammenhangsfunktionen", "Funciones de relación"),
+    ("Portfolio/Financial Functions", "Portfolio-/Finanzfunktionen", "Funciones de cartera/financieras"),
+    ("Parameter-free statistics", "Parameterfreie Statistik", "Estadística no paramétrica"),
+    ("Classical Linear Regression", "Klassische lineare Regression", "Regresión lineal clásica"),
+    ("Generative/Bayesian statistics", "Generative/Bayes'sche Statistik", "Estadística generativa/bayesiana"),
+    ("Other functions", "Weitere Funktionen", "Otras funciones"),
+    ("Insert function", "Funktion einfügen", "Insertar función"),
+    ("Select an empty cell for the function.", "Wählen Sie eine leere Zelle für die Funktion.", "Seleccione una celda vacía para la función."),
+    ("Select a cell for the function.", "Wählen Sie eine Zelle für die Funktion.", "Seleccione una celda para la función."),
     # ------------------------------------------------------------------ diagram markers
     ("worst", "Worst", "peor"),
     ("best", "Best", "mejor"),

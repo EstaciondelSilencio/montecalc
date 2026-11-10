@@ -37,6 +37,14 @@ all running the same commands:
   (discrete) or a typical path (time series). Every submenu has an icon as well, and the
   menu ends with *Start simulation* and *About MonteCalc*.
 
+**Functions** (Information group, as on the MC FLO ribbon) lists every `fMC_` function by
+category: Descriptive Statistics, Relationship functions, Portfolio/Financial Functions,
+Parameter-free statistics, Classical Linear Regression, Generative/Bayesian statistics and
+Other functions. It is a submenu of *MC FLO → Information*, a popup from the toolbar and tabbed
+bar button, and a drop-down in the sidebar. Choosing a function writes it into the selected
+empty cell and opens LibreOffice's Function Wizard on it, which shows the description and one
+field per argument.
+
 The MC FLO logo (`tools/assets/mcflo_logo.png`) is the extension's icon in *Tools → Extension
 Manager*, the icon of the MC FLO sidebar deck and of *About MonteCalc*.
 
@@ -64,7 +72,7 @@ Manager*, the icon of the MC FLO sidebar deck and of *About MonteCalc*.
    Variablen"), then the variables are listed.
 4. Set **Iterations**, **Best/Real/Worst-case** and **Use correlations** in the Simulation
    panel (or *Settings…* for the seed and Memory Calculation), then **Start**.
-5. Analyse in the result window, the result workbook (*Store results*), the `fmc_` functions,
+5. Analyse in the result window (histogram, tornado chart, decision matrix, …), the result workbook (*Store results*), the `fmc_` functions,
    the influence diagram (**Variables**) or the AI mentor.
 
 ### Languages: English, German, Spanish
@@ -131,6 +139,9 @@ had last. Zoom with Ctrl +/−/0 (starts at 125%). The sidebar panels stretch wi
 - variant choice at the top (multiple simulation) and *Store results* (result workbook);
 - histogram and cumulative curve with the magic stripe (drag it, or enter `x` or `;p`),
   worst/best markers and the **certainty level** (e.g. 95%) with its lower and upper limit;
+- **tornado chart**: for each input, the mean of the output when the input lies in its lowest
+  10% (blue) and highest 10% (orange), centred on the expected value and sorted by swing —
+  click a bar for the scatter of that input;
 - **correlation** of all inputs and outputs with the variable (Spearman), **dynamic
   sensitivity** (output range by input interval, expected value in orange) — click a bar for
   the regression scatter — and the **spider diagram** (Pearson by 10% quantile, isolated or
@@ -139,7 +150,8 @@ had last. Zoom with Ctrl +/−/0 (starts at 125%). The sidebar panels stretch wi
 - **decision matrix**: target with direction (`>` result should exceed it, `<` stay below),
   ambition level, conditional probability that a driver breaches its ambition level when the
   target is missed against the conditional damage, drivers with |rank correlation| ≤ 0.05
-  left out; the tooltip gives the driver range compatible with the target (P95);
+  left out; the tooltip gives the driver range compatible with the target (P95). The risk
+  zones blend smoothly from green (lower left) over yellow and orange to red (upper right);
 - **overview**: select several variable cells before *Results* to see them at a glance;
 - statistics grid, *Export image* and *Store as comment*.
 

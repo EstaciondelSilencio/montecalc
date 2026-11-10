@@ -179,6 +179,29 @@ def draw(name):
         for i in range(4):
             d.rectangle([12, 12 + i * 22, 24, 24 + i * 22], fill=(BLUE, BLUE, GOLD, ORANGE)[i])
             d.line([(32, 18 + i * 22), (92, 18 + i * 22)], fill=DARK, width=6)
+    elif name == "functions":   # f(x)
+        d.line([(30, 92), (40, 30), (46, 18), (58, 12), (68, 14)], fill=DARK, width=9, joint="curve")
+        d.line([(22, 48), (58, 48)], fill=DARK, width=8)
+        d.line([(62, 58), (94, 92)], fill=BLUE, width=9)
+        d.line([(94, 58), (62, 92)], fill=BLUE, width=9)
+    elif name == "portfolio":   # pie chart
+        d.pieslice([8, 8, 96, 96], -90, 40, fill=BLUE)
+        d.pieslice([8, 8, 96, 96], 40, 160, fill=ORANGE)
+        d.pieslice([8, 8, 96, 96], 160, 270, fill=GREEN)
+        d.pieslice([14, 4, 102, 92], -90, 40, fill=BLUE)
+    elif name == "bootstrap":   # resampling: histogram and a circular arrow
+        bars(d, [24, 44, 60, 38, 18], ORANGE, 10, 70, 94, 3)
+        d.arc([46, 6, 98, 58], 200, 120, fill=TEAL, width=8)
+        d.polygon([(52, 46), (40, 54), (52, 62)], fill=TEAL)
+    elif name == "regression":   # scatter and fitted line
+        d.line([(8, 96), (8, 8)], fill=GREY, width=4)
+        d.line([(8, 96), (98, 96)], fill=GREY, width=4)
+        dots(d, scatter_pts(-1), BLUE, 6)
+        d.line([(12, 82), (96, 16)], fill=RED, width=7)
+    elif name == "bayes":   # prior (wide) and posterior (narrow)
+        curve(d, lambda t: 92 - 40 * math.exp(-((t - 0.4) ** 2) / 0.06), GREY, 6)
+        curve(d, lambda t: 92 - 80 * math.exp(-((t - 0.62) ** 2) / 0.008), PURPLE, 7)
+        d.line([(6, 94), (98, 94)], fill=GREY, width=4)
     elif name == "about":
         d.ellipse([8, 8, 96, 96], fill=BLUE)
         d.rectangle([46, 44, 58, 80], fill=(255, 255, 255))

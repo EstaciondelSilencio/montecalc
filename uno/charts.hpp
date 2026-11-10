@@ -31,6 +31,12 @@ Plot drawOverlay(Painter& p, int x, int y, int w, int h, const std::vector<std::
                  bool withCdf, double probeX, bool probe);
 void drawTornado(Painter& p, int x, int y, int w, int h, const std::string& title, const std::vector<std::pair<std::string, double>>& items,
                  std::vector<std::pair<int, int>>* barRows = nullptr);
+// Tornado chart (swing): for every input, the mean of the output when the input is in its lowest
+// (input <= P[lowQ]) and highest (input >= P[1 - lowQ]) range; bars start at the expected value,
+// sorted by swing, at most maxRows. barRows: the input name of each drawn row and its y range.
+void drawSwingTornado(Painter& p, int x, int y, int w, int h, const std::string& output, const Vec& out,
+                      const std::vector<std::pair<std::string, Vec>>& inputs, double lowQ = 0.10, size_t maxRows = 15,
+                      std::vector<std::pair<std::string, std::pair<int, int>>>* barRows = nullptr);
 Plot drawScatter(Painter& p, int x, int y, int w, int h, const Vec& xs, const Vec& ys, const std::string& xName, const std::string& yName,
                  bool highlightTails);
 void drawDynamicSensitivity(Painter& p, int x, int y, int w, int h, const Vec& in, const Vec& out, int bins, const std::string& inName,

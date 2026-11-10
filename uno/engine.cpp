@@ -27,6 +27,14 @@
 #include <com/sun/star/frame/XController.hpp>
 #include <com/sun/star/frame/XStatusListener.hpp>
 #include <com/sun/star/frame/XStorable.hpp>
+#include <com/sun/star/awt/PopupMenu.hpp>
+#include <com/sun/star/awt/PopupMenuDirection.hpp>
+#include <com/sun/star/awt/Rectangle.hpp>
+#include <com/sun/star/awt/XPopupMenu.hpp>
+#include <com/sun/star/awt/XWindowPeer.hpp>
+#include <com/sun/star/frame/DispatchHelper.hpp>
+#include <com/sun/star/frame/XDispatchHelper.hpp>
+#include <com/sun/star/frame/XDispatchProvider.hpp>
 #include <com/sun/star/sheet/CellFlags.hpp>
 #include <com/sun/star/sheet/XCalculatable.hpp>
 #include <com/sun/star/sheet/XCellAddressable.hpp>
@@ -586,7 +594,8 @@ void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>
             {"InsertCorrelation", &Engine::cmdInsertCorrelation}, {"Lock", &Engine::cmdLock}, {"MultipleSimulation", &Engine::cmdMultipleSimulation},
             {"Variables", &Engine::cmdVariables}, {"HideFormulas", &Engine::cmdHideFormulas}, {"LoadFormulas", &Engine::cmdLoadFormulas},
             {"ModelCheck", &Engine::cmdModelCheck}, {"ForecastTool", &Engine::cmdForecastTool}, {"StartBatch", &Engine::cmdStartBatch},
-            {"WriteContext", &Engine::cmdWriteContext}, {"About", &Engine::cmdAbout}};
+            {"WriteContext", &Engine::cmdWriteContext}, {"About", &Engine::cmdAbout}, {"Functions", &Engine::cmdFunctions},
+            {"InsertFunction", &Engine::cmdInsertFunction}};
         auto it = cmds.find(cmd);
         if (it != cmds.end()) (this->*(it->second))();
         else if (cmd == "SortAsc") cmdSort(true);
@@ -1358,6 +1367,55 @@ void Engine::cmdStartBatch() {
 }
 
 void Engine::cmdWriteContext() { writeContextSheet(ctx_, frame_); }
+
+// ============================================================ fMC_ function picker (MC FLO ribbon "Functions")
+
+const std::vector<FunctionCategory>& functionMenu() {
+    static const std::vector<FunctionCategory> m = {
+#include "function_menu.inc"
+    };
+    return m;
+}
+
+void Engine::cmdFunctions() {
+    // a popup menu with one submenu per category, opened at the top left of the sheet
+    Reference<awt::XPopupMenu> menu = awt::PopupMenu::create(ctx_);
+    std::vector<Reference<awt::XPopupMenu>> subs;
+    const auto& cats = functionMenu();
+    for (size_t c = 0; c < cats.size(); ++c) {
+        Reference<awt::XPopupMenu> sub = awt::PopupMenu::create(ctx_);
+        for (size_t k = 0; k < cats[c].functions.size(); ++k)
+            sub->insertItem(sal_Int16(100 * (c + 1) + k), ou(cats[c].functions[k]), 0, sal_Int16(k));
+        sal_Int16 id = sal_Int16(c + 1);
+        menu->insertItem(id, ou(tr(cats[c].name)), 0, sal_Int16(c));
+        menu->setPopupMenu(id, sub);
+        subs.push_back(sub);
+    }
+    Reference<awt::XWindowPeer> peer(frame_->getComponentWindow(), UNO_QUERY);
+    if (!peer.is()) return;
+    int chosen = menu->execute(peer, awt::Rectangle(40, 4, 1, 1), awt::PopupMenuDirection::EXECUTE_DOWN);
+    if (chosen < 100) return;
+    size_t c = size_t(chosen / 100 - 1), k = size_t(chosen % 100);
+    if (c >= cats.size() || k >= cats[c].functions.size()) return;
+    insertFunction(cats[c].functions[k]);
+}
+
+void Engine::cmdInsertFunction() { insertFunction(argText(args_, "Name")); }
+
+void Engine::insertFunction(const std::string& name) {
+    // writes =fMC_...() into the selected empty cell and opens LibreOffice's Function Wizard on it,
+    // which shows the description and one field per argument (MC FLO opens Excel's dialog)
+    if (name.empty()) return;
+    ModelDoc d(model());
+    table::CellAddress a;
+    if (!d.currentCell(a)) { message("MonteCalc - Insert function", "Select a cell for the function.", true); return; }
+    auto c = d.cell(a);
+    if (!u8(c->getFormula()).empty()) { message("MonteCalc - Insert function", "Select an empty cell for the function.", true); return; }
+    c->setFormula(ou("=" + name + "()"));
+    if (silent_) return;
+    Reference<frame::XDispatchHelper> h = frame::DispatchHelper::create(ctx_);
+    h->executeDispatch(Reference<frame::XDispatchProvider>(frame_, UNO_QUERY_THROW), ".uno:FunctionDialog", "", 0, {});
+}
 
 void Engine::cmdAbout() {
     message("About MonteCalc",

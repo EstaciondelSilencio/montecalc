@@ -271,7 +271,7 @@
               </node>
             </node>
           </node>
-          <node oor:name="g05" oor:op="replace">
+          <node oor:name="g13" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Information</value><value xml:lang="de">Information</value><value xml:lang="es">Información</value></prop>
             <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/about</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
@@ -288,19 +288,745 @@
                 <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
                 <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
               </node>
-              <node oor:name="m102" oor:op="replace">
+              <node oor:name="g12" oor:op="replace">
+                <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Functions</value><value xml:lang="de">Funktionen</value><value xml:lang="es">Funciones</value></prop>
+                <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/functions</value></prop>
+                <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                <node oor:name="Submenu">
+                <node oor:name="g05" oor:op="replace">
+                  <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Descriptive Statistics</value><value xml:lang="de">Deskriptive Statistik</value><value xml:lang="es">Estadística descriptiva</value></prop>
+                  <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/statistics</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  <node oor:name="Submenu">
+                  <node oor:name="x00" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Average</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Average</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x01" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Variance</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Variance</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x02" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_StdS</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_StdS</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x03" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Skewness</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Skewness</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x04" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Kurtosis</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Kurtosis</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x05" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Semivariance</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Semivariance</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x06" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_SemivarianceL</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_SemivarianceL</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x07" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_SemivarianceR</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_SemivarianceR</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x08" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Percentile</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Percentile</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x09" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PercentileValue</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PercentileValue</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x10" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PercentileInterval</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PercentileInterval</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x11" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_CV</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_CV</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x12" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Min</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Min</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x13" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Max</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Max</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x14" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Mode</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Mode</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x15" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Sum</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Sum</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x16" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Density</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Density</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x17" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PosValue</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PosValue</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x18" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_ConditionalPosValue</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_ConditionalPosValue</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x19" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_ConditionPosValue</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_ConditionPosValue</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x20" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Mean</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Mean</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  </node>
+                </node>
+                <node oor:name="g06" oor:op="replace">
+                  <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Relationship functions</value><value xml:lang="de">Zusammenhangsfunktionen</value><value xml:lang="es">Funciones de relación</value></prop>
+                  <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/correlation</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  <node oor:name="Submenu">
+                  <node oor:name="x00" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_CorrP</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_CorrP</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x01" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_CorrS</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_CorrS</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x02" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_CorrRank</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_CorrRank</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x03" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_CorrRankN</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_CorrRankN</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x04" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_RegressionX</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_RegressionX</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x05" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_RegressionY</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_RegressionY</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x06" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Spider</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Spider</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x07" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_DSensitivity</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_DSensitivity</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x08" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_AD</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_AD</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x09" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_ADs</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_ADs</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x10" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Pearson</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Pearson</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x11" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PearsonV</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PearsonV</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x12" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Spear</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Spear</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  </node>
+                </node>
+                <node oor:name="g07" oor:op="replace">
+                  <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Portfolio/Financial Functions</value><value xml:lang="de">Portfolio-/Finanzfunktionen</value><value xml:lang="es">Funciones de cartera/financieras</value></prop>
+                  <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/portfolio</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  <node oor:name="Submenu">
+                  <node oor:name="x00" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_ExpGain</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_ExpGain</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x01" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_ExpGainV</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_ExpGainV</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x02" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_ExpLoss</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_ExpLoss</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x03" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_ExpectedShortfall</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_ExpectedShortfall</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x04" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_ExtremeValue</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_ExtremeValue</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x05" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_FinancialValue</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_FinancialValue</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x06" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_FinancialDTrans</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_FinancialDTrans</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x07" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BSMVal</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BSMVal</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x08" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PortfolioCombn</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PortfolioCombn</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x09" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PortfolioMatrix</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PortfolioMatrix</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x10" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PortfolioCorrMatrix</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PortfolioCorrMatrix</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x11" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PortfolioCorrMatrixF</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PortfolioCorrMatrixF</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x12" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PortfolioManualMatrix</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PortfolioManualMatrix</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  </node>
+                </node>
+                <node oor:name="g08" oor:op="replace">
+                  <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Parameter-free statistics</value><value xml:lang="de">Parameterfreie Statistik</value><value xml:lang="es">Estadística no paramétrica</value></prop>
+                  <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/bootstrap</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  <node oor:name="Submenu">
+                  <node oor:name="x00" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrap</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrap</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x01" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapN</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapN</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x02" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapVector</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapVector</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x03" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Kernel</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Kernel</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x04" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Kernel2</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Kernel2</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x05" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_AD_Data</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_AD_Data</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x06" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Sort</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Sort</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x07" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_FitC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_FitC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  </node>
+                </node>
+                <node oor:name="g09" oor:op="replace">
+                  <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Classical Linear Regression</value><value xml:lang="de">Klassische lineare Regression</value><value xml:lang="es">Regresión lineal clásica</value></prop>
+                  <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/regression</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  <node oor:name="Submenu">
+                  <node oor:name="x00" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PredictiveRegressionLine</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PredictiveRegressionLine</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x01" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_PredictiveRegressionLineValue</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_PredictiveRegressionLineValue</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x02" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapVectorLinearRegressionX</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapVectorLinearRegressionX</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x03" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapVectorLinearRegressionY</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapVectorLinearRegressionY</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x04" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapVectorLinearRegressionRE</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapVectorLinearRegressionRE</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x05" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapVectorMLRegression</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapVectorMLRegression</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x06" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapVectorMLRegressionParameters</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapVectorMLRegressionParameters</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x07" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapVectorMLRegression_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapVectorMLRegression_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x08" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BootStrapVectorMLRegressionParameters_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BootStrapVectorMLRegressionParameters_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  </node>
+                </node>
+                <node oor:name="g10" oor:op="replace">
+                  <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Generative/Bayesian statistics</value><value xml:lang="de">Generative/Bayes'sche Statistik</value><value xml:lang="es">Estadística generativa/bayesiana</value></prop>
+                  <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/bayes</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  <node oor:name="Submenu">
+                  <node oor:name="x00" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Bayes</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Bayes</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x01" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesV</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesV</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x02" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesV_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesV_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x03" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Bayes4</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Bayes4</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x04" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Bayes4V</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Bayes4V</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x05" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Bayes4V_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Bayes4V_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x06" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesMCMC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesMCMC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x07" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesMCMCA</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesMCMCA</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x08" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesMCMCV</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesMCMCV</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x09" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesMCMCAV</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesMCMCAV</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x10" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesMCMCV_Robust</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesMCMCV_Robust</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x11" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPrediction</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPrediction</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x12" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesCombine</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesCombine</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x13" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesClassifier</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesClassifier</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x14" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesClassifier_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesClassifier_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x15" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesFactor</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesFactor</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x16" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegression</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegression</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x17" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionParameters</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionParameters</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x18" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionCIP</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionCIP</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x19" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionMAE</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionMAE</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x20" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionResiduals</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionResiduals</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x21" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionV_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionV_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x22" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionCIPV_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionCIPV_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x23" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionMAEV_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionMAEV_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x24" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionParameters_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionParameters_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x25" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_BayesPredictionRegressionResiduals_MC</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_BayesPredictionRegressionResiduals_MC</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  </node>
+                </node>
+                <node oor:name="g11" oor:op="replace">
+                  <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Other functions</value><value xml:lang="de">Weitere Funktionen</value><value xml:lang="es">Otras funciones</value></prop>
+                  <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/functions</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  <node oor:name="Submenu">
+                  <node oor:name="x00" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Iterations</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Iterations</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x01" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Best</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Best</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x02" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Real</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Real</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x03" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Worst</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Worst</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x04" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Bin</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Bin</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x05" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_SimulaOn</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_SimulaOn</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x06" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fmc_Name</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fmc_Name</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x07" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_GetInputName</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_GetInputName</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x08" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_GetUserDefinedInputName</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_GetUserDefinedInputName</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x09" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_GetOutputName</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_GetOutputName</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x10" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_GetOuputName</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_GetOuputName</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x11" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_SimpleMarkovChain</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_SimpleMarkovChain</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x12" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_NBT</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_NBT</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x13" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_LDT</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_LDT</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x14" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Batch_Time</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Batch_Time</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x15" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Batch_HW_D_Time</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Batch_HW_D_Time</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x16" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Batch_HW_M_Time</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Batch_HW_M_Time</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x17" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_Batch_HW_Q_Time</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_Batch_HW_Q_Time</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x18" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_HWAmodel</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_HWAmodel</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  <node oor:name="x19" oor:op="replace">
+                    <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:InsertFunction?Name=fMC_HWMmodel</value></prop>
+                    <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">fMC_HWMmodel</value></prop>
+                    <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                    <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                  </node>
+                  </node>
+                </node>
+                <node oor:name="xsep" oor:op="replace">
+                  <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                </node>
+                <node oor:name="xwiz" oor:op="replace">
+                  <prop oor:name="URL" oor:type="xs:string"><value>.uno:FunctionDialog</value></prop>
+                  <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Function Wizard...</value><value xml:lang="de">Funktions-Assistent...</value><value xml:lang="es">Asistente de funciones...</value></prop>
+                  <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+                  <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+                </node>
+                </node>
+              </node>
+              <node oor:name="m103" oor:op="replace">
                 <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Show</value></prop>
                 <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Variable list...</value><value xml:lang="de">Variablenliste...</value><value xml:lang="es">Lista de variables...</value></prop>
                 <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
                 <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
               </node>
-              <node oor:name="m103" oor:op="replace">
+              <node oor:name="m104" oor:op="replace">
                 <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Mentor</value></prop>
                 <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">AI mentor...</value><value xml:lang="de">KI Mentor...</value><value xml:lang="es">Mentor IA...</value></prop>
                 <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
                 <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
               </node>
-              <node oor:name="m104" oor:op="replace">
+              <node oor:name="m105" oor:op="replace">
                 <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:WriteContext</value></prop>
                 <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">FLO_Context sheet</value><value xml:lang="de">Tabelle FLO_Context</value><value xml:lang="es">Hoja FLO_Context</value></prop>
                 <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
@@ -308,7 +1034,7 @@
               </node>
             </node>
           </node>
-          <node oor:name="g06" oor:op="replace">
+          <node oor:name="g14" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Simulation</value><value xml:lang="de">Simulation</value><value xml:lang="es">Simulación</value></prop>
             <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/start</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
@@ -339,7 +1065,7 @@
               </node>
             </node>
           </node>
-          <node oor:name="g07" oor:op="replace">
+          <node oor:name="g15" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Statistics</value><value xml:lang="de">Statistik</value><value xml:lang="es">Estadística</value></prop>
             <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/statistics</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
@@ -364,7 +1090,7 @@
               </node>
             </node>
           </node>
-          <node oor:name="g08" oor:op="replace">
+          <node oor:name="g16" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Correlations and sensitivities</value><value xml:lang="de">Korrelationen und Sensitivitäten</value><value xml:lang="es">Correlaciones y sensibilidades</value></prop>
             <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/calccorr</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
@@ -383,7 +1109,7 @@
               </node>
             </node>
           </node>
-          <node oor:name="g09" oor:op="replace">
+          <node oor:name="g17" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Individual analysis of iteration</value><value xml:lang="de">Analyse einzelner Iterationen</value><value xml:lang="es">Análisis individual de iteraciones</value></prop>
             <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/iteration</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
@@ -408,7 +1134,7 @@
               </node>
             </node>
           </node>
-          <node oor:name="g10" oor:op="replace">
+          <node oor:name="g18" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Results</value><value xml:lang="de">Ergebnisse</value><value xml:lang="es">Resultados</value></prop>
             <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/store</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
@@ -427,7 +1153,7 @@
               </node>
             </node>
           </node>
-          <node oor:name="g11" oor:op="replace">
+          <node oor:name="g19" oor:op="replace">
             <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Other</value><value xml:lang="de">Sonstiges</value><value xml:lang="es">Otros</value></prop>
             <prop oor:name="ImageIdentifier" oor:type="xs:string"><value>%origin%/../icons/settings</value></prop>
             <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
@@ -562,68 +1288,74 @@
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
         <node oor:name="t09" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Functions</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Functions</value><value xml:lang="de">Funktionen</value><value xml:lang="es">Funciones</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
         <node oor:name="t10" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+        </node>
+        <node oor:name="t11" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Settings</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Settings</value><value xml:lang="de">Einstellungen</value><value xml:lang="es">Ajustes</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t11" oor:op="replace">
+        <node oor:name="t12" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:MultipleSimulation</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Multiple simulation</value><value xml:lang="de">Mehrfachsimulation</value><value xml:lang="es">Simulación múltiple</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t12" oor:op="replace">
+        <node oor:name="t13" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Start</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Start</value><value xml:lang="de">Starten</value><value xml:lang="es">Iniciar</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t13" oor:op="replace">
+        <node oor:name="t14" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Reset</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Reset</value><value xml:lang="de">Zurücksetzen</value><value xml:lang="es">Restablecer</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t14" oor:op="replace">
+        <node oor:name="t15" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t15" oor:op="replace">
+        <node oor:name="t16" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Results</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Show statistical parameters</value><value xml:lang="de">Zeige statistische Parameter</value><value xml:lang="es">Mostrar parámetros estadísticos</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t16" oor:op="replace">
+        <node oor:name="t17" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t17" oor:op="replace">
+        <node oor:name="t18" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:CalcCorrelations</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Calc correlations</value><value xml:lang="de">Berechne Korrelationen</value><value xml:lang="es">Calcular correlaciones</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t18" oor:op="replace">
+        <node oor:name="t19" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t19" oor:op="replace">
+        <node oor:name="t20" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Replay</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Analyze selected iteration</value><value xml:lang="de">Analysiere gewählte Iteration</value><value xml:lang="es">Analizar iteración seleccionada</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t20" oor:op="replace">
+        <node oor:name="t21" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="t21" oor:op="replace">
+        <node oor:name="t22" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:SaveResults</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Close and save results</value><value xml:lang="de">Schliesse und speichere Ergebnisse</value><value xml:lang="es">Cerrar y guardar resultados</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
@@ -750,131 +1482,145 @@
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
         <node oor:name="n17" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
-          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
-        </node>
-        <node oor:name="n18" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Settings</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Settings</value><value xml:lang="de">Einstellungen</value><value xml:lang="es">Ajustes</value></prop>
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Functions</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Functions</value><value xml:lang="de">Funktionen</value><value xml:lang="es">Funciones</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
         </node>
-        <node oor:name="n19" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Settings</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Settings</value><value xml:lang="de">Einstellungen</value><value xml:lang="es">Ajustes</value></prop>
+        <node oor:name="n18" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Functions</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Functions</value><value xml:lang="de">Funktionen</value><value xml:lang="es">Funciones</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
+        <node oor:name="n19" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+        </node>
         <node oor:name="n20" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:MultipleSimulation</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Multiple simulation</value><value xml:lang="de">Mehrfachsimulation</value><value xml:lang="es">Simulación múltiple</value></prop>
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Settings</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Settings</value><value xml:lang="de">Einstellungen</value><value xml:lang="es">Ajustes</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
         </node>
         <node oor:name="n21" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Settings</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Settings</value><value xml:lang="de">Einstellungen</value><value xml:lang="es">Ajustes</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
+        </node>
+        <node oor:name="n22" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:MultipleSimulation</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Multiple simulation</value><value xml:lang="de">Mehrfachsimulation</value><value xml:lang="es">Simulación múltiple</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n23" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:MultipleSimulation</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Multiple simulation</value><value xml:lang="de">Mehrfachsimulation</value><value xml:lang="es">Simulación múltiple</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n22" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Start</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Start</value><value xml:lang="de">Starten</value><value xml:lang="es">Iniciar</value></prop>
-          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
-          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
-          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
-        </node>
-        <node oor:name="n23" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Start</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Start</value><value xml:lang="de">Starten</value><value xml:lang="es">Iniciar</value></prop>
-          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
-          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
-          <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
-        </node>
         <node oor:name="n24" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Reset</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Reset</value><value xml:lang="de">Zurücksetzen</value><value xml:lang="es">Restablecer</value></prop>
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Start</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Start</value><value xml:lang="de">Starten</value><value xml:lang="es">Iniciar</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
         </node>
         <node oor:name="n25" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Start</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Start</value><value xml:lang="de">Starten</value><value xml:lang="es">Iniciar</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
+        </node>
+        <node oor:name="n26" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Reset</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Reset</value><value xml:lang="de">Zurücksetzen</value><value xml:lang="es">Restablecer</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n27" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Reset</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Reset</value><value xml:lang="de">Zurücksetzen</value><value xml:lang="es">Restablecer</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n26" oor:op="replace">
+        <node oor:name="n28" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
-        </node>
-        <node oor:name="n27" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Results</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Show statistical parameters</value><value xml:lang="de">Zeige statistische Parameter</value><value xml:lang="es">Mostrar parámetros estadísticos</value></prop>
-          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
-          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
-          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
-        </node>
-        <node oor:name="n28" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Results</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Show statistical parameters</value><value xml:lang="de">Zeige statistische Parameter</value><value xml:lang="es">Mostrar parámetros estadísticos</value></prop>
-          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
-          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
-          <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
         <node oor:name="n29" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Results</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Show statistical parameters</value><value xml:lang="de">Zeige statistische Parameter</value><value xml:lang="es">Mostrar parámetros estadísticos</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
         </node>
         <node oor:name="n30" oor:op="replace">
-          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:CalcCorrelations</value></prop>
-          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Calc correlations</value><value xml:lang="de">Berechne Korrelationen</value><value xml:lang="es">Calcular correlaciones</value></prop>
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Results</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Show statistical parameters</value><value xml:lang="de">Zeige statistische Parameter</value><value xml:lang="es">Mostrar parámetros estadísticos</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
-          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
         <node oor:name="n31" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+        </node>
+        <node oor:name="n32" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:CalcCorrelations</value></prop>
+          <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Calc correlations</value><value xml:lang="de">Berechne Korrelationen</value><value xml:lang="es">Calcular correlaciones</value></prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+          <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
+          <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
+        </node>
+        <node oor:name="n33" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:CalcCorrelations</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Calc correlations</value><value xml:lang="de">Berechne Korrelationen</value><value xml:lang="es">Calcular correlaciones</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n32" oor:op="replace">
+        <node oor:name="n34" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="n33" oor:op="replace">
+        <node oor:name="n35" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Replay</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Analyze selected iteration</value><value xml:lang="de">Analysiere gewählte Iteration</value><value xml:lang="es">Analizar iteración seleccionada</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
         </node>
-        <node oor:name="n34" oor:op="replace">
+        <node oor:name="n36" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Replay</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Analyze selected iteration</value><value xml:lang="de">Analysiere gewählte Iteration</value><value xml:lang="es">Analizar iteración seleccionada</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Text</value></prop>
         </node>
-        <node oor:name="n35" oor:op="replace">
+        <node oor:name="n37" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>private:separator</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
         </node>
-        <node oor:name="n36" oor:op="replace">
+        <node oor:name="n38" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:SaveResults</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Close and save results</value><value xml:lang="de">Schliesse und speichere Ergebnisse</value><value xml:lang="es">Cerrar y guardar resultados</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
           <prop oor:name="Context" oor:type="xs:string"><value>com.sun.star.sheet.SpreadsheetDocument</value></prop>
           <prop oor:name="Style" oor:type="xs:string"><value>Icon</value></prop>
         </node>
-        <node oor:name="n37" oor:op="replace">
+        <node oor:name="n39" oor:op="replace">
           <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:SaveResults</value></prop>
           <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">Close and save results</value><value xml:lang="de">Schliesse und speichere Ergebnisse</value><value xml:lang="es">Cerrar y guardar resultados</value></prop>
           <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
@@ -938,6 +1684,13 @@
         <node oor:name="UserDefinedImages">
           <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/influence_16.png</value></prop>
           <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/influence_26.png</value></prop>
+        </node>
+      </node>
+      <node oor:name="org.montecalc.img.Functions" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:Functions</value></prop>
+        <node oor:name="UserDefinedImages">
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/functions_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/functions_26.png</value></prop>
         </node>
       </node>
       <node oor:name="org.montecalc.img.Show" oor:op="replace">

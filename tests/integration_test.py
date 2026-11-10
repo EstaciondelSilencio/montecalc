@@ -411,13 +411,20 @@ def run_tests(ctx):
     check(cell("E41").getFormula() == "", "the correlation preview (Insert=False) does not write the cell")
     dispatcher.executeDispatch(frame, "org.montecalc:Results?Variable=Revenue&View=Cumulative&ExportTo=" +
                                pathlib.Path(outdir, "url_args.png").as_uri(), "", 0, (prop("Silent", True),))
-    for view in ["Histogram", "Tornado", "Spider", "Scatter", "Decision", "Statistics"]:
+    for view in ["Histogram", "Tornado", "Correlation", "Spider", "Scatter", "Decision", "Statistics"]:
         cmd("Results", Variable="Revenue", View=view, ExportTo=pathlib.Path(outdir, f"{view}.png").as_uri())
     for name, opt in [("diagram", ""), ("dist", "dist,sens"), ("group", "group,ortho"), ("results", "results")]:
         cmd("InfluenceDiagram", Options=opt, ExportTo=pathlib.Path(outdir, f"id_{name}.png").as_uri())
     sizes = {f: os.path.getsize(os.path.join(outdir, f)) for f in os.listdir(outdir)}
-    check(len(sizes) == 12 and min(sizes.values()) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
+    check(len(sizes) == 13 and min(sizes.values()) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
     shutil.rmtree(outdir, ignore_errors=True)
+    # function picker (MC FLO ribbon "Functions"): writes the function into the selected empty cell
+    select("E43")
+    cmd("InsertFunction", Name="fMC_Average")
+    check("FMC_AVERAGE(" in cell("E43").getFormula().upper(), "Insert function writes =fMC_Average() into the empty cell")
+    cmd("InsertFunction", Name="fMC_StdS")
+    check("FMC_AVERAGE(" in cell("E43").getFormula().upper(), "Insert function leaves a non-empty cell unchanged")
+    cell("E43").setString("")
     cmd("WriteContext")
     ctxs = doc.Sheets.getByName("FLO_Context") if doc.Sheets.hasByName("FLO_Context") else None
     check(ctxs is not None and [ctxs.getCellByPosition(c, 3).getString() for c in (0, 1, 12)] == ["Variable", "Kind", "Depends On"],

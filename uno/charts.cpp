@@ -200,6 +200,86 @@ void drawTornado(Painter& p, int x, int y, int w, int h, const std::string& titl
     }
 }
 
+void drawSwingTornado(Painter& p, int x, int y, int w, int h, const std::string& output, const Vec& out,
+                      const std::vector<std::pair<std::string, Vec>>& inputs, double lowQ, size_t maxRows,
+                      std::vector<std::pair<std::string, std::pair<int, int>>>* barRows) {
+    struct Row { std::string name; double low, high, inLo, inHi; };
+    std::vector<Row> rows;
+    double base = mc::stats::mean(out);
+    for (auto& [name, in] : inputs) {
+        double qLo = mc::stats::percentile(in, lowQ), qHi = mc::stats::percentile(in, 1 - lowQ);
+        if (!(qHi > qLo)) continue;   // constant input: no swing
+        double sl = 0, nl = 0, sh = 0, nh = 0;
+        for (size_t i = 0; i < in.size() && i < out.size(); ++i) {
+            if (!std::isfinite(in[i]) || !std::isfinite(out[i])) continue;
+            if (in[i] <= qLo) { sl += out[i]; nl += 1; }
+            if (in[i] >= qHi) { sh += out[i]; nh += 1; }
+        }
+        if (nl == 0 || nh == 0) continue;
+        rows.push_back({name, sl / nl, sh / nh, qLo, qHi});
+    }
+    std::stable_sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) { return std::fabs(a.high - a.low) > std::fabs(b.high - b.low); });
+    if (rows.size() > maxRows) rows.resize(maxRows);
+
+    p.rect(x, y, w, h, &col::white, nullptr);
+    int pct = int(lowQ * 100 + 0.5);
+    p.text(x + 8, y + 4, "Tornado: mean of " + output + " with each input at its lowest / highest " + std::to_string(pct) + "%", col::text, true);
+    if (rows.empty()) { p.text(x + 8, y + p.textHeight(kBoldFont) + 14, "No input varies in this simulation.", col::muted); return; }
+    int th = p.textHeight();
+    int labelW = 0;
+    for (auto& r : rows) labelW = std::max(labelW, p.textWidth(r.name));
+    labelW = std::min(labelW + 16, w * 2 / 5);
+    double lo = base, hi = base;
+    for (auto& r : rows) { lo = std::min({lo, r.low, r.high}); hi = std::max({hi, r.low, r.high}); }
+    double pad = (hi - lo) * 0.12 + (hi > lo ? 0 : 1);
+    lo -= pad; hi += pad;
+    int top = y + p.textHeight(kBoldFont) + 14, legendH = th + 10, axisH = th + 8;
+    int px0 = x + labelW, pw = w - labelW - 16;
+    int rowH = std::max(th + 6, std::min(48, (h - (top - y) - legendH - axisH) / int(rows.size())));
+    int bottom = top + rowH * int(rows.size());
+    auto X = [&](double v) { return px0 + int((v - lo) / (hi - lo) * pw); };
+    // grid and value axis
+    for (double t : ticks(lo, hi, std::max(2, pw / std::max(60, p.textWidth("-000.0k") + 16)))) {
+        int xx = X(t);
+        if (xx < px0 || xx > px0 + pw) continue;
+        p.line(xx, top - 2, xx, bottom, col::grid);
+        std::string s = niceNum(t);
+        p.text(xx - p.textWidth(s) / 2, bottom + 4, s, col::muted);
+    }
+    const Color lowC = col::input, highC = col::output;
+    for (size_t i = 0; i < rows.size(); ++i) {
+        const Row& r = rows[i];
+        int yy = top + int(i) * rowH, bh = std::max(4, rowH - 6), by = yy + (rowH - bh) / 2;
+        if (i % 2 == 0) { Color band{248, 249, 251}; p.rect(x, yy, w, rowH, &band, nullptr); }
+        for (auto [v, c] : {std::make_pair(r.low, lowC), std::make_pair(r.high, highC)}) {
+            int a = X(base), b = X(v);
+            p.rect(std::min(a, b), by, std::max(1, std::abs(b - a)), bh, &c, nullptr);
+        }
+        p.text(x + 8, yy + (rowH - th) / 2, r.name, col::text);
+        // output values at the bar ends
+        bool lowLeft = r.low <= r.high;
+        std::string sl = niceNum(r.low), sh = niceNum(r.high);
+        int ty = yy + (rowH - th) / 2;
+        int xl = lowLeft ? X(r.low) - p.textWidth(sl) - 4 : X(r.low) + 4;
+        int xh = lowLeft ? X(r.high) + 4 : X(r.high) - p.textWidth(sh) - 4;
+        p.text(std::max(px0, std::min(xl, px0 + pw - p.textWidth(sl))), ty, sl, col::muted);
+        p.text(std::max(px0, std::min(xh, px0 + pw - p.textWidth(sh))), ty, sh, col::muted);
+        if (barRows) barRows->push_back({r.name, {yy, yy + rowH}});
+    }
+    p.line(X(base), top - 4, X(base), bottom, col::text, 2);
+    // legend
+    int ly = bottom + axisH + 4, lx = px0;
+    std::string e = "expected " + niceNum(base);
+    p.text(lx, ly, e, col::text);
+    lx += p.textWidth(e) + 20;
+    for (auto [label, c] : {std::make_pair(std::string("input low (<= P") + std::to_string(pct) + ")", lowC),
+                            std::make_pair(std::string("input high (>= P") + std::to_string(100 - pct) + ")", highC)}) {
+        p.rect(lx, ly + 2, 12, th - 4, &c, nullptr);
+        p.text(lx + 16, ly, label, col::text);
+        lx += 16 + p.textWidth(label) + 20;
+    }
+}
+
 Plot drawScatter(Painter& p, int x, int y, int w, int h, const Vec& xs, const Vec& ys, const std::string& xName, const std::string& yName,
                  bool tails) {
     double x0, x1, y0, y1;

@@ -125,10 +125,10 @@ void insertIntoCurrentCell(const Frame& frame, const std::string& formula, const
 
 class ResultWindow : public CanvasWindow {
 public:
-    enum View { Histogram, Cumulative, Tornado, DynSens, Spider, SpiderCum, Scatter, Variants, BoxWhisker, Decision, Statistics, Overview };
+    enum View { Histogram, Cumulative, Tornado, Swing, DynSens, Spider, SpiderCum, Scatter, Variants, BoxWhisker, Decision, Statistics, Overview };
     std::vector<std::pair<View, std::string>> viewList() const {
         if (preview_) return {{Histogram, "Histogram"}, {Cumulative, "Cumulative"}, {Statistics, "Statistics"}};
-        return {{Histogram, "Histogram"}, {Cumulative, "Cumulative"}, {Tornado, "Correlation (Spearman)"}, {DynSens, "Dynamic sensitivity"},
+        return {{Histogram, "Histogram"}, {Cumulative, "Cumulative"}, {Swing, "Tornado chart"}, {Tornado, "Correlation (Spearman)"}, {DynSens, "Dynamic sensitivity"},
                 {Spider, "Spider diagram"}, {SpiderCum, "Spider (cumulative)"}, {Scatter, "Scatter / regression"}, {Variants, "Variants"},
                 {BoxWhisker, "Box-Whisker"}, {Decision, "Decision matrix"}, {Statistics, "Statistics"}, {Overview, "Overview (selected variables)"}};
     }
@@ -281,6 +281,10 @@ public:
             drawTornado(p, 0, 0, w, h, "Correlation with " + var.name + " (Spearman) - click a bar for the regression", t, &tornadoRows_);
             break;
         }
+        case Swing:
+            swingRows_.clear();
+            drawSwingTornado(p, 0, 0, w, h, var.name, v, inputs, 0.10, 15, &swingRows_);
+            break;
         case DynSens:
             paintDynSens(p, w, h, var, v, inputs);
             break;
@@ -461,13 +465,14 @@ public:
         p.text(8, 4, title, col::text, true);
         if (decision_.empty()) { p.text(8, 26, "No driver with |rank correlation| > 0.05, or the target is never missed.", col::muted); return; }
         int left = 60, top = p.textHeight() + 20, pw = w - left - 20, ph = h - top - 40;
-        // zones green - yellow - red from the lower left to the upper right
-        for (int i = 0; i < 3; ++i)
-            for (int j = 0; j < 3; ++j) {
-                int score = i + j;
-                Color c = score <= 1 ? Color{214, 240, 214} : score == 2 ? Color{252, 246, 200} : score == 3 ? Color{252, 222, 190} : Color{246, 196, 196};
-                p.rect(left + i * pw / 3, top + (2 - j) * ph / 3, pw / 3 + 1, ph / 3 + 1, &c, nullptr);
-            }
+        // risk zones: a smooth gradient green - yellow - orange - red from the lower left (low
+        // probability, low damage) to the upper right, drawn as thin diagonal bands
+        riskGradient(p, left, top, pw, ph);
+        for (int k = 1; k < 3; ++k) {   // thirds as a faint guide
+            Color g{255, 255, 255};
+            p.line(left + k * pw / 3, top, left + k * pw / 3, top + ph, g, 1, true);
+            p.line(left, top + k * ph / 3, left + pw, top + k * ph / 3, g, 1, true);
+        }
         p.rect(left, top, pw, ph, nullptr, &col::axis);
         double ymax = maxDamage > 0 ? maxDamage * 1.1 : 1;
         std::vector<std::array<int, 4>> placed;   // label boxes, to avoid overlaps
@@ -514,6 +519,51 @@ public:
     }
     static double kNaNd() { return std::nan(""); }
 
+    // colour of the risk score s (0 = lower left, 1 = upper right)
+    static Color riskColor(double s) {
+        static const std::pair<double, Color> stops[] = {
+            {0.0, {196, 234, 196}}, {0.35, {226, 242, 196}}, {0.5, {252, 244, 190}}, {0.68, {252, 218, 182}}, {1.0, {242, 176, 176}}};
+        s = std::min(1.0, std::max(0.0, s));
+        for (size_t i = 1; i < std::size(stops); ++i)
+            if (s <= stops[i].first) {
+                double t = (s - stops[i - 1].first) / (stops[i].first - stops[i - 1].first);
+                return stops[i - 1].second.mix(stops[i].second, t);
+            }
+        return stops[std::size(stops) - 1].second;
+    }
+    // fills the plot with bands of equal score: the band a <= xn + yn <= b clipped to the unit square
+    static void riskGradient(Painter& p, int left, int top, int pw, int ph) {
+        const int bands = 60;
+        for (int k = 0; k < bands; ++k) {
+            double a = 2.0 * k / bands, b = 2.0 * (k + 1) / bands + 0.01;   // slight overlap: no seams
+            std::vector<std::pair<double, double>> poly{{0, 0}, {1, 0}, {1, 1}, {0, 1}};
+            auto clip = [&poly](double c, bool keepBelow) {   // half-plane x + y <= c (or >= c)
+                std::vector<std::pair<double, double>> out;
+                auto inside = [&](const std::pair<double, double>& q) { return keepBelow ? q.first + q.second <= c : q.first + q.second >= c; };
+                for (size_t i = 0; i < poly.size(); ++i) {
+                    auto P = poly[i], Q = poly[(i + 1) % poly.size()];
+                    bool ip = inside(P), iq = inside(Q);
+                    if (ip) out.push_back(P);
+                    if (ip != iq) {
+                        double sp = P.first + P.second, sq = Q.first + Q.second, t = (c - sp) / (sq - sp);
+                        out.push_back({P.first + t * (Q.first - P.first), P.second + t * (Q.second - P.second)});
+                    }
+                }
+                poly = out;
+            };
+            clip(a, false);
+            clip(b, true);
+            if (poly.size() < 3) continue;
+            std::vector<int> xs, ys;
+            for (auto& q : poly) {
+                xs.push_back(left + int(q.first * pw + 0.5));
+                ys.push_back(top + ph - int(q.second * ph + 0.5));
+            }
+            Color c = riskColor((k + 0.5) / bands);
+            p.polygon(xs, ys, &c, nullptr);
+        }
+    }
+
     std::string selectedItemSafe(const std::string& n) {
         try { return selectedItem(n); } catch (...) { return {}; }
     }
@@ -528,6 +578,15 @@ public:
                     for (size_t k = 0; k < inputs.size(); ++k)
                         if (inputs[k] == tornadoNames_[i]) select("input", int(k));
                     setView(Scatter);
+                }
+        } else if (view_ == Swing) {   // click a bar: scatter of that input against the output
+            for (auto& [name, r] : swingRows_)
+                if (m.y >= r.first && m.y < r.second) {
+                    auto inputs = itemsOf("input");
+                    for (size_t k = 0; k < inputs.size(); ++k)
+                        if (inputs[k] == name) select("input", int(k));
+                    setView(Scatter);
+                    break;
                 }
         }
     }
@@ -675,6 +734,7 @@ private:
     double stripeX_ = 0, lower_ = 0, upper_ = 0, target_ = 0;
     Plot plot_{0, 0, 1, 1, 0, 1, 0, 1};
     std::vector<std::pair<int, int>> tornadoRows_;
+    std::vector<std::pair<std::string, std::pair<int, int>>> swingRows_;
     std::vector<std::string> tornadoNames_;
     int probe_ = 0;
     bool probeOn_ = false;
@@ -689,7 +749,7 @@ void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& var
     w->show();
     w->afterShow();
     static const std::map<std::string, ResultWindow::View> views = {
-        {"Histogram", ResultWindow::Histogram}, {"Cumulative", ResultWindow::Cumulative}, {"Tornado", ResultWindow::Tornado},
+        {"Histogram", ResultWindow::Histogram}, {"Cumulative", ResultWindow::Cumulative}, {"Tornado", ResultWindow::Swing},
         {"Correlation", ResultWindow::Tornado}, {"DynamicSensitivity", ResultWindow::DynSens}, {"Spider", ResultWindow::Spider},
         {"SpiderCum", ResultWindow::SpiderCum}, {"Scatter", ResultWindow::Scatter}, {"Variants", ResultWindow::Variants},
         {"BoxWhisker", ResultWindow::BoxWhisker}, {"Decision", ResultWindow::Decision}, {"Statistics", ResultWindow::Statistics},
