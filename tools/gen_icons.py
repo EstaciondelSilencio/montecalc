@@ -309,6 +309,44 @@ def write_all(folder, names):
 
 
 
+# ---------------------------------------------------------------------------- MC FLO logo
+LOGO = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "mcflo_logo.png")
+
+
+def logo_image():
+    """the MC FLO logo with its white background made transparent, cropped to a square"""
+    src = Image.open(LOGO).convert("RGBA")
+    out = Image.new("RGBA", src.size, (0, 0, 0, 0))
+    px, po = src.load(), out.load()
+    for y in range(src.size[1]):
+        for x in range(src.size[0]):
+            r, g, b, a = px[x, y]
+            alpha = (255 - min(r, g, b)) / 255.0   # "colour to alpha" against white
+            alpha = min(1.0, alpha * 1.25)
+            if alpha * a < 8:
+                continue
+            un = [max(0, min(255, int(round(255 - (255 - c) / alpha)))) for c in (r, g, b)]
+            po[x, y] = (un[0], un[1], un[2], int(alpha * a))
+    box = out.getbbox()
+    out = out.crop(box)
+    side = max(out.size) + 4
+    sq = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+    sq.paste(out, ((side - out.size[0]) // 2, (side - out.size[1]) // 2))
+    return sq
+
+
+def write_logo(folder):
+    """logo_16/26 (menu, toolbar, sidebar), logo_42 (Extension Manager)"""
+    im = logo_image()
+    for size in (16, 26, 42):
+        small = im.resize((size, size), Image.LANCZOS)
+        if size < 42:   # thin lines fade when scaled down: strengthen them
+            r, g, b, a = small.split()
+            small = Image.merge("RGBA", (r, g, b, a.point(lambda v: min(255, int(v * 1.7)))))
+        small.save(os.path.join(folder, "logo_%d.png" % size), optimize=True)
+    print("wrote the MC FLO logo icons")
+
+
 def write_bmp(folder, names):
     """copies of icons as BMP: LibreOffice reads submenu icons (ImageIdentifier) only as .bmp"""
     for n in names:

@@ -7,8 +7,8 @@
       <node oor:name="MonteCalcDeck" oor:op="replace">
         <prop oor:name="Title" oor:type="xs:string"><value xml:lang="en-US">MC FLO</value></prop>
         <prop oor:name="Id" oor:type="xs:string"><value>MonteCalcDeck</value></prop>
-        <prop oor:name="IconURL" oor:type="xs:string"><value>vnd.sun.star.extension://org.montecalc.extension/icons/deck_26.png</value></prop>
-        <prop oor:name="HighContrastIconURL" oor:type="xs:string"><value>vnd.sun.star.extension://org.montecalc.extension/icons/deck_26.png</value></prop>
+        <prop oor:name="IconURL" oor:type="xs:string"><value>vnd.sun.star.extension://org.montecalc.extension/icons/logo_26.png</value></prop>
+        <prop oor:name="HighContrastIconURL" oor:type="xs:string"><value>vnd.sun.star.extension://org.montecalc.extension/icons/logo_26.png</value></prop>
         <prop oor:name="ContextList"><value oor:separator=";">Calc, any, visible ;</value></prop>
         <prop oor:name="OrderIndex" oor:type="xs:int"><value>50</value></prop>
       </node>

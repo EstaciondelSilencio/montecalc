@@ -70,7 +70,7 @@ RIBBON = [
         ("HideFormulas", "Hide formulas", "Hide formulas", "hide", False),
         ("LoadFormulas", "Load formulas", "Load formulas", "load", False),
         ("Variables", "Variables (text summary)", "Variables (text)", "variables", False),
-        ("About", "About MonteCalc", "About", "about", False),
+        ("About", "About MonteCalc", "About", "logo", False),
     ]),
 ]
 
@@ -284,8 +284,8 @@ def sidebar():
     deck = ('      <node oor:name="MonteCalcDeck" oor:op="replace">\n'
             '        ' + prop("Title", "MC FLO", localized=True) + "\n"
             '        ' + prop("Id", "MonteCalcDeck") + "\n"
-            '        ' + prop("IconURL", "vnd.sun.star.extension://org.montecalc.extension/icons/deck_26.png") + "\n"
-            '        ' + prop("HighContrastIconURL", "vnd.sun.star.extension://org.montecalc.extension/icons/deck_26.png") + "\n"
+            '        ' + prop("IconURL", "vnd.sun.star.extension://org.montecalc.extension/icons/logo_26.png") + "\n"
+            '        ' + prop("HighContrastIconURL", "vnd.sun.star.extension://org.montecalc.extension/icons/logo_26.png") + "\n"
             '        <prop oor:name="ContextList"><value oor:separator=";">%s</value></prop>\n' % ctx +
             '        ' + prop("OrderIndex", "50", "xs:int") + "\n"
             '      </node>\n')
@@ -345,8 +345,9 @@ def main():
     if MISSING:
         print("not translated (menu/toolbar/sidebar):", "; ".join(sorted(MISSING)))
     import gen_icons
-    icons = sorted({c[3] for _, _, cmds in RIBBON for c in cmds} | {"deck"})
+    icons = sorted({c[3] for _, _, cmds in RIBBON for c in cmds} - {"logo"})
     gen_icons.write_all(os.path.join(EXT, "icons"), icons)
+    gen_icons.write_logo(os.path.join(EXT, "icons"))   # MC FLO logo: About, sidebar deck, Extension Manager
     gen_icons.write_distributions(os.path.join(EXT, "icons"), [nm for names in flo_lists() for nm in names])
     gen_icons.write_bmp(os.path.join(EXT, "icons"), sorted(set(GROUP_ICONS.values()) | {p[2] for p in PICKERS}))
 

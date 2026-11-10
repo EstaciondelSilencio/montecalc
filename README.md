@@ -37,6 +37,9 @@ all running the same commands:
   (discrete) or a typical path (time series). Every submenu has an icon as well, and the
   menu ends with *Start simulation* and *About MonteCalc*.
 
+The MC FLO logo (`tools/assets/mcflo_logo.png`) is the extension's icon in *Tools → Extension
+Manager*, the icon of the MC FLO sidebar deck and of *About MonteCalc*.
+
 ![MC FLO sidebar deck, Extension tab and correlation window](docs/screenshots/mcflo_interface.png)
 
 1. **Choose continuous variable** (or the Wizard) picks a distribution. Read values off the

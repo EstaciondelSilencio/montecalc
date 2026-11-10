@@ -1118,8 +1118,8 @@
       <node oor:name="org.montecalc.img.About" oor:op="replace">
         <prop oor:name="URL" oor:type="xs:string"><value>org.montecalc:About</value></prop>
         <node oor:name="UserDefinedImages">
-          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/about_16.png</value></prop>
-          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/about_26.png</value></prop>
+          <prop oor:name="ImageSmallURL" oor:type="xs:string"><value>%origin%/../icons/logo_16.png</value></prop>
+          <prop oor:name="ImageBigURL" oor:type="xs:string"><value>%origin%/../icons/logo_26.png</value></prop>
         </node>
       </node>
       <node oor:name="org.montecalc.img.dist.Uniform" oor:op="replace">
