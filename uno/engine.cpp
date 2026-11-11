@@ -821,6 +821,8 @@ void Engine::cmdCalcCorrelations() {
     if (!argText(args_, "X").empty() && !argText(args_, "Y").empty()) { f[0].value = argText(args_, "X"); f[1].value = argText(args_, "Y"); }
     else if (!ask("MonteCalc - Correlation and sensitivities", f)) return;
     addSensitivitySheet(ctx_, model(), f[0].value, f[1].value, silent_);
+    // and the scatter of X against Y, as in MC FLO
+    if (!silent_ && f[0].value != f[1].value) openResultWindow(ctx_, frame_, f[1].value, "", "", f[0].value);
 }
 
 // ============================================================ model definition

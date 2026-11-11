@@ -127,13 +127,17 @@ class ResultWindow : public CanvasWindow {
 public:
     enum View { Histogram, Cumulative, Tornado, Swing, DynSens, Spider, SpiderCum, Scatter, Variants, BoxWhisker, Decision, Statistics, Overview };
     std::vector<std::pair<View, std::string>> viewList() const {
+        if (preview_ && pair_) return {{Scatter, "Scatter / regression"}, {Histogram, "Histogram"}, {Cumulative, "Cumulative"}, {Statistics, "Statistics"}};
         if (preview_) return {{Histogram, "Histogram"}, {Cumulative, "Cumulative"}, {Statistics, "Statistics"}};
         return {{Histogram, "Histogram"}, {Cumulative, "Cumulative"}, {Swing, "Tornado chart"}, {Tornado, "Correlation (Spearman)"}, {DynSens, "Dynamic sensitivity"},
                 {Spider, "Spider diagram"}, {SpiderCum, "Spider (cumulative)"}, {Scatter, "Scatter / regression"}, {Variants, "Variants"},
                 {BoxWhisker, "Box-Whisker"}, {Decision, "Decision matrix"}, {Statistics, "Statistics"}, {Overview, "Overview (selected variables)"}};
     }
 
-    ResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& previewName = "", Vec previewData = {})
+    // previewName/previewData: a preview (no simulation results); with previewNameB/previewDataB a pair
+    // (the two variables of a correlation): previewName on the x axis, previewNameB on the y axis
+    ResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& previewName = "", Vec previewData = {},
+                 const std::string& previewNameB = "", Vec previewDataB = {})
         : CanvasWindow(ctx, frame, previewName.empty() ? "MonteCalc - Results" : "MonteCalc - Preview " + previewName, 452, 270, 132),
           preview_(!previewName.empty()) {
         auto& sim = mc::Simulation::instance();
@@ -143,6 +147,12 @@ public:
             v.kind = mc::VarKind::Input;
             vars_.push_back(v);
             previewData_ = std::move(previewData);
+            if (!previewNameB.empty()) {
+                pair_ = true;
+                v.name = previewNameB;
+                vars_.push_back(v);
+                previewDataB_ = std::move(previewDataB);
+            }
         } else {
             vars_ = sim.resultVariables();
             // outputs first (as in MC FLO's output window)
@@ -156,6 +166,13 @@ public:
         int x = panelX(), w = panelW(), y = 6;
         std::vector<std::string> items;
         for (auto& v : vars_) items.push_back((v.kind == mc::VarKind::Output ? "[out] " : "[in] ") + v.name);
+        // correlations of the simulation: choosing one shows the scatter of its two variables
+        if (!preview_)
+            for (auto& c : sim.resultCorrelations())
+                if (index(c.a) >= 0 && index(c.b) >= 0) {
+                    corrs_.push_back(c);
+                    items.push_back("[corr] " + c.a + " ~ " + c.b + " (" + niceNum(c.rho) + ")");
+                }
         addLabel("lvar", "Variable", x, y, w); y += 10;
         addList("var", items, x, y, w - 30, 12, true);
         addButton("prev", "<", x + w - 28, y, 13, 12);
@@ -182,9 +199,8 @@ public:
         addLabel("lstripe", "Magic stripe (x, or ;p for a percentile)", x, y, w); y += 10;
         addEdit("stripe", "", x, y, w - 26);
         addButton("setStripe", "Set", x + w - 24, y, 24, 12); y += 16;
-        std::vector<std::string> inputs;
-        for (auto& v : vars_) if (v.kind == mc::VarKind::Input) inputs.push_back(v.name);
-        addLabel("linput", "Input for scatter", x, y, w); y += 10;
+        std::vector<std::string> inputs = itemsOf("input");
+        addLabel("linput", "X-variable (scatter)", x, y, w); y += 10;
         addList("input", inputs.empty() ? std::vector<std::string>{"-"} : inputs, x, y, w, 12, true); y += 16;
         addLabel("ltarget", "Target value (decision matrix)", x, y, w); y += 10;
         addList("targetDir", {">", "<"}, x, y, 22, 12, true);
@@ -203,7 +219,7 @@ public:
     }
 
     Vec data(const std::string& name) {
-        if (preview_) return previewData_;
+        if (preview_) return pair_ && mc::lower(name) == mc::lower(vars_[1].name) ? previewDataB_ : previewData_;
         Vec v;
         mc::Simulation::instance().samples(name, v);
         return v;
@@ -598,10 +614,25 @@ public:
         if (view_ == Variants) { probe_ = m.x; probeOn_ = true; repaint(); }
         if (view_ == Decision) { mouseX_ = m.x; mouseY_ = m.y; repaint(); }
     }
+    // x variables of the scatter: the inputs, then the outputs
     std::vector<std::string> itemsOf(const std::string&) {
         std::vector<std::string> r;
         for (auto& v : vars_) if (v.kind == mc::VarKind::Input) r.push_back(v.name);
+        for (auto& v : vars_) if (v.kind != mc::VarKind::Input) r.push_back(v.name);
         return r;
+    }
+    int index(const std::string& name) const {
+        for (size_t i = 0; i < vars_.size(); ++i) if (mc::lower(vars_[i].name) == mc::lower(name)) return int(i);
+        return -1;
+    }
+    // the scatter of x (horizontal) against y (vertical, the window's variable)
+    void showScatter(const std::string& x, const std::string& y) {
+        int iy = index(y);
+        if (iy >= 0 && iy != cur_) { cur_ = iy; resetVariable(); }
+        auto xs = itemsOf("input");
+        for (size_t k = 0; k < xs.size(); ++k)
+            if (mc::lower(xs[k]) == mc::lower(x)) select("input", int(k));
+        setView(Scatter);
     }
     void setView(View v) {
         view_ = v;
@@ -620,8 +651,18 @@ public:
         return false;
     }
     void itemChanged(const std::string& name) override {
-        if (name == "var") { cur_ = std::max(0, selected("var")); resetVariable(); }
-        else if (name == "view") {
+        if (name == "var") {
+            int s = std::max(0, selected("var"));
+            if (s >= int(vars_.size()) && s - vars_.size() < corrs_.size()) {   // a correlation: its two variables
+                const auto& c = corrs_[s - vars_.size()];
+                showScatter(c.a, c.b);
+                return;
+            }
+            cur_ = s;
+            resetVariable();
+        } else if (name == "input") {   // choosing the x variable shows the scatter
+            if (view_ != Scatter) { setView(Scatter); return; }
+        } else if (name == "view") {
             int s = selected("view");
             auto vl = viewList();
             if (s >= 0 && s < int(vl.size())) view_ = vl[s].first;
@@ -726,7 +767,9 @@ public:
 
 private:
     bool preview_;
-    Vec previewData_;
+    bool pair_ = false;
+    Vec previewData_, previewDataB_;
+    std::vector<mc::CorrelationRef> corrs_;
     std::vector<mc::Variable> vars_;
     int cur_ = 0;
     View view_ = Histogram;
@@ -744,7 +787,51 @@ private:
     std::vector<std::string> overview_;
 };
 
-void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& view, const std::string& exportTo) {
+// A correlation as a scatter of its two variables: the simulated values when the last simulation has
+// both, otherwise a sample of the copula (ranks 0..1) with the cell's coefficient and type.
+std::shared_ptr<ResultWindow> correlationScatter(const Ctx& ctx, const Frame& frame, const VarCell& v) {
+    if (hasResults(v.corrA) && hasResults(v.corrB)) {
+        auto w = std::make_shared<ResultWindow>(ctx, frame, v.corrB);
+        w->show();
+        w->afterShow();
+        w->showScatter(v.corrA, v.corrB);
+        return w;
+    }
+    double rho = docOf(frame).cell(v.addr)->getValue();
+    int type = 0;
+    std::string func;
+    std::vector<std::string> args;
+    if (mc::formula::findCall(v.formula, "FLOSIMULA_", func, args) && args.size() > 3) type = std::atoi(args[3].c_str());
+    std::mt19937_64 rng(1);
+    auto cr = mc::generateUniforms(2, 1000, {{0, 1, rho, type}}, rng);
+    auto w = std::make_shared<ResultWindow>(ctx, frame, v.corrB, v.corrA + " (rank)", cr.u[0], v.corrB + " (rank)", cr.u[1]);
+    w->show();
+    w->afterShow();
+    w->showScatter(v.corrA + " (rank)", v.corrB + " (rank)");
+    return w;
+}
+
+void openCorrelationScatter(const Ctx& ctx, const Frame& frame, const VarCell& v) { CanvasWindow::keep(correlationScatter(ctx, frame, v)); }
+
+void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& view, const std::string& exportTo,
+                      const std::string& scatterX) {
+    // a correlation (by name, or the selected cell when no variable is given) opens as the scatter
+    // of its two variables instead of a histogram
+    {
+        ModelDoc d = docOf(frame);
+        table::CellAddress cur;
+        bool haveCur = variable.empty() && d.currentCell(cur);
+        for (auto& vc : d.scan()) {
+            if (vc.kind != mc::VarKind::Correlation) continue;
+            bool byName = !variable.empty() && mc::lower(vc.name) == mc::lower(variable);
+            bool byCell = haveCur && vc.addr.Sheet == cur.Sheet && vc.addr.Column == cur.Column && vc.addr.Row == cur.Row;
+            if (!byName && !byCell) continue;
+            auto w = correlationScatter(ctx, frame, vc);
+            if (!exportTo.empty()) { w->exportImage(exportTo, "image/png", 900, 560); w->close(); return; }
+            CanvasWindow::keep(w);
+            return;
+        }
+    }
     auto w = std::make_shared<ResultWindow>(ctx, frame, variable);
     w->show();
     w->afterShow();
@@ -768,6 +855,7 @@ void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& var
         }
     }
     if (views.count(view)) w->setView(views.at(view));
+    if (!scatterX.empty()) w->showScatter(scatterX, variable);
     if (!exportTo.empty()) {
         w->exportImage(exportTo, "image/png", 900, 560);
         w->close();
@@ -1397,21 +1485,7 @@ public:
         if (b == "goto") { docOf(frame_).select(v.addr); return; }
         if (b == "details") {
             if (v.kind != mc::VarKind::Correlation && hasResults(v.name)) { openResultWindow(ctx_, frame_, v.name); return; }
-            if (v.kind == mc::VarKind::Correlation) {
-                // shape of the correlation: copula sample of the two variables' ranks
-                double rho = docOf(frame_).cell(v.addr)->getValue();
-                int type = 0;
-                std::string func;
-                std::vector<std::string> args;
-                if (mc::formula::findCall(v.formula, "FLOSIMULA_", func, args) && args.size() > 3) type = std::atoi(args[3].c_str());
-                std::mt19937_64 rng(1);
-                auto cr = mc::generateUniforms(2, 1000, {{0, 1, rho, type}}, rng);
-                auto w = std::make_shared<ResultWindow>(ctx_, frame_, v.corrA, v.corrA + " ~ " + v.corrB + " (ranks)", cr.u[0]);
-                w->show();
-                w->afterShow();
-                CanvasWindow::keep(w);
-                return;
-            }
+            if (v.kind == mc::VarKind::Correlation) { openCorrelationScatter(ctx_, frame_, v); return; }
             Vec data = previewSamples(docOf(frame_), v.addr, 5000);
             if (data.empty()) { message("The variable could not be previewed.", true); return; }
             auto w = std::make_shared<ResultWindow>(ctx_, frame_, v.name, v.name, data);

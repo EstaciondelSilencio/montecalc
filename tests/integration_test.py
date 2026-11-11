@@ -411,13 +411,17 @@ def run_tests(ctx):
     check(cell("E41").getFormula() == "", "the correlation preview (Insert=False) does not write the cell")
     dispatcher.executeDispatch(frame, "org.montecalc:Results?Variable=Revenue&View=Cumulative&ExportTo=" +
                                pathlib.Path(outdir, "url_args.png").as_uri(), "", 0, (prop("Silent", True),))
+    if "FLOSIMULA_CORRELATION" in cell("B3").getFormula().upper():   # a correlation cell opens as a scatter
+        select("B3")
+        cmd("Results", ExportTo=pathlib.Path(outdir, "corr_cell.png").as_uri())
     for view in ["Histogram", "Tornado", "Correlation", "Spider", "Scatter", "Decision", "Statistics"]:
         cmd("Results", Variable="Revenue", View=view, ExportTo=pathlib.Path(outdir, f"{view}.png").as_uri())
     for name, opt in [("diagram", ""), ("dist", "dist,sens"), ("group", "group,ortho"), ("results", "results")]:
         cmd("InfluenceDiagram", Options=opt, ExportTo=pathlib.Path(outdir, f"id_{name}.png").as_uri())
     sizes = {f: os.path.getsize(os.path.join(outdir, f)) for f in os.listdir(outdir)}
     wanted = {f"{v}.png" for v in ["Histogram", "Tornado", "Correlation", "Spider", "Scatter", "Decision", "Statistics"]} | \
-        {f"id_{n}.png" for n in ["diagram", "dist", "group", "results"]} | {"url_args.png"}
+        {f"id_{n}.png" for n in ["diagram", "dist", "group", "results"]} | {"url_args.png"} | \
+        ({"corr_cell.png"} if "FLOSIMULA_CORRELATION" in cell("B3").getFormula().upper() else set())
     check(wanted <= set(sizes) and min(sizes[f] for f in wanted) > 3000, f"result views and influence diagrams exported: {sorted(sizes.items())}")
     shutil.rmtree(outdir, ignore_errors=True)
     # function picker (MC FLO ribbon "Functions"): writes the function into the selected empty cell

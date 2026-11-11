@@ -17,8 +17,10 @@ void openWizard(const Ctx& ctx, const Frame& frame, const std::string& function 
 void openFitWindow(const Ctx& ctx, const Frame& frame);
 // view: Histogram, Cumulative, Tornado, Spider, SpiderCum, Scatter, Variants, Decision, Statistics;
 // exportTo: file URL - the window is exported as PNG and closed (macros, tests)
+// A correlation variable (by name, or the selected correlation cell when variable is empty) opens as
+// the scatter of its two variables; scatterX: show the scatter of scatterX against variable.
 void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& view = "",
-                      const std::string& exportTo = "");
+                      const std::string& exportTo = "", const std::string& scatterX = "");
 void openCorrelogram(const Ctx& ctx, const Frame& frame);
 void openInfluenceDiagram(const Ctx& ctx, const Frame& frame, const std::string& options = "", const std::string& exportTo = "");
 void openMentor(const Ctx& ctx, const Frame& frame);

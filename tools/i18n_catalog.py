@@ -12,6 +12,7 @@
 # Function names (FLOsimula_, fMC_) and variable names are never translated, as in MC FLO.
 
 CATALOG = [
+    ("X-variable (scatter)", "X-Variable (Streudiagramm)", "Variable X (dispersión)"),
     # ------------------------------------------------------------------ tornado chart
     ("Tornado chart", "Tornado-Diagramm", "Diagrama de tornado"),
     ("Tornado: mean of {} with each input at its lowest / highest {}%", "Tornado: Mittelwert von {} mit jedem Input in seinen tiefsten / höchsten {}%",
