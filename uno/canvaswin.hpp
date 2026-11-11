@@ -69,6 +69,7 @@ public:
     bool checked(const std::string& name);
     void setChecked(const std::string& name, bool on);
     void setEnabled(const std::string& name, bool on);
+    void setVisible(const std::string& name, bool on);
     int sliderValue(const std::string& name);
     void setSliderValue(const std::string& name, int v);
     void setTextColor(const std::string& name, sal_Int32 rgb);

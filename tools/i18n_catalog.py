@@ -12,6 +12,9 @@
 # Function names (FLOsimula_, fMC_) and variable names are never translated, as in MC FLO.
 
 CATALOG = [
+    ("Click a bar in the tornado chart to choose the variable for the scatter plot.",
+     "Klicken Sie auf einen Balken im Tornado-Diagramm, um die Variable für das Streudiagramm zu wählen.",
+     "Haga clic en una barra del diagrama de tornado para elegir la variable del diagrama de dispersión."),
     ("X-variable (scatter)", "X-Variable (Streudiagramm)", "Variable X (dispersión)"),
     # ------------------------------------------------------------------ tornado chart
     ("Tornado chart", "Tornado-Diagramm", "Diagrama de tornado"),

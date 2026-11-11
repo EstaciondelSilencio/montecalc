@@ -149,6 +149,7 @@ public:
             previewData_ = std::move(previewData);
             if (!previewNameB.empty()) {
                 pair_ = true;
+                corrSelected_ = true;
                 v.name = previewNameB;
                 vars_.push_back(v);
                 previewDataB_ = std::move(previewDataB);
@@ -199,9 +200,6 @@ public:
         addLabel("lstripe", "Magic stripe (x, or ;p for a percentile)", x, y, w); y += 10;
         addEdit("stripe", "", x, y, w - 26);
         addButton("setStripe", "Set", x + w - 24, y, 24, 12); y += 16;
-        std::vector<std::string> inputs = itemsOf("input");
-        addLabel("linput", "X-variable (scatter)", x, y, w); y += 10;
-        addList("input", inputs.empty() ? std::vector<std::string>{"-"} : inputs, x, y, w, 12, true); y += 16;
         addLabel("ltarget", "Target value (decision matrix)", x, y, w); y += 10;
         addList("targetDir", {">", "<"}, x, y, 22, 12, true);
         addEdit("target", "", x + 24, y, w - 50);
@@ -209,12 +207,18 @@ public:
         addButton("store", "Store results", x, y, w / 2 - 1); addButton("export", "Export image", x + w / 2 + 1, y, w / 2 - 1); y += 16;
         addButton("comment", "Store as comment", x, y, w / 2 - 1); addButton("rerun", "Start", x + w / 2 + 1, y, w / 2 - 1); y += 16;
         addButton("zoomOut", "Zoom -", x, y, w / 3 - 1); addButton("zoomIn", "Zoom +", x + w / 3, y, w / 3 - 1);
-        addButton("close", "Close", x + 2 * w / 3, y, w - 2 * w / 3);
+        addButton("close", "Close", x + 2 * w / 3, y, w - 2 * w / 3); y += 20;
+        // only shown while a correlation is selected (its two variables); for inputs and outputs the
+        // scatter takes the strongest driver, or the bar clicked in the tornado / correlation chart
+        std::vector<std::string> inputs = itemsOf("input");
+        addLabel("linput", "X-variable (scatter)", x, y, w); y += 10;
+        addList("input", inputs.empty() ? std::vector<std::string>{"-"} : inputs, x, y, w, 12, true);
         resetVariable();
     }
 
     void afterShow() {
         select("var", cur_);
+        updateXVisibility();
         if (has("variant")) select("variant", std::max(0, mc::Simulation::instance().activeResultSet()));
     }
 
@@ -315,9 +319,12 @@ public:
             drawSpider(p, 0, 0, w, h, var.name, v, inputs, view_ == SpiderCum);
             break;
         case Scatter: {
-            std::string in = selectedItemSafe("input");
+            std::string in = scatterX_.empty() ? strongestDriver(var.name) : scatterX_;
             Vec x = data(in);
-            if (x.empty() || in == var.name) { p.text(10, 10, "Choose an input variable for the scatter plot.", col::text); break; }
+            if (x.empty() || mc::lower(in) == mc::lower(var.name)) {
+                p.text(10, 10, "Click a bar in the tornado chart to choose the variable for the scatter plot.", col::text);
+                break;
+            }
             drawScatter(p, 0, 0, w, h * 6 / 10, x, v, in, var.name, true);
             drawDynamicSensitivity(p, 0, h * 6 / 10, w, h * 4 / 10, x, v, 10, in, var.name);
             break;
@@ -593,6 +600,7 @@ public:
                     auto inputs = itemsOf("input");
                     for (size_t k = 0; k < inputs.size(); ++k)
                         if (inputs[k] == tornadoNames_[i]) select("input", int(k));
+                    scatterX_ = tornadoNames_[i];
                     setView(Scatter);
                 }
         } else if (view_ == Swing) {   // click a bar: scatter of that input against the output
@@ -601,6 +609,7 @@ public:
                     auto inputs = itemsOf("input");
                     for (size_t k = 0; k < inputs.size(); ++k)
                         if (inputs[k] == name) select("input", int(k));
+                    scatterX_ = name;
                     setView(Scatter);
                     break;
                 }
@@ -626,9 +635,39 @@ public:
         return -1;
     }
     // the scatter of x (horizontal) against y (vertical, the window's variable)
+    // the input with the largest |rank correlation| with name (the default x of the scatter)
+    std::string strongestDriver(const std::string& name) {
+        Vec v = data(name);
+        std::string best;
+        double bestR = -1;
+        for (auto& x : vars_) {
+            if (mc::lower(x.name) == mc::lower(name) || x.kind != mc::VarKind::Input) continue;
+            double r = std::fabs(mc::stats::spearman(data(x.name), v));
+            if (std::isfinite(r) && r > bestR) { bestR = r; best = x.name; }
+        }
+        return best;
+    }
+    void updateXVisibility() {
+        try {
+            setVisible("linput", corrSelected_);
+            setVisible("input", corrSelected_);
+        } catch (...) {
+        }
+    }
+    // a correlation: its entry in the Variable list, the X-variable list and the scatter of a against b
+    void showCorrelation(const std::string& a, const std::string& b) {
+        for (size_t i = 0; i < corrs_.size(); ++i)
+            if ((mc::lower(corrs_[i].a) == mc::lower(a) && mc::lower(corrs_[i].b) == mc::lower(b)) ||
+                (mc::lower(corrs_[i].a) == mc::lower(b) && mc::lower(corrs_[i].b) == mc::lower(a)))
+                select("var", int(vars_.size() + i));
+        corrSelected_ = true;
+        updateXVisibility();
+        showScatter(a, b);
+    }
     void showScatter(const std::string& x, const std::string& y) {
         int iy = index(y);
         if (iy >= 0 && iy != cur_) { cur_ = iy; resetVariable(); }
+        scatterX_ = x;
         auto xs = itemsOf("input");
         for (size_t k = 0; k < xs.size(); ++k)
             if (mc::lower(xs[k]) == mc::lower(x)) select("input", int(k));
@@ -644,6 +683,9 @@ public:
         if (code == awt::Key::LEFT || code == awt::Key::RIGHT) {
             cur_ = (cur_ + (code == awt::Key::RIGHT ? 1 : int(vars_.size()) - 1)) % int(vars_.size());
             select("var", cur_);
+            scatterX_.clear();
+            corrSelected_ = false;
+            updateXVisibility();
             resetVariable();
             repaint();
             return true;
@@ -655,12 +697,18 @@ public:
             int s = std::max(0, selected("var"));
             if (s >= int(vars_.size()) && s - vars_.size() < corrs_.size()) {   // a correlation: its two variables
                 const auto& c = corrs_[s - vars_.size()];
+                corrSelected_ = true;
+                updateXVisibility();
                 showScatter(c.a, c.b);
                 return;
             }
             cur_ = s;
+            scatterX_.clear();
+            corrSelected_ = false;
+            updateXVisibility();
             resetVariable();
         } else if (name == "input") {   // choosing the x variable shows the scatter
+            scatterX_ = selectedItemSafe("input");
             if (view_ != Scatter) { setView(Scatter); return; }
         } else if (name == "view") {
             int s = selected("view");
@@ -768,6 +816,8 @@ public:
 private:
     bool preview_;
     bool pair_ = false;
+    bool corrSelected_ = false;   // a correlation is chosen: the X-variable list is shown
+    std::string scatterX_;        // x of the scatter ("" = the strongest driver)
     Vec previewData_, previewDataB_;
     std::vector<mc::CorrelationRef> corrs_;
     std::vector<mc::Variable> vars_;
@@ -794,7 +844,7 @@ std::shared_ptr<ResultWindow> correlationScatter(const Ctx& ctx, const Frame& fr
         auto w = std::make_shared<ResultWindow>(ctx, frame, v.corrB);
         w->show();
         w->afterShow();
-        w->showScatter(v.corrA, v.corrB);
+        w->showCorrelation(v.corrA, v.corrB);
         return w;
     }
     double rho = docOf(frame).cell(v.addr)->getValue();
@@ -807,7 +857,7 @@ std::shared_ptr<ResultWindow> correlationScatter(const Ctx& ctx, const Frame& fr
     auto w = std::make_shared<ResultWindow>(ctx, frame, v.corrB, v.corrA + " (rank)", cr.u[0], v.corrB + " (rank)", cr.u[1]);
     w->show();
     w->afterShow();
-    w->showScatter(v.corrA + " (rank)", v.corrB + " (rank)");
+    w->showCorrelation(v.corrA + " (rank)", v.corrB + " (rank)");
     return w;
 }
 

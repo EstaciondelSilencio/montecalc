@@ -500,6 +500,11 @@ void CanvasWindow::setChecked(const std::string& name, bool on) {
     Reference<awt::XCheckBox>(control(name), UNO_QUERY_THROW)->setState(on ? 1 : 0);
 }
 
+void CanvasWindow::setVisible(const std::string& name, bool on) {
+    if (!dialog_.is()) return;
+    Reference<awt::XWindow>(control(name), UNO_QUERY_THROW)->setVisible(on);
+}
+
 void CanvasWindow::setEnabled(const std::string& name, bool on) {
     Reference<beans::XPropertySet>(control(name)->getModel(), UNO_QUERY_THROW)->setPropertyValue("Enabled", Any(on));
 }

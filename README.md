@@ -142,12 +142,13 @@ had last. Zoom with Ctrl +/−/0 (starts at 125%). The sidebar panels stretch wi
 - **tornado chart**: for each input, the mean of the output when the input lies in its lowest
   10% (blue) and highest 10% (orange), centred on the expected value and sorted by swing —
   click a bar for the scatter of that input;
-- **scatter / regression** of the variable against the **X-variable (scatter)** (any input or
-  output); choosing an X-variable switches to this view. **Correlations** are in the Variable
-  list as `[corr] A ~ B`: choosing one — or opening the result window on a correlation cell,
-  or *Details* in the variable list — shows the scatter of its two variables with the rank
-  correlation achieved by the simulation (before a simulation: a sample of the copula).
-  *Calc correlations* also opens the scatter of its X- and Y-variable;
+- **scatter / regression** of the variable against its strongest input driver (largest
+  |rank correlation|), or against the input whose bar you click in the tornado or correlation
+  chart. **Correlations** are in the Variable list as `[corr] A ~ B`: choosing one — or opening
+  the result window on a correlation cell, or *Details* in the variable list — shows the
+  scatter of its two variables with the rank correlation achieved by the simulation (before a
+  simulation: a sample of the copula). Only then the **X-variable (scatter)** list appears at
+  the bottom of the panel. *Calc correlations* also opens the scatter of its X- and Y-variable;
 - **correlation** of all inputs and outputs with the variable (Spearman), **dynamic
   sensitivity** (output range by input interval, expected value in orange) — click a bar for
   the regression scatter — and the **spider diagram** (Pearson by 10% quantile, isolated or
