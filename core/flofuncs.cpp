@@ -1,5 +1,6 @@
 // MonteCalc - semantics of the FLOsimula_* model functions
 #include "flofuncs.h"
+#include "formula.h"
 #include "simulation.h"
 #include "stats.h"
 
@@ -544,6 +545,27 @@ double evalFlo(const FloFunction& f, const std::vector<Value>& a) {
     }
     }
     return 0;
+}
+
+size_t nameArgIndex(const FloFunction& f, const std::vector<std::string>& args) {
+    switch (f.kind) {
+    case FloFunction::UserDefined:
+    case FloFunction::DiscreteUserDefined: return 2;
+    case FloFunction::Bounded: return 3;
+    case FloFunction::Output:
+    case FloFunction::Correlation: return 0;
+    default: break;
+    }
+    size_t np = f.params.size();
+    if (f.minParams && f.minParams < np) {
+        if (args.size() > f.minParams) {
+            bool isStr;
+            std::string t = formula::unquote(args[f.minParams], isStr);
+            if (!isStr && !t.empty()) return np;   // number or reference
+        }
+        return f.minParams;
+    }
+    return np;
 }
 
 } // namespace mc

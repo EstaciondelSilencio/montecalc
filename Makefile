@@ -76,3 +76,26 @@ install: $(B)/MonteCalc.oxt
 
 clean:
 	rm -rf $(B)
+
+# ---- Microsoft Excel XLL (xll/) ----
+#   make xlltest   build and run the XLL against a mock Excel (Linux)
+#   make xll       cross-compile build/xll/MonteCalc-x64.xll with mingw-w64 (if installed)
+XLL_GEN  := $(B)/xll/gen
+XLL_SRC  := $(CORE_SRC) uno/addin.cpp uno/i18n.cpp xll/xll.cpp
+XLL_FLAGS := -std=c++17 -O2 -DMONTECALC_XLL -I$(XLL_GEN) -Iuno -Ixll
+
+$(XLL_GEN)/xll_exports.inc: tools/gen_functions.py tools/gen_ui.py
+	python3 tools/gen_functions.py $(XLL_GEN)
+
+$(B)/xll/xll_test: $(XLL_SRC) tests/xll_test.cpp xll/*.h xll/*.hpp uno/*.hpp core/*.h $(XLL_GEN)/xll_exports.inc
+	$(CXX) $(XLL_FLAGS) $(XLL_SRC) tests/xll_test.cpp -o $@
+
+xlltest: $(B)/xll/xll_test
+	./$(B)/xll/xll_test
+
+$(B)/xll/MonteCalc-x64.xll: $(XLL_SRC) xll/*.h xll/*.hpp uno/*.hpp core/*.h $(XLL_GEN)/xll_exports.inc
+	x86_64-w64-mingw32-g++ $(XLL_FLAGS) -shared -static -static-libgcc -static-libstdc++ $(XLL_SRC) $(XLL_GEN)/montecalc_xll.def -o $@
+
+xll: $(B)/xll/MonteCalc-x64.xll
+
+.PHONY: xlltest xll

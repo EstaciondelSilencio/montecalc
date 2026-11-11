@@ -1,7 +1,9 @@
 // MonteCalc - Calc add-in exposing the MC FLO model and tool functions
 #include "addin.hpp"
-#include "model.hpp"
 #include "util.hpp"
+#ifndef MONTECALC_XLL
+#include "model.hpp"
+#endif
 
 #include "../core/bayes.h"
 #include "../core/copula.h"
@@ -12,6 +14,7 @@
 #include "../core/specfun.h"
 #include "../core/stats.h"
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/container/XNamed.hpp>
 #include <com/sun/star/lang/IllegalArgumentException.hpp>
 #include <com/sun/star/sheet/XCellRangeAddressable.hpp>
@@ -20,6 +23,7 @@
 #include <com/sun/star/table/XCell.hpp>
 #include <com/sun/star/text/XText.hpp>
 #include <cppuhelper/supportsservice.hxx>
+#endif
 
 #include <algorithm>
 #include <bitset>
@@ -34,7 +38,9 @@ using namespace com::sun::star;
 using com::sun::star::uno::Any;
 using com::sun::star::uno::Reference;
 using com::sun::star::uno::Sequence;
+#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY;
+#endif
 
 namespace montecalc {
 
@@ -844,6 +850,32 @@ OUString variableName(int kind, double pos) {
     });
 }
 
+#ifdef MONTECALC_XLL
+OUString variableInCell(const XlCell& cell) {
+    return guard([&] {
+        if (!cell.valid) throw std::invalid_argument("a cell reference is needed");
+        std::string func;
+        std::vector<std::string> args;
+        if (!mc::formula::findCall(cell.formula, "FLOSIMULA_", func, args)) throw std::invalid_argument("the cell contains no MC FLO formula");
+        const mc::FloFunction* fl = mc::findFlo(func);
+        size_t nameArg = fl ? mc::nameArgIndex(*fl, args) : 0;
+        if (fl && fl->kind == mc::FloFunction::Correlation) return ou(func);
+        if (nameArg < args.size()) {
+            bool isStr;
+            std::string t = mc::formula::unquote(args[nameArg], isStr);
+            if (isStr) return ou(t);
+            int col, row;
+            if (t.find('!') == std::string::npos && mc::formula::parseCellName(t, col, row) && cell.textAt) {
+                std::string text = cell.textAt(row, col);
+                bool numeric = false;
+                parseNumber(text, numeric);
+                if (!text.empty() && !numeric) return ou(text);
+            }
+        }
+        return ou(mc::formula::sanitizeName(cell.sheet) + "_" + mc::formula::columnName(cell.col) + std::to_string(cell.row + 1));
+    });
+}
+#else
 OUString variableInCell(const Reference<table::XCellRange>& range) {
     return guard([&] {
         if (!range.is()) throw std::invalid_argument("a cell reference is needed");
@@ -857,7 +889,7 @@ OUString variableInCell(const Reference<table::XCellRange>& range) {
         std::vector<std::string> args;
         if (!mc::formula::findCall(f, "FLOSIMULA_", func, args)) throw std::invalid_argument("the cell contains no MC FLO formula");
         const mc::FloFunction* fl = mc::findFlo(func);
-        size_t nameArg = fl ? nameArgIndex(*fl, args) : 0;   // MC FLO order: the name follows the parameters
+        size_t nameArg = fl ? mc::nameArgIndex(*fl, args) : 0;   // MC FLO order: the name follows the parameters
         if (fl && fl->kind == mc::FloFunction::Correlation) return ou(func);
         if (nameArg < args.size()) {
             bool isStr;
@@ -879,6 +911,8 @@ OUString variableInCell(const Reference<table::XCellRange>& range) {
         return ou(mc::formula::sanitizeName(sheetName) + "_" + mc::formula::columnName(a.StartColumn) + std::to_string(a.StartRow + 1));
     });
 }
+
+#endif
 
 double setBins(double v) {
     return guard([&] {
@@ -1361,8 +1395,13 @@ AnyMatrix digitTest(const AnyMatrix& data, const Any& summary, bool last) {
 } // namespace
 
 // ============================== generated function bodies ================
+#ifdef MONTECALC_XLL
+#include "functions_impl_xll.inc"
+#else
 #include "functions_impl.inc"
+#endif
 
+#ifndef MONTECALC_XLL
 // ============================== XAddIn ===================================
 
 OUString MonteCalcAddIn::getProgrammaticFuntionName(const OUString& aDisplayName) {
@@ -1404,5 +1443,7 @@ Sequence<OUString> MonteCalcAddIn::serviceNames() {
 }
 void MonteCalcAddIn::setLocale(const lang::Locale& l) { locale_ = l; }
 lang::Locale MonteCalcAddIn::getLocale() { return locale_; }
+
+#endif
 
 } // namespace montecalc

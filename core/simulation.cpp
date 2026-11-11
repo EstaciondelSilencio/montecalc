@@ -81,6 +81,7 @@ double Simulation::inputValue(const std::string& name, bool named, const std::st
     case Mode::Expected:
         return expected;
     case Mode::Register: {
+        if (observer_) observer_(named ? name : std::string(), VarKind::Input);
         if (!named) return expected;
         int i = ensureVariable(name, VarKind::Input, desc);
         if (++vars_[i].callsThisPass > 1) duplicates_.insert(vars_[i].name);
@@ -117,6 +118,7 @@ double Simulation::output(const std::string& name, double value, bool hasValue) 
     if (lower(name).empty()) throw std::invalid_argument("the output variable needs a name");
     double ret = hasValue ? value : 0.0;
     if (mode_ == Mode::Register) {
+        if (observer_) observer_(name, VarKind::Output);
         int i = ensureVariable(name, VarKind::Output, "Output");
         if (++vars_[i].callsThisPass > 1) duplicates_.insert(vars_[i].name);
     } else if (mode_ == Mode::Simulate && hasValue) {

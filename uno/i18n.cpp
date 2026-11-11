@@ -2,10 +2,19 @@
 #include "i18n.hpp"
 #include "util.hpp"
 
+#ifdef MONTECALC_XLL
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+#else
 #include <com/sun/star/beans/NamedValue.hpp>
 #include <com/sun/star/configuration/theDefaultProvider.hpp>
 #include <com/sun/star/container/XNameAccess.hpp>
 #include <com/sun/star/lang/XMultiServiceFactory.hpp>
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -15,12 +24,15 @@
 #include <unordered_map>
 #include <vector>
 
+#ifndef MONTECALC_XLL
 using namespace com::sun::star;
 using com::sun::star::uno::Any;
 using com::sun::star::uno::Reference;
 using com::sun::star::uno::Sequence;
 using com::sun::star::uno::UNO_QUERY;
 using com::sun::star::uno::UNO_QUERY_THROW;
+
+#endif
 
 namespace montecalc {
 namespace {
@@ -31,7 +43,9 @@ const Entry kCatalog[] = {
 };
 
 std::mutex g_mtx;
+#ifndef MONTECALC_XLL
 Reference<uno::XComponentContext> g_ctx;
+#endif
 bool g_resolved = false;
 Lang g_lang = Lang::EN;
 
@@ -109,6 +123,20 @@ Lang fromName(const std::string& name) {
 
 std::string settingFile() { return documentsDir() + "/MC_FLO_language.txt"; }
 
+#ifdef MONTECALC_XLL
+// Excel: the language of the Windows user interface (Office follows it unless set otherwise)
+std::string hostLanguage() {
+#ifdef _WIN32
+    switch (PRIMARYLANGID(GetUserDefaultUILanguage())) {
+    case LANG_GERMAN: return "de";
+    case LANG_SPANISH: return "es";
+    default: return "en";
+    }
+#else
+    return envOr("LANG", "en");
+#endif
+}
+#else
 std::string configValue(const char* path, const char* prop) {
     if (!g_ctx.is()) return {};
     try {
@@ -128,13 +156,19 @@ std::string configValue(const char* path, const char* prop) {
     }
 }
 
+#endif
+
 Lang resolve() {
     std::string choice = languageSetting();
-    if (lower(choice) != "auto") return fromName(choice == "Español" ? "es" : choice);
+    if (lower(choice) != "auto") return fromName(choice == "Espa\xC3\xB1ol" ? "es" : choice);
+#ifdef MONTECALC_XLL
+    return fromName(hostLanguage());
+#else
     std::string loc = configValue("/org.openoffice.Setup/L10N", "ooLocale");
     if (loc.empty()) loc = configValue("/org.openoffice.System/L10N", "UILocale");
     if (loc.empty()) loc = envOr("LANG", "en");
     return fromName(loc);
+#endif
 }
 
 std::unordered_map<std::string, std::string>& cache() {
@@ -204,6 +238,7 @@ std::string lookup(const std::string& s, bool exactOnly) {
 
 } // namespace
 
+#ifndef MONTECALC_XLL
 void i18nSetContext(const Reference<uno::XComponentContext>& ctx) {
     std::lock_guard<std::mutex> g(g_mtx);
     if (!g_ctx.is() && ctx.is()) {
@@ -211,12 +246,17 @@ void i18nSetContext(const Reference<uno::XComponentContext>& ctx) {
         g_resolved = false;   // the LibreOffice language can be read now
     }
 }
+#endif
 
 Lang uiLanguage() {
     std::lock_guard<std::mutex> g(g_mtx);
     if (!g_resolved) {
         g_lang = resolve();
+#ifdef MONTECALC_XLL
+        g_resolved = true;
+#else
         g_resolved = g_ctx.is();   // without the context, try again later
+#endif
     }
     return g_lang;
 }

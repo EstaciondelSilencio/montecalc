@@ -1,6 +1,37 @@
 // MonteCalc - Calc add-in exposing the MC FLO model and tool functions
 #pragma once
 
+#ifdef MONTECALC_XLL
+// Excel XLL build: the same functions as a plain class (xll/xll.cpp calls them)
+#include "util.hpp"
+
+#include <functional>
+#include <string>
+
+namespace montecalc {
+
+using rtl::OUString;
+namespace css = com::sun::star;
+using AnyMatrix = css::uno::Sequence<css::uno::Sequence<css::uno::Any>>;
+using DoubleMatrix = css::uno::Sequence<css::uno::Sequence<double>>;
+
+// a cell reference argument (fmc_Name): the formula of the cell, its sheet and position, and a way
+// to read the text of another cell of the same sheet
+struct XlCell {
+    bool valid = false;
+    std::string formula, sheet;
+    int row = 0, col = 0;
+    std::function<std::string(int row, int col)> textAt;
+};
+
+class MonteCalcAddIn {
+public:
+#include "functions_decl_xll.inc"
+};
+
+} // namespace montecalc
+#else
+
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <com/sun/star/lang/XServiceName.hpp>
 #include <com/sun/star/sheet/XAddIn.hpp>
@@ -53,3 +84,4 @@ private:
 };
 
 } // namespace montecalc
+#endif

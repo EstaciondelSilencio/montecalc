@@ -11,6 +11,10 @@ It is an independent implementation written from the published guide and wiki. I
 MC FLO code and is not affiliated with MC FLOsim; "MC FLO" is named only to describe
 compatibility.
 
+**Microsoft Excel:** the same functions are also available as an Excel add-in
+(`MonteCalc-Excel-x64.xll` / `-x86.xll`). It provides all 178 `FLOsimula_` / `fMC_` functions,
+the simulation, and English, German and Spanish menus. See **[docs/EXCEL.md](docs/EXCEL.md)**.
+
 ## Quick start
 
 ```bash
@@ -271,7 +275,11 @@ uno/    addin (132 functions, generated), engine (all commands), model (cell sca
 tools/  gen_functions.py: one table generating IDL, C++, wizard metadata and docs
         gen_ui.py (+ gen_icons.py): one ribbon table generating the menu, toolbar, Notebookbar
         tab, sidebar deck registration and icons, and uno/i18n_catalog.inc from i18n_catalog.py
-tests/  core_tests.cpp, integration_test.py (headless LibreOffice, run as a normal user)
+xll/    Microsoft Excel add-in: xll.cpp (C API: registration, argument/result conversion,
+        simulation commands, MC FLO menu), xlapi.h (the C API declarations used),
+        uno_shim.hpp (stand-ins for the UNO types, so uno/addin.cpp compiles for Excel)
+tests/  core_tests.cpp, integration_test.py (headless LibreOffice, run as a normal user),
+        xll_test.cpp (the Excel add-in against a mock Excel)
 ```
 
 A run works in four steps:
@@ -291,6 +299,7 @@ A run works in four steps:
 make && make test      # extension + core unit tests (Linux, Makefile)
 cmake -S . -B build && cmake --build build && ctest --test-dir build   # any platform
 make itest             # end-to-end test in headless LibreOffice (as a normal user)
+make xlltest           # Excel add-in against a mock Excel; make xll: 64-bit .xll with mingw-w64
 ```
 
 Requirements: the LibreOffice SDK (`libreoffice-dev`), g++ ≥ 9, Python 3 and

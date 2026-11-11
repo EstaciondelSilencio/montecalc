@@ -116,35 +116,11 @@ std::string ModelDoc::defaultName(const table::CellAddress& a) const {
     return mc::formula::sanitizeName(sh) + "_" + mc::formula::columnName(a.Column) + std::to_string(a.Row + 1);
 }
 
-size_t nameArgIndex(const mc::FloFunction& f, const std::vector<std::string>& args) {
-    switch (f.kind) {
-    case mc::FloFunction::UserDefined:
-    case mc::FloFunction::DiscreteUserDefined: return 2;
-    case mc::FloFunction::Bounded: return 3;
-    case mc::FloFunction::Output:
-    case mc::FloFunction::Correlation: return 0;
-    default: break;
-    }
-    size_t np = f.params.size();
-    if (f.minParams && f.minParams < np) {
-        // optional last parameter: present when the argument after the required ones is not text
-        if (args.size() > f.minParams) {
-            bool isStr;
-            std::string t = mc::formula::unquote(args[f.minParams], isStr);
-            bool numeric = false;
-            parseNumber(t, numeric);
-            if (!isStr && !t.empty()) return np;   // number or reference
-        }
-        return f.minParams;
-    }
-    return np;
-}
-
 std::string ModelDoc::variableNameFromArgs(const VarCell& v, const std::vector<std::string>& args,
                                            const table::CellAddress& a) const {
     const mc::FloFunction* fl = mc::findFlo(v.function);
     if (!fl) return {};
-    size_t idx = nameArgIndex(*fl, args);
+    size_t idx = mc::nameArgIndex(*fl, args);
     if (idx >= args.size()) return {};
     bool isStr;
     std::string t = mc::formula::unquote(args[idx], isStr);

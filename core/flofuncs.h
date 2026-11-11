@@ -50,6 +50,10 @@ struct FloFunction {
 };
 
 const std::vector<FloFunction>& floFunctions();
+// position of the Variable_name argument in a call (arguments as formula text, MC FLO order:
+// the name follows the parameters; an optional last parameter is present when the argument
+// after the required ones is not text)
+size_t nameArgIndex(const FloFunction& f, const std::vector<std::string>& args);
 // Find by name; accepts "FLOsimula_Normal", "FLOSIMULA_NORMAL" or a service-qualified
 // name such as "ORG.MONTECALC.MONTECALC.FLOSIMULA_NORMAL" (case-insensitive).
 const FloFunction* findFlo(const std::string& name);

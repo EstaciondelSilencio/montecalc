@@ -913,7 +913,7 @@ void Engine::cmdRegister() {
         std::string func;
         std::vector<std::string> args;
         mc::formula::findCall(f, "FLOSIMULA_", func, args);
-        size_t idx = nameArgIndex(*fl, args);
+        size_t idx = mc::nameArgIndex(*fl, args);
         while (args.size() < idx) args.push_back("");
         if (args.size() > idx) args[idx] = quote(name);
         else args.push_back(quote(name));

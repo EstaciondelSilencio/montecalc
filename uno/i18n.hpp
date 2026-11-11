@@ -8,7 +8,9 @@
 // set with MC FLO > Settings; "Auto" (default) follows the LibreOffice user interface language.
 #pragma once
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/uno/XComponentContext.hpp>
+#endif
 
 #include <string>
 
@@ -17,7 +19,9 @@ namespace montecalc {
 enum class Lang { EN = 0, DE = 1, ES = 2 };
 
 // gives the translation code access to the LibreOffice configuration (call before tr())
+#ifndef MONTECALC_XLL
 void i18nSetContext(const com::sun::star::uno::Reference<com::sun::star::uno::XComponentContext>& ctx);
+#endif
 
 Lang uiLanguage();
 // stored choice: "Auto", "English", "Deutsch" or "Español"

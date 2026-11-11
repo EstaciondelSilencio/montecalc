@@ -26,6 +26,8 @@ jobs:
       - name: Integration test (headless LibreOffice)
         timeout-minutes: 15
         run: python3 tests/integration_test.py build/MonteCalc.oxt
+      - name: Excel XLL against a mock Excel
+        run: make xlltest
       - name: Name the package
         run: cp build/MonteCalc.oxt MonteCalc-linux_x86_64.oxt
       - uses: actions/upload-artifact@v4
@@ -89,10 +91,42 @@ jobs:
           name: MonteCalc-windows_x86_64
           path: build-win/MonteCalc-windows_x86_64.oxt
 
+  excel:
+    # MonteCalc for Microsoft Excel: MonteCalc-Excel-x64.xll (64-bit Office) and -x86.xll (32-bit Office)
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        arch: [x64, x86]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.arch }}
+      - name: Build
+        shell: cmd
+        run: |
+          cmake -S xll -B build-xll -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release || exit /b 1
+          cmake --build build-xll || exit /b 1
+          copy build-xll\MonteCalc.xll MonteCalc-Excel-${{ matrix.arch }}.xll
+      - name: Check the exports (names Excel registers)
+        shell: pwsh
+        run: |
+          $e = dumpbin /exports "MonteCalc-Excel-${{ matrix.arch }}.xll" | Out-String
+          foreach ($n in "xlAutoOpen", "xlAutoClose", "xlAddInManagerInfo12", "mcStart", "mc_FMC_Average", "mc_FLOsimula_Normal") {
+            if ($e -notmatch "\s$n\r?\n") { throw "missing export $n" }
+          }
+          $count = ([regex]::Matches($e, "\smc_\w+")).Count
+          Write-Host "exports ok: $count mc_ functions"
+          if ($count -lt 178) { throw "only $count function exports" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MonteCalc-Excel-${{ matrix.arch }}
+          path: MonteCalc-Excel-${{ matrix.arch }}.xll
+
   release:
     # tags v* publish that tag; pushes to main (re)publish the release of the current version
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-    needs: [linux, windows]
+    needs: [linux, windows, excel]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -118,8 +152,13 @@ jobs:
             Windows (64-bit): download MonteCalc-windows_x86_64.oxt, then in LibreOffice use
             Tools > Extension Manager > Add, and restart LibreOffice. The ribbon groups are in the
             MC FLO sidebar deck, the Extension tab (tabbed UI), the MC FLO toolbar and menu. See docs/WINDOWS.md.
+            Microsoft Excel (2010 or later): MonteCalc-Excel-x64.xll for 64-bit Office, MonteCalc-Excel-x86.xll
+            for 32-bit Office. File > Options > Add-ins > Manage Excel Add-ins > Go > Browse. See docs/EXCEL.md.
             Built from ${{ github.sha }}; tested in headless LibreOffice on Windows and Linux.
           files: |
             MonteCalc-linux_x86_64.oxt
             MonteCalc-windows_x86_64.oxt
+            MonteCalc-Excel-x64.xll
+            MonteCalc-Excel-x86.xll
             examples/business_case.ods
+            examples/business_case.xlsx

@@ -92,6 +92,10 @@ public:
     std::mt19937_64& rng() { return rng_; }
 
     // ---- called by the engine ----
+    // Called during registration for every input (name "" = unnamed) and output a function
+    // registers; hosts that find the variables' cells this way (the Excel add-in) set it.
+    using RegistrationObserver = std::function<void(const std::string& name, VarKind kind)>;
+    void setRegistrationObserver(RegistrationObserver o) { std::lock_guard<std::recursive_mutex> g(mtx_); observer_ = std::move(o); }
     void beginRegistration();
     // Returns warnings. Throws std::exception on fatal problems.
     std::vector<std::string> prepare(const Settings& s);
@@ -152,6 +156,7 @@ private:
     std::vector<Variable> vars_;
     std::map<std::string, int> index_;   // lower-cased name -> index
     std::vector<CorrelationRef> corr_, resultCorr_;
+    RegistrationObserver observer_;
     std::set<std::string> locked_;       // lower-cased
     std::set<std::string> duplicates_;
     std::vector<std::vector<double>> uniforms_;  // [var][iteration]

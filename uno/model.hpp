@@ -88,6 +88,5 @@ std::string fmtNum(double v);  // readable number for messages
 
 // Position of the Variable_name argument of a FLOsimula_ call given as argument texts
 // (MC FLO order: parameters first, then the name).
-size_t nameArgIndex(const mc::FloFunction& f, const std::vector<std::string>& args);
 
 } // namespace montecalc
