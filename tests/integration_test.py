@@ -45,6 +45,13 @@ def prop(name, value):
 
 CMD_TIMEOUT = 180
 OFFICE = None
+ERR_LOG = tempfile.TemporaryFile()   # LibreOffice's stderr (MonteCalc's messages in silent mode)
+
+
+def office_messages():
+    ERR_LOG.flush()
+    ERR_LOG.seek(0)
+    return ERR_LOG.read().decode(errors="replace")
 
 
 def watchdog(name, kw):
@@ -62,7 +69,7 @@ def watchdog(name, kw):
     if OFFICE is not None:
         OFFICE.kill()
         try:
-            err = OFFICE.stderr.read().decode(errors="replace")
+            err = office_messages()
             print("office messages:\n  " + "\n  ".join(l for l in err.splitlines() if l.strip())[-4000:], flush=True)
         except Exception:  # noqa: BLE001
             pass
@@ -81,7 +88,7 @@ def main():
     office = subprocess.Popen(
         [SOFFICE, f"-env:UserInstallation={PROFILE_URL}", "--headless", "--invisible", "--norestore",
          "--nologo", f"--accept=socket,host=localhost,port={PORT};urp;"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=env)
+        stdout=subprocess.DEVNULL, stderr=ERR_LOG, env=env)   # a file: a pipe nobody reads fills up and blocks LibreOffice
     OFFICE = office
     try:
         ctx = connect()
@@ -96,7 +103,7 @@ def main():
             office.wait(timeout=20)
         except subprocess.TimeoutExpired:
             office.kill()
-        err = office.stderr.read().decode(errors="replace")
+        err = office_messages()
         mc_lines = [l for l in err.splitlines() if "MonteCalc" in l]
         if mc_lines:
             print("office messages:\n  " + "\n  ".join(mc_lines))

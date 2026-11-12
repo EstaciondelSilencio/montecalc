@@ -264,7 +264,7 @@ void saveOptions(const ModelDoc& d, const RunOptions& o) {
 
 void startPreview(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame, const RunOptions& o,
                   const std::string& label, LiveRun& live) {
-    if (!o.preview || !onWindowThread(ctx)) return;
+    if (!o.preview) return;
     auto& sim = mc::Simulation::instance();
     if (!live.preview) {
         // the selected cell's variable, else a randomly chosen output
