@@ -4,6 +4,7 @@
 //   xll_wine_test ribbon <out.xml>      ribbon XML (as Office receives it) and its images
 //   xll_wine_test window <kind> [sec]   opens a window (results, tornado, decision, scatter, wizard,
 //                                       correlation, statistics, settings) for <sec> seconds
+//   xll_wine_test preview [lang]          live preview with pause / resume / stop (worker threads)
 //   xll_wine_test message                an information message (MC FLO logo)
 //   [lang]                              optional 4th argument: English, Deutsch or Espanol
 #ifndef NOMINMAX
@@ -16,6 +17,7 @@
 #include "../uno/i18n.hpp"
 #include "../uno/ui.hpp"
 #include "../uno/windows.hpp"
+#include "../core/runner.h"
 #include "../xll/ribbon.hpp"
 #include "../xll/win32ui.hpp"
 
@@ -99,6 +101,61 @@ int main(int argc, char** argv) {
                     SUCCEEDED(hr) && d ? "ok" : "FAILED", SUCCEEDED(hn) && id == 3 ? "ok" : "FAILED", icon ? "ok" : "FAILED", logoButton ? "ok" : "FAILED");
         if (d) d->Release();
         return ok == n && d && icon && logoButton ? 0 : 1;
+    }
+    if (mode == "preview") {   // live preview: worker threads, pause at 2 s, resume at 4 s, stop at 6 s
+        std::string lang = argc > 2 ? argv[2] : "";
+        std::string prevLang = languageSetting();
+        if (!lang.empty()) setLanguageSetting(lang);
+        auto& sim = mc::Simulation::instance();
+        sim.clearResultSets();
+        sim.beginRegistration();
+        const char* names[] = {"MarketSize", "Share", "Price", "UnitCost", "Investment", "NPV"};
+        for (int k = 0; k < 6; ++k) sim.setVariableInfo(names[k], k == 5 ? mc::VarKind::Output : mc::VarKind::Input, "synthetic", "Model!A1");
+        mc::Settings st;
+        st.iterations = 200000;
+        st.seed = 3;
+        sim.prepare(st);
+        int idx[6];
+        for (int k = 0; k < 6; ++k) idx[k] = sim.variableIndex(names[k]);
+        LiveRun live;
+        RunOptions o;
+        o.s = st;
+        o.previewVariable = "";   // nothing selected: a random output (here: NPV)
+        Ctx ctx;
+        Frame frame;
+        startPreview(ctx, frame, o, "", live);
+        DWORD t0 = GetTickCount();
+        int atPause = -1, atResume = -1;
+        live.idle = [&] {
+            DWORD t = GetTickCount() - t0;
+            if (t > 2000 && atPause < 0) { live.ctl.pause = true; atPause = sim.completedIterations(); }
+            if (t > 4000 && atResume < 0) { atResume = sim.completedIterations(); live.ctl.pause = false; }
+            if (t > 6000) live.ctl.stop = true;
+            updatePreview(live);
+            processEvents(ctx);
+        };
+        bool completed = mc::runParallel(0, st.iterations, 4,
+                                         [&]() -> mc::IterationFn {
+                                             return [&](int i) {
+                                                 std::mt19937_64 r(i);
+                                                 std::normal_distribution<double> z(0, 1);
+                                                 double m = 250000 + 40000 * z(r), sh = 0.08 + 0.015 * z(r), p = 25 + 2 * z(r), c = 14.7 + 1.2 * z(r),
+                                                        inv = 400000 + 60000 * z(r);
+                                                 double v[6] = {m, sh, p, c, inv, (m * sh * (p - c) - 120000) * 3.8 - inv};
+                                                 for (int k = 0; k < 6; ++k) sim.recordAt(idx[k], v[k]);
+                                                 Sleep(1);   // a slow model: the preview has time to show the progress
+                                             };
+                                         },
+                                         live.ctl, live.idle);
+        int done = sim.completedIterations();
+        sim.finish();
+        closePreview(live);
+        setLanguageSetting(prevLang);
+        std::printf("preview: completed %s, %d iterations, paused at %d resumed at %d, result %d iterations, threads %d\n",
+                    completed ? "yes" : "no (stopped)", done, atPause, atResume, sim.iterations(), live.ctl.threads.load());
+        // paused: no iteration finished while paused (the workers finish the iteration they were in)
+        bool ok = !completed && done > 0 && done < st.iterations && sim.iterations() == done && atResume - atPause <= 8;
+        return ok ? 0 : 1;
     }
     if (mode == "message") {   // information message with the MC FLO logo
         SetTimer(nullptr, 1, 6000, closeForm);

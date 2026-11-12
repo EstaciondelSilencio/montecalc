@@ -26,7 +26,7 @@ add_custom_command(
   COMMENT "Generating the function table")
 
 file(GLOB CORE_SRC CONFIGURE_DEPENDS "${ROOT}/core/*.cpp")
-set(XLL_SRC ${CORE_SRC} "${ROOT}/uno/addin.cpp" "${ROOT}/uno/i18n.cpp" "${ROOT}/xll/xll.cpp" "${ROOT}/xll/xlformula.cpp")
+set(XLL_SRC ${CORE_SRC} "${ROOT}/uno/addin.cpp" "${ROOT}/uno/i18n.cpp" "${ROOT}/uno/runloop.cpp" "${ROOT}/xll/xll.cpp" "${ROOT}/xll/xlformula.cpp")
 # ribbon, windows and commands (Windows only; shared with the LibreOffice extension)
 set(XLL_WIN_SRC
     "${ROOT}/uno/model.cpp" "${ROOT}/uno/engine.cpp" "${ROOT}/uno/windows.cpp" "${ROOT}/uno/influence.cpp" "${ROOT}/uno/deps.cpp"

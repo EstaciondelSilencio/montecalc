@@ -18,6 +18,8 @@
 #include "../uno/i18n.hpp"
 #include "../uno/model.hpp"
 #ifdef _WIN32
+#include "../uno/ui.hpp"        // before com.hpp (montecalc::com)
+#include "../uno/windows.hpp"
 #include "com.hpp"
 #include "ribbon.hpp"
 #include "win32ui.hpp"
@@ -680,7 +682,8 @@ bool escapePressed() {
 
 // one run (one variant): registration pass, then every iteration recalculates (or evaluates the
 // model in memory) and records the variables' cells
-void runOneXl(const RunOptions& o, const std::string& label, RunResult& rr) {
+// returns false when the user stopped the run (the completed iterations are kept)
+bool runOneXl(const RunOptions& o, const std::string& label, RunResult& rr, LiveRun& live) {
     auto& sim = mc::Simulation::instance();
     const mc::Settings& s = o.s;
     g_cells.clear();
@@ -733,29 +736,23 @@ void runOneXl(const RunOptions& o, const std::string& label, RunResult& rr) {
     rr.memoryUsed = mem != nullptr;
     Oper echoOff(false), echoOn(true);
     bool echo = o.visualize && !mem;
+#ifdef _WIN32
+    startPreview(Ctx(), Frame(), o, label, live);
+#endif
     if (!echo) excel(xlcEcho, nullptr, {echoOff.get()});
-    int step = std::max(1, s.iterations / 100);
-    try {
-        for (int i = 0; i < s.iterations; ++i) {
-            sim.setIteration(i);
-            if (mem) {
-                mem->beginIteration();
-                for (size_t k = 0; k < rec.size(); ++k) {
-                    mc::Value v = mem->value(memAddr[k]);
-                    sim.recordAt(rec[k].index, v.kind == mc::Value::Number || v.kind == mc::Value::Bool ? v.num : std::nan(""));
-                }
-            } else {
-                calcNow();
-                for (auto& r : rec) {
-                    double v;
-                    sim.recordAt(r.index, readCell(r.pos, v) ? v : std::nan(""));
-                }
-            }
-            if (i % step == 0) {
-                status("MonteCalc" + (label.empty() ? std::string() : " (" + label + ")") + ": " + std::to_string(i * 100 / s.iterations) + "%");
-                if (escapePressed()) throw std::runtime_error("The simulation was cancelled.");
-            }
+    std::vector<int> index;
+    for (auto& r : rec) index.push_back(r.index);
+    auto recalc = [&](int) {   // Excel recalculates (on this thread: the C API is single-threaded)
+        calcNow();
+        for (auto& r : rec) {
+            double v;
+            sim.recordAt(r.index, readCell(r.pos, v) ? v : std::nan(""));
         }
+    };
+    bool completed;
+    try {
+        completed = runIterations(s.iterations, mem.get(), memAddr, index, recalc, o.threads, live);
+        if (!completed && sim.completedIterations() == 0) throw std::runtime_error("The simulation was stopped before the first iteration.");
     } catch (...) {
         sim.abort();
         sim.setMode(mc::Mode::Expected);
@@ -764,9 +761,11 @@ void runOneXl(const RunOptions& o, const std::string& label, RunResult& rr) {
         status("");
         throw;
     }
+    rr.threads = live.ctl.threads;
     sim.finish(label);
     if (!echo) excel(xlcEcho, nullptr, {echoOn.get()});
     status("");
+    return completed;
 }
 
 // all variants of a multiple simulation (or one run), as runSimulation in the LibreOffice engine
@@ -783,8 +782,28 @@ RunResult runAllXl(const RunOptions& o) {
     }
 #endif
     sim.clearResultSets();
+    // between iterations (about every 50 ms, on Excel's thread): status bar, Esc, preview window
+    LiveRun live;
+    std::string label;
+    live.idle = [&] {
+        int done = sim.completedIterations();
+        status("MonteCalc" + (label.empty() ? std::string() : " (" + label + ")") + ": " + std::to_string(done * 100 / std::max(1, o.s.iterations)) + "%");
+        if (escapePressed()) live.ctl.stop = true;   // Esc = Stop: the completed iterations are the result
+#ifdef _WIN32
+        updatePreview(live);
+        if (o.preview) processEvents(Ctx());
+#endif
+    };
+    struct ClosePreview {   // also when the run fails
+        LiveRun& l;
+        ~ClosePreview() {
+#ifdef _WIN32
+            closePreview(l);
+#endif
+        }
+    } closePreview{live};
     if (variants.empty()) {
-        runOneXl(o, "", rr);
+        rr.stopped = !runOneXl(o, "", rr, live);
     } else {
 #ifdef _WIN32
         std::map<std::string, std::pair<css::table::CellAddress, std::string>> saved;
@@ -795,7 +814,11 @@ RunResult runAllXl(const RunOptions& o) {
         try {
             for (auto& v : variants) {
                 d.cell(v.ref).setValue(v.value);
-                runOneXl(o, v.label, rr);
+                label = v.label;
+                if (!runOneXl(o, v.label, rr, live)) {   // Stop: no further variants
+                    rr.stopped = true;
+                    break;
+                }
             }
         } catch (...) {
             for (auto& [k, sv] : saved) d.cell(sv.first).setFormula(sv.second);
@@ -811,28 +834,7 @@ RunResult runAllXl(const RunOptions& o) {
 #ifdef _WIN32
     if (o.dip && d.valid()) storeDip(d);
 #endif
-    std::ostringstream os;
-    auto labels = sim.resultSetLabels();
-    os << "Simulation finished: " << o.s.iterations << " iterations" << (labels.size() > 1 ? " x " + std::to_string(labels.size()) + " variants" : "")
-       << " in " << fmt(std::round(rr.seconds * 100) / 100) << " s" << (rr.memoryUsed ? " (memory calculation)" : "") << "\n\n";
-    int active = sim.activeResultSet();
-    for (size_t vi = 0; vi < labels.size(); ++vi) {
-        if (labels.size() > 1) os << "Variant " << labels[vi] << ":\n";
-        sim.selectResultSet(int(vi));
-        for (const auto& name : sim.resultNames(mc::VarKind::Output)) {
-            std::vector<double> v;
-            sim.samples(name, v);
-            os << "  " << name << ": mean " << fmtNum(mc::stats::mean(v)) << ", std dev " << fmtNum(mc::stats::stdev(v)) << ", worst "
-               << fmtNum(mc::stats::percentile(v, o.s.worst)) << ", real " << fmtNum(mc::stats::percentile(v, o.s.real)) << ", best "
-               << fmtNum(mc::stats::percentile(v, o.s.best)) << "\n";
-        }
-    }
-    if (active >= 0) sim.selectResultSet(active);
-    if (!rr.warnings.empty()) {
-        os << "\nWarnings:\n";
-        for (auto& w : rr.warnings) os << " - " << w << "\n";
-    }
-    rr.summary = os.str();
+    rr.summary = runSummary(o, rr);
     return rr;
 }
 

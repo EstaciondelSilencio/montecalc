@@ -14,8 +14,13 @@
 #include "../xll/uno_shim.hpp"
 #endif
 
+#include "../core/formula.h"
+#include "../core/runner.h"
 #include "../core/simulation.h"
 #include "model.hpp"
+
+#include <functional>
+#include <memory>
 
 #include <string>
 #include <vector>
@@ -34,6 +39,9 @@ struct RunOptions {
     bool report = true;
     bool memory = false;   // Memory Calculation
     bool dip = false;      // Use DIP: store outputs as FLO_r_ arrays in the model
+    bool preview = true;   // live histogram with pause / stop during the run (not in silent runs)
+    int threads = 0;       // Memory Calculation threads (0 = all processor cores)
+    std::string previewVariable;   // shown first in the preview (the selected cell's variable)
 };
 
 // multiple simulation: rows Variant | Value | Reference (=cell) of the stored range
@@ -56,8 +64,34 @@ struct RunResult {
     std::string summary;
     double seconds = 0;
     bool memoryUsed = false;
+    bool stopped = false;      // the Stop button: the completed iterations are the result
+    int threads = 1;           // threads used by the last run
     std::vector<std::string> warnings;
 };
+
+class SimulationPreview;   // windows.hpp
+// state of a running simulation shared with the preview window
+struct LiveRun {
+    mc::RunControl ctl;
+    std::shared_ptr<SimulationPreview> preview;
+    // a run's iterations: the user interface is served in between (idle)
+    std::function<void()> idle;
+};
+
+// The iterations of one run (prepared simulation), shared by LibreOffice and Excel.
+// mem: Memory Calculation model (null: recalc evaluates one iteration by recalculating the
+// spreadsheet on this thread). With a model, iteration 0 runs on this thread; then, unless
+// the model keeps state from one iteration to the next (time series), the other iterations run
+// on worker threads, each with its own copy of the model. Returns false when stopped.
+bool runIterations(int iterations, const mc::formula::Model* mem, const std::vector<mc::formula::CellAddr>& addr,
+                   const std::vector<int>& index, const mc::IterationFn& recalc, int threads, LiveRun& live);
+// the summary shown after a run (outputs of all variants, warnings)
+std::string runSummary(const RunOptions& o, const RunResult& rr);
+// opens (first run) or updates the preview window for the prepared simulation
+void startPreview(const css::uno::Reference<css::uno::XComponentContext>& ctx, const css::uno::Reference<css::frame::XFrame>& frame,
+                  const RunOptions& o, const std::string& label, LiveRun& live);
+void updatePreview(LiveRun& live);   // regularly during the run (user interface thread)
+void closePreview(LiveRun& live);    // after the run
 RunResult runSimulation(const css::uno::Reference<css::uno::XComponentContext>& ctx,
                         const css::uno::Reference<css::frame::XFrame>& frame, const RunOptions& o);
 

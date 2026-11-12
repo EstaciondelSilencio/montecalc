@@ -35,6 +35,10 @@ struct FormField {
 void fitControlText(const css::uno::Reference<css::uno::XInterface>& control);
 #endif
 
+// Lets the user interface work during a long computation on the calling thread (preview window,
+// pause / stop buttons). In Excel only MonteCalc's own windows get mouse and keyboard input.
+void processEvents(const css::uno::Reference<css::uno::XComponentContext>& ctx);
+
 // Shows a modal dialog with one row per field. Returns true on OK.
 bool showForm(const css::uno::Reference<css::uno::XComponentContext>& ctx, const std::string& title,
               std::vector<FormField>& fields, int width = 220);

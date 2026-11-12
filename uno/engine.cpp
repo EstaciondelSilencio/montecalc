@@ -6,6 +6,8 @@
 #include "ui.hpp"
 #include "util.hpp"
 #include "windows.hpp"
+
+#include <random>
 #ifdef MONTECALC_XLL
 #include "../xll/com.hpp"
 #endif
@@ -236,6 +238,8 @@ RunOptions loadOptions(const ModelDoc& d) {
     o.memory = readProp("MonteCalc.Memory", 0) != 0;
     o.dip = readProp("MonteCalc.DIP", 0) != 0;
     o.s.useCorrelations = readProp("MonteCalc.UseCorrelations", 1) != 0;
+    o.preview = readProp("MonteCalc.Preview", 1) != 0;
+    o.threads = int(readProp("MonteCalc.Threads", 0));
     return o;
 }
 
@@ -252,6 +256,57 @@ void saveOptions(const ModelDoc& d, const RunOptions& o) {
     writeProp("MonteCalc.Memory", Any(o.memory ? 1.0 : 0.0));
     writeProp("MonteCalc.DIP", Any(o.dip ? 1.0 : 0.0));
     writeProp("MonteCalc.UseCorrelations", Any(o.s.useCorrelations ? 1.0 : 0.0));
+    writeProp("MonteCalc.Preview", Any(o.preview ? 1.0 : 0.0));
+    writeProp("MonteCalc.Threads", Any(double(o.threads)));
+}
+
+// ============================================================ preview window (both programs; the loop: runloop.cpp)
+
+void startPreview(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame, const RunOptions& o,
+                  const std::string& label, LiveRun& live) {
+    if (!o.preview) return;
+    auto& sim = mc::Simulation::instance();
+    if (!live.preview) {
+        // the selected cell's variable, else a randomly chosen output
+        std::string var = o.previewVariable;
+        if (var.empty() || sim.variableIndex(var) < 0) {
+            std::vector<std::string> outs;
+            for (const auto& v : sim.variables())
+                if (v.kind == mc::VarKind::Output) outs.push_back(v.name);
+            var = outs.empty() ? std::string() : outs[std::random_device{}() % outs.size()];
+        }
+        try {
+            live.preview = openSimulationPreview(ctx, frame, var, live.ctl);
+        } catch (...) {
+            live.preview.reset();   // no window: the run goes on without it
+        }
+    }
+    if (live.preview) {
+        try {
+            live.preview->startRun(label, o.s.iterations);
+        } catch (...) {
+            live.preview.reset();
+        }
+    }
+}
+
+// the preview is optional: a window that fails is dropped, the run goes on
+void updatePreview(LiveRun& live) {
+    if (!live.preview) return;
+    try {
+        live.preview->update();
+    } catch (...) {
+        live.preview.reset();
+    }
+}
+
+void closePreview(LiveRun& live) {
+    if (!live.preview) return;
+    try {
+        live.preview->done();
+    } catch (...) {
+    }
+    live.preview.reset();
 }
 
 // ============================================================ simulation run
@@ -290,8 +345,9 @@ struct Recorder {
     std::vector<int> index;       // variable index in the simulation state
 };
 
-void runOne(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame, const ModelDoc& d,
-            const RunOptions& o, const std::string& label, RunResult& rr, const Reference<task::XStatusIndicator>& ind) {
+// returns false when the user stopped the run (the completed iterations are kept)
+bool runOne(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame, const ModelDoc& d,
+            const RunOptions& o, const std::string& label, RunResult& rr, LiveRun& live) {
     auto& sim = mc::Simulation::instance();
     Reference<sheet::XCalculatable> calc(d.model(), UNO_QUERY_THROW);
     // 1. registration
@@ -344,38 +400,30 @@ void runOne(const Reference<uno::XComponentContext>& ctx, const Reference<frame:
         }
     }
     rr.memoryUsed = mem != nullptr;
-    // 3. iterations
-    Reference<awt::XToolkitExperimental> tk;
-    if (o.visualize && !mem) tk.set(awt::Toolkit::create(ctx), UNO_QUERY);
+    // 3. iterations (Memory Calculation on worker threads; recalculation on this thread)
+    startPreview(ctx, frame, o, label, live);
     bool locked = !o.visualize && !mem;
     if (locked) d.model()->lockControllers();
-    int step = std::max(1, o.s.iterations / 200);
+    std::vector<mc::formula::CellAddr> addr;
+    for (const auto& c : rec.cells) addr.push_back({c.addr.Sheet, c.addr.Column, c.addr.Row});
+    auto recalc = [&](int) {
+        calc->calculateAll();
+        for (size_t k = 0; k < rec.cells.size(); ++k) sim.recordAt(rec.index[k], cellValue(rec.xcells[k]));
+    };
+    bool completed;
     try {
-        for (int i = 0; i < o.s.iterations; ++i) {
-            sim.setIteration(i);
-            if (mem) {
-                mem->beginIteration();
-                for (size_t k = 0; k < rec.cells.size(); ++k) {
-                    const auto& a = rec.cells[k].addr;
-                    mc::Value v = mem->value({a.Sheet, a.Column, a.Row});
-                    sim.recordAt(rec.index[k], v.kind == mc::Value::Number || v.kind == mc::Value::Bool ? v.num : std::nan(""));
-                }
-            } else {
-                calc->calculateAll();
-                for (size_t k = 0; k < rec.cells.size(); ++k) sim.recordAt(rec.index[k], cellValue(rec.xcells[k]));
-                if (tk.is()) tk->processEventsToIdle();
-            }
-            if (ind.is() && i % step == 0) ind->setValue(i);
-        }
+        completed = runIterations(o.s.iterations, mem.get(), addr, rec.index, recalc, o.threads, live);
+        if (!completed && sim.completedIterations() == 0) throw std::runtime_error("The simulation was stopped before the first iteration.");
     } catch (...) {
         sim.abort();
         if (locked) d.model()->unlockControllers();
         calc->calculateAll();
         throw;
     }
+    rr.threads = live.ctl.threads;
     sim.finish(label);
     if (locked) d.model()->unlockControllers();
-    (void)frame;
+    return completed;
 }
 
 } // namespace
@@ -392,11 +440,19 @@ RunResult runSimulation(const Reference<uno::XComponentContext>& ctx, const Refe
     Reference<task::XStatusIndicatorFactory> sif(frame, UNO_QUERY);
     if (sif.is()) ind = sif->createStatusIndicator();
     if (ind.is()) ind->start("MonteCalc: simulating...", o.s.iterations);
+    // between iterations (about every 50 ms): progress, preview window, pause / stop buttons
+    LiveRun live;
+    bool events = o.preview || o.visualize;
+    live.idle = [&] {
+        if (ind.is()) ind->setValue(sim.completedIterations());
+        updatePreview(live);
+        if (events) processEvents(ctx);
+    };
     auto t0 = std::chrono::steady_clock::now();
     sim.clearResultSets();
     try {
         if (variants.empty()) {
-            runOne(ctx, frame, d, o, "", rr, ind);
+            rr.stopped = !runOne(ctx, frame, d, o, "", rr, live);
         } else {
             // remember the reference cells and restore them afterwards
             std::map<std::string, std::pair<table::CellAddress, std::string>> saved;
@@ -407,7 +463,10 @@ RunResult runSimulation(const Reference<uno::XComponentContext>& ctx, const Refe
             try {
                 for (auto& v : variants) {
                     d.cell(v.ref).setValue(v.value);
-                    runOne(ctx, frame, d, o, v.label, rr, ind);
+                    if (!runOne(ctx, frame, d, o, v.label, rr, live)) {   // Stop: no further variants
+                        rr.stopped = true;
+                        break;
+                    }
                 }
             } catch (...) {
                 for (auto& [k, s] : saved) d.cell(s.first).setFormula(s.second);
@@ -418,36 +477,17 @@ RunResult runSimulation(const Reference<uno::XComponentContext>& ctx, const Refe
         }
     } catch (...) {
         if (ind.is()) ind->end();
+        closePreview(live);
         throw;
     }
+    closePreview(live);
     rr.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
     sim.setMode(o.s.seed == -1 ? mc::Mode::Random : mc::Mode::Expected);
     calc->calculateAll();  // expected values again, refresh the fMC_ result functions
     if (ind.is()) ind->end();
     if (o.dip) storeDip(d);
 
-    std::ostringstream os;
-    auto labels = sim.resultSetLabels();
-    os << "Simulation finished: " << o.s.iterations << " iterations" << (labels.size() > 1 ? " x " + std::to_string(labels.size()) + " variants" : "")
-       << " in " << fmtNum(rr.seconds) << " s" << (rr.memoryUsed ? " (memory calculation)" : "") << "\n\n";
-    int active = sim.activeResultSet();
-    for (size_t vi = 0; vi < labels.size(); ++vi) {
-        if (labels.size() > 1) os << "Variant " << labels[vi] << ":\n";
-        sim.selectResultSet(int(vi));
-        for (const auto& name : sim.resultNames(mc::VarKind::Output)) {
-            std::vector<double> v;
-            sim.samples(name, v);
-            os << "  " << name << ": mean " << fmtNum(mc::stats::mean(v)) << ", std dev " << fmtNum(mc::stats::stdev(v))
-               << ", worst " << fmtNum(mc::stats::percentile(v, o.s.worst)) << ", real " << fmtNum(mc::stats::percentile(v, o.s.real))
-               << ", best " << fmtNum(mc::stats::percentile(v, o.s.best)) << "\n";
-        }
-    }
-    if (active >= 0) sim.selectResultSet(active);
-    if (!rr.warnings.empty()) {
-        os << "\nWarnings:\n";
-        for (auto& w : rr.warnings) os << " - " << w << "\n";
-    }
-    rr.summary = os.str();
+    rr.summary = runSummary(o, rr);
     return rr;
 }
 
@@ -638,6 +678,7 @@ void Engine::cmdSettings() {
         {"Best case level", fmtNum(o.s.best)},
         {"Histogram bins", std::to_string(o.s.bins)},
         {"Visualize simulation (slow)", "", true, o.visualize},
+        {"Preview window during the simulation (pause / stop)", "", true, o.preview},
         {"Memory Calculation (fast, supported functions only)", "", true, o.memory},
         {"Store results in a result workbook after each run", "", true, o.report},
         {"Use DIP (store outputs as FLO_r_ arrays in the model)", "", true, o.dip},
@@ -655,15 +696,17 @@ void Engine::cmdSettings() {
     n.s.best = num(f[4]);
     n.s.bins = int(num(f[5]));
     n.visualize = f[6].checked;
-    n.memory = f[7].checked;
-    n.report = f[8].checked;
-    n.dip = f[9].checked;
-    n.s.useCorrelations = f[10].checked;
+    n.preview = f[7].checked;
+    n.memory = f[8].checked;
+    n.report = f[9].checked;
+    n.dip = f[10].checked;
+    n.s.useCorrelations = f[11].checked;
+    n.threads = o.threads;
     std::string err;
     if (!ok) err = "Please enter numbers only.";
     if (!err.empty() || !validateOptions(n, err)) { message("MonteCalc", err, true); return; }
     saveOptions(ModelDoc(m), n);
-    if (f[11].value != languageSetting()) setLanguageSetting(f[11].value);   // menus follow LibreOffice's language
+    if (f[12].value != languageSetting()) setLanguageSetting(f[12].value);   // menus follow LibreOffice's language
     auto& sim = mc::Simulation::instance();
     sim.setSettings(n.s);
     // seed -1: preview mode (every recalculation draws random values)
@@ -683,6 +726,9 @@ void Engine::cmdRun() {
     o.memory = argNum(args_, "Memory", o.memory) != 0;
     o.dip = argNum(args_, "DIP", o.dip) != 0;
     o.s.useCorrelations = argNum(args_, "UseCorrelations", o.s.useCorrelations) != 0;
+    // silent runs (macros, tests) show no preview unless the arguments ask for it
+    o.preview = argNum(args_, "Preview", silent_ ? 0.0 : double(o.preview)) != 0;
+    o.threads = int(argNum(args_, "Threads", o.threads));
     std::string err;
     if (!validateOptions(o, err)) { message("MonteCalc", err, true); return; }
     // remember the selected variable (the result window opens for it)
@@ -697,6 +743,7 @@ void Engine::cmdRun() {
     if (s.seed == -1) s.seed = 0;
     RunOptions run = o;
     run.s = s;
+    run.previewVariable = selected;   // the preview shows the selected cell's variable (else a random output)
     RunResult rr = runSimulation(ctx_, frame_, run);
     if (o.s.seed == -1) { mc::Simulation::instance().setMode(mc::Mode::Random); d.recalc(); }
     std::string note;

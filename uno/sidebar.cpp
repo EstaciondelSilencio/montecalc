@@ -374,6 +374,7 @@ private:
         setChecked("usecorr", o.s.useCorrelations);
         setChecked("visualize", o.visualize);
         setChecked("memory", o.memory);
+        setChecked("preview", o.preview);
     }
     void storeSettings() {
         auto m = model();
@@ -389,6 +390,7 @@ private:
         o.s.useCorrelations = checked("usecorr");
         o.visualize = checked("visualize");
         o.memory = checked("memory");
+        o.preview = checked("preview");
         saveOptions(ModelDoc(m), o);
         mc::Simulation::instance().setSettings(o.s);
     }
@@ -449,7 +451,8 @@ private:
             check("usecorr", "Use correlations", kX, y_, w, store);
             check("visualize", "Visualize simulation", kX + w + kGap, y_, w, store);
             y_ += kH;
-            check("memory", "Memory Calculation", kX, y_, kW, store);
+            check("memory", "Memory Calculation", kX, y_, w, store);
+            check("preview", "Preview window", kX + w + kGap, y_, w, store);
             y_ += kH + kGap;
             buttons2("multi", "Multiple simulation", cmd("MultipleSimulation"), "settings", "Settings...", cmd("Settings"));
             buttons2("start", "Start", [this] { storeSettings(); dispatch("Start"); }, "reset", "Reset", cmd("Reset"));

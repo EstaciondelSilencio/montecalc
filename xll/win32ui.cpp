@@ -21,6 +21,7 @@ using std::max;
 using std::min;
 }
 #include <gdiplus.h>
+#include <cwchar>
 
 #include "../uno/canvaswin.hpp"
 #include "../uno/i18n.hpp"
@@ -1153,6 +1154,34 @@ bool CanvasWindow::storeAsComment(const css::uno::Reference<css::frame::XModel>&
 }
 
 // ================================================================ messages and forms (uno/ui.hpp)
+
+namespace {
+// a window of MonteCalc (canvas windows, forms) or one of its controls
+bool isMonteCalcWindow(HWND h) {
+    HWND root = h ? GetAncestor(h, GA_ROOT) : nullptr;
+    if (!root) return false;
+    wchar_t cls[64] = {0};
+    GetClassNameW(root, cls, 64);
+    return std::wcsncmp(cls, L"MonteCalc", 9) == 0 || std::wcscmp(cls, L"#32770") == 0;   // and message boxes
+}
+} // namespace
+
+void processEvents(const css::uno::Reference<css::uno::XComponentContext>&) {
+    MSG m;
+    int budget = 200;   // never get stuck in a message flood
+    while (budget-- > 0 && PeekMessageW(&m, nullptr, 0, 0, PM_REMOVE)) {
+        if (m.message == WM_QUIT) {
+            PostQuitMessage(int(m.wParam));
+            break;
+        }
+        bool input = (m.message >= WM_KEYFIRST && m.message <= WM_KEYLAST) || (m.message >= WM_MOUSEFIRST && m.message <= WM_MOUSELAST) ||
+                     (m.message >= WM_NCMOUSEMOVE && m.message <= WM_NCXBUTTONDBLCLK);
+        // Excel is busy with the simulation: its own windows get no input meanwhile
+        if (input && !isMonteCalcWindow(m.hwnd)) continue;
+        TranslateMessage(&m);
+        DispatchMessageW(&m);
+    }
+}
 
 void showMessage(const css::uno::Reference<css::uno::XComponentContext>&, const css::uno::Reference<css::frame::XFrame>&, const std::string& title,
                  const std::string& text, bool error) {

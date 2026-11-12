@@ -292,6 +292,25 @@ def run_tests(ctx):
     check(near(val("D5"), -0.5, 0.05), "correlation honoured in memory calculation")
     print(f"  3000 iterations: spreadsheet {t_calc:.2f} s, memory {t_mem:.2f} s")
 
+    print("multi-threaded memory calculation and the preview window")
+    put("D24", '=fMC_PosValue("Revenue";100)')
+    put("D25", '=fMC_Average("Revenue")')
+    put("D26", '=fMC_Iterations()')
+    cmd("Start", Iterations=4000, Seed=77, Report=False, Memory=True, Threads=1)
+    one = (val("D24"), val("D25"))
+    t0 = time.time()
+    cmd("Start", Iterations=4000, Seed=77, Report=False, Memory=True, Threads=4, Preview=True)
+    t_par = time.time() - t0
+    four = (val("D24"), val("D25"))
+    check(near(one[0], four[0], 1e-9) and near(one[1], four[1], 1e-9),
+          f"4 threads give the same iterations as 1 thread (with the preview window open): {one} vs {four}")
+    check(near(val("D26"), 4000, 0), "all iterations recorded")
+    check(not [w for w in desktop.Components if w is not doc and hasattr(w, "Sheets") and w.Sheets.hasByName("Data")],
+          "no result workbook from the preview run")
+    print(f"  4000 iterations on 4 threads with preview: {t_par:.2f} s")
+    for r in ("D24", "D25", "D26"):
+        put(r, "")
+
     print("multiple simulation (variants)")
     put("A30", "Low"); cell("B30").setValue(0.9); put("C30", "=C20")
     put("A31", "High"); cell("B31").setValue(1.1); put("C31", "=C20")

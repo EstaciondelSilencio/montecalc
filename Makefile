@@ -63,7 +63,7 @@ $(B):
 	mkdir -p $(B)
 
 $(B)/core_tests: tests/core_tests.cpp $(CORE_SRC) core/*.h | $(B)
-	$(CXX) -std=c++17 -O2 -Wall -Wextra -o $@ tests/core_tests.cpp $(CORE_SRC)
+	$(CXX) -std=c++17 -O2 -Wall -Wextra -pthread -o $@ tests/core_tests.cpp $(CORE_SRC)
 
 test: $(B)/core_tests
 	./$(B)/core_tests
@@ -81,8 +81,8 @@ clean:
 #   make xlltest   build and run the XLL against a mock Excel (Linux)
 #   make xll       cross-compile build/xll/MonteCalc-x64.xll with mingw-w64 (if installed)
 XLL_GEN  := $(B)/xll/gen
-XLL_SRC  := $(CORE_SRC) uno/addin.cpp uno/i18n.cpp xll/xll.cpp xll/xlformula.cpp
-XLL_FLAGS := -std=c++17 -O2 -DMONTECALC_XLL -I$(XLL_GEN) -Iuno -Ixll
+XLL_SRC  := $(CORE_SRC) uno/addin.cpp uno/i18n.cpp uno/runloop.cpp xll/xll.cpp xll/xlformula.cpp
+XLL_FLAGS := -std=c++17 -O2 -pthread -DMONTECALC_XLL -I$(XLL_GEN) -Iuno -Ixll
 
 $(XLL_GEN)/xll_exports.inc: tools/gen_functions.py tools/gen_ui.py
 	python3 tools/gen_functions.py $(XLL_GEN)

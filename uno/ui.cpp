@@ -18,6 +18,7 @@
 #include <com/sun/star/awt/XMessageBoxFactory.hpp>
 #include <com/sun/star/awt/XTextComponent.hpp>
 #include <com/sun/star/awt/XToolkit.hpp>
+#include <com/sun/star/awt/XToolkitExperimental.hpp>
 #include <com/sun/star/awt/XWindowPeer.hpp>
 #include <com/sun/star/beans/XPropertySet.hpp>
 #include <com/sun/star/container/XNameContainer.hpp>
@@ -171,6 +172,15 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
     }
     Reference<lang::XComponent>(dlg, UNO_QUERY_THROW)->dispose();
     return accepted;
+}
+
+void processEvents(const Reference<uno::XComponentContext>& ctx) {
+    static Reference<awt::XToolkitExperimental> tk;
+    try {
+        if (!tk.is() && ctx.is()) tk.set(awt::Toolkit::create(ctx), UNO_QUERY);
+        if (tk.is()) tk->processEventsToIdle();
+    } catch (const uno::Exception&) {
+    }
 }
 
 } // namespace montecalc

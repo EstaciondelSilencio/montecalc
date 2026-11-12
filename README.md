@@ -31,7 +31,8 @@ all running the same commands:
   panel per ribbon group: *Model specification* (Choose continuous / discrete variable / time
   series, Choose Wizard, Insert correlation, Insert output variable, Register variables,
   Lock/Unlock, Fit distribution), *Information*, *Simulation* (Best-case, Real-case,
-  Worst-case, Iterations, Use correlations, Visualize simulation, Multiple simulation, Start,
+  Worst-case, Iterations, Use correlations, Visualize simulation, Memory Calculation, Preview window,
+  Multiple simulation, Start,
   Reset), *Statistics* (Variable, Show statistical parameters), *Correlations and
   sensitivities* (X-/Y-variable, Calc correlations), *Individual analysis of iteration*,
   *Results* (Close and save results) and *Other*;
@@ -134,6 +135,17 @@ bivariate is enforced.
 - **Memory Calculation**: an in-memory formula engine, about 5× faster on the
   test model, that falls back to spreadsheet recalculation when a function
   isn't supported.
+- **Multi-threaded**: with Memory Calculation the iterations run on all processor cores (each
+  thread evaluates its own copy of the model). The results do not depend on the number of
+  threads: the same seed gives the same iterations. Models whose time series continue from one
+  iteration to the next run in order on one thread. Without Memory Calculation the spreadsheet
+  itself recalculates, which LibreOffice and Excel only do on their main thread.
+- **Preview window** (on by default; *Preview window* check box or *Settings…*): during the
+  run it shows the live histogram of the selected cell's variable, or of a randomly chosen
+  output when no variable is selected (the drop-down switches the variable), with progress,
+  speed, remaining time and the running mean, standard deviation, P5 and P95. **Pause** holds
+  the run (Resume continues it). **Stop** ends it early: the completed iterations become the
+  result, and a multiple simulation skips the remaining variants. In Excel, Esc also stops.
 
 **All windows** can be resized and maximised: the chart fills the window, the control column
 stays on the right edge, long lists and the mentor's conversation grow with the window, and a

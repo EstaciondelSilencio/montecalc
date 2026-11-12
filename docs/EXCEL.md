@@ -49,12 +49,28 @@ shows the version).
 |---|---|
 | Model specification | Continuous, discrete and time-series distribution menus (each opens the wizard), Wizard, Insert correlation, Insert output, Register, Lock, Fit distribution |
 | Information | Influence diagram, Functions menu (the `fMC_` functions by MC FLO category, plus the Function Wizard), Model, Show variables, AI mentor |
-| Simulation | Best / Real / Worst levels and Iterations (edit boxes), *Use correlations* and *Visualize* check boxes, Multiple simulation (variants), Start, Reset, Settings |
+| Simulation | Best / Real / Worst levels and Iterations (edit boxes), *Use correlations*, *Visualize*, *Memory Calculation* and *Preview window* check boxes, Multiple simulation (variants), Start, Reset, Settings |
 | Statistics | Variable drop-down, Show statistical parameters, Result window, Select variant |
 | Correlations | X / Y drop-downs, Calculate correlations, Correlogram |
 | Iteration | Iteration number, Replay, Expected values |
 | Results | Close and save results (result workbook), Store results, Change histogram |
 | Other | Sort ascending / descending, Model check, Forecast tool, Batch, Hide / load formulas, Variables, Write context, Preview, Language (Auto / English / Deutsch / Español), About |
+
+### During the simulation
+
+The **preview window** opens when the run starts. It shows the live histogram of the variable
+in the selected cell, or of a randomly chosen output when no variable is selected. The
+drop-down switches to any input or output. Below the chart are the progress, the speed, the
+remaining time and the running statistics.
+- **Pause** holds the simulation; **Resume** continues it.
+- **Stop** (or Esc) ends it early. The completed iterations become the result, and a multiple
+  simulation skips the remaining variants.
+
+With **Memory Calculation** the iterations run on all processor cores, and the same seed gives
+the same results whatever the number of cores. Without it Excel recalculates the workbook for
+every iteration, which Excel only allows on its main thread. Excel stays busy during the run:
+only the MonteCalc windows respond. Turn the preview off with the *Preview window* check box
+or in *Settings…*.
 
 ### Windows
 
@@ -99,4 +115,4 @@ On Linux:
   the languages.
 - `make xll` cross-compiles the 64-bit `.xll` with mingw-w64.
 - `make build/xll/xll_wine_test.exe` builds the ribbon and window test. Run it with Wine or on
-  Windows: `xll_wine_test ribbon out.xml`, `xll_wine_test message`, or `xll_wine_test window results|tornado|decision|scatter|wizard|settings 5 [Deutsch]`.
+  Windows: `xll_wine_test ribbon out.xml`, `xll_wine_test message`, `xll_wine_test preview [Deutsch]`, or `xll_wine_test window results|tornado|decision|scatter|wizard|settings 5 [Deutsch]`.

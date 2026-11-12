@@ -208,7 +208,9 @@ std::string ribbonXml() {
                            "<box id=\"bCases\" boxStyle=\"vertical\">" + editBox("eBest", "Best-case:") + editBox("eReal", "Real-case:") +
                                editBox("eWorst", "Worst-case:") + "</box>" + "<box id=\"bIter\" boxStyle=\"vertical\">" +
                                editBox("eIterations", "Iterations:") + checkBox("cUseCorr", "Use correlations") +
-                               checkBox("cVisualize", "Visualize simulation") + "</box>" + "<box id=\"bRun\" boxStyle=\"vertical\">" +
+                               checkBox("cVisualize", "Visualize simulation") + "</box>" + "<box id=\"bOpt\" boxStyle=\"vertical\">" +
+                               checkBox("cMemory", "Memory Calculation") + checkBox("cPreview", "Preview window") + "</box>" +
+                               "<box id=\"bRun\" boxStyle=\"vertical\">" +
                                button("MultipleSimulation", "Multiple simulation", "multiple") + button("Start", "Start", "start") +
                                button("Reset", "Reset", "reset") + "</box>" + button("Settings", "Settings...", "settings", true));
     std::string g4 = group("gStat", "Statistics",
@@ -280,6 +282,8 @@ const char* settingKey(const std::string& id) {
     if (id == "eIterations") return "MonteCalc.Iterations";
     if (id == "cUseCorr") return "MonteCalc.UseCorrelations";
     if (id == "cVisualize") return "MonteCalc.Visualize";
+    if (id == "cMemory") return "MonteCalc.Memory";
+    if (id == "cPreview") return "MonteCalc.Preview";
     return nullptr;
 }
 
@@ -470,7 +474,11 @@ public:
                 bool on = false;
                 if (d.valid()) {
                     RunOptions o = loadOptions(d);
-                    on = cid == "cUseCorr" ? o.s.useCorrelations : cid == "cVisualize" ? o.visualize : false;
+                    on = cid == "cUseCorr"     ? o.s.useCorrelations
+                         : cid == "cVisualize" ? o.visualize
+                         : cid == "cMemory"    ? o.memory
+                         : cid == "cPreview"   ? o.preview
+                                               : false;
                 }
                 if (result) { VariantInit(result); result->vt = VT_BOOL; result->boolVal = on ? VARIANT_TRUE : VARIANT_FALSE; }
                 return S_OK;

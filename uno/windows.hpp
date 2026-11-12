@@ -9,6 +9,9 @@
 #include "../xll/uno_shim.hpp"
 #endif
 
+#include "../core/runner.h"
+
+#include <memory>
 #include <string>
 
 namespace montecalc {
@@ -33,6 +36,18 @@ void openVariableList(const Ctx& ctx, const Frame& frame);
 // preset; exportTo saves the preview as PNG; insertNow writes the formula and closes the window.
 void openCorrelationWindow(const Ctx& ctx, const Frame& frame, const std::string& var1 = "", const std::string& var2 = "",
                            double r = 0.5, int type = 0, const std::string& exportTo = "", bool insertNow = false);
+
+// Live preview during a simulation: the histogram of one variable as the iterations come in,
+// with Pause / Resume and Stop. The engine opens it after the registration pass and calls
+// update() regularly on the user interface thread; done() closes it after the run.
+class SimulationPreview {
+public:
+    virtual ~SimulationPreview() = default;
+    virtual void startRun(const std::string& label, int iterations) = 0;   // a run (variant) begins
+    virtual void update() = 0;   // new iterations (throttled: repaints a few times per second)
+    virtual void done() = 0;     // the run is over: the window closes, the controls are detached
+};
+std::shared_ptr<SimulationPreview> openSimulationPreview(const Ctx& ctx, const Frame& frame, const std::string& variable, mc::RunControl& ctl);
 
 // FLO_Context sheet (also used by the influence diagram and the mentor)
 void writeContextSheet(const Ctx& ctx, const Frame& frame);

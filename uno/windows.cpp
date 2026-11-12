@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <map>
@@ -1465,6 +1466,175 @@ void openCorrelogram(const Ctx& ctx, const Frame& frame) {
     } catch (const std::exception& e) {
         showMessage(ctx, frame, "MonteCalc - Correlogram", e.what(), true);
     }
+}
+
+// ============================================================ simulation preview (live histogram, pause / stop)
+
+class PreviewWindow : public CanvasWindow, public SimulationPreview {
+public:
+    PreviewWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, mc::RunControl& ctl)
+        : CanvasWindow(ctx, frame, "MonteCalc - Simulation preview", 400, 236, 112), ctl_(&ctl), var_(variable) {
+        int x = panelX(), w = panelW(), y = 6;
+        addLabel("lVar", "Variable", x, y, w);
+        addList("var", {}, x, y + 10, w, 14, true);
+        y += 30;
+        addButton("pause", "Pause", x, y, w, 16);
+        addButton("stop", "Stop", x, y + 20, w, 16);
+        y += 44;
+        addLabel("state", "", x, y, w, 30);
+        // the drop-down is filled by startRun(), after show(): LibreOffice creates the controls there
+    }
+    // ---- SimulationPreview (engine) ----
+    void startRun(const std::string& label, int iterations) override {
+        label_ = label;
+        total_ = iterations;
+        start_ = std::chrono::steady_clock::now();
+        data_.clear();
+        done_ = 0;
+        fillVariables();
+        refresh(true);
+    }
+    void update() override { refresh(false); }
+    void done() override {
+        ctl_ = nullptr;
+        if (!closed()) close();
+    }
+    // ---- window ----
+    void paint(Painter& p, int w, int h) override {
+        p.rect(0, 0, w, h, &col::white, nullptr);
+        int footer = 4 * p.textHeight() + 30;
+        HistogramOptions o;
+        o.title = var_ + (label_.empty() ? std::string() : "  (" + label_ + ")");
+        o.bins = data_.size() < 200 ? 12 : data_.size() < 2000 ? 24 : 40;
+        o.color = isOutput_ ? col::output : col::input;
+        if (data_.size() >= 2) {
+            drawHistogram(p, 8, 8, w - 16, h - footer - 12, data_, o);
+        } else {
+            p.text(12, 12, o.title, col::text, true);
+            p.text(12, 40, "Waiting for the first iterations...", col::muted);
+        }
+        // progress bar and figures
+        int y = h - footer;
+        double frac = total_ > 0 ? std::min(1.0, double(done_) / total_) : 0;
+        Color track = col::grid, bar = paused() ? col::highlight : col::green;
+        p.roundRect(8, y, w - 16, 12, 6, &track, nullptr);
+        if (frac > 0) p.roundRect(8, y, std::max(12, int((w - 16) * frac)), 12, 6, &bar, nullptr);
+        y += 18;
+        char pct[16];
+        std::snprintf(pct, sizeof pct, "%.0f", frac * 100);
+        double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_).count();
+        double rate = secs > 0 ? done_ / secs : 0;
+        // composed of separately translated parts
+        p.text(8, y, tr(std::to_string(done_) + " of " + std::to_string(total_) + " iterations (" + pct + "%)"), col::text, true);
+        y += p.textHeight() + 4;
+        std::string speed;
+        if (rate > 0 && !paused()) speed = tr(niceNum(rate) + " iterations/s");
+        if (rate > 0 && done_ < total_ && !paused()) {
+            double rem = (total_ - done_) / rate;
+            speed += (speed.empty() ? "" : "   ") + (rem >= 120 ? tr("remaining " + std::to_string(int(std::lround(rem / 60))) + " min")
+                                                              : tr("remaining " + std::to_string(int(std::ceil(rem))) + " s"));
+        }
+        p.text(8, y, speed, col::muted);
+        y += p.textHeight() + 4;
+        if (data_.size() >= 2) {
+            Vec v = mc::stats::finite(data_);
+            if (!v.empty())
+                p.text(8, y,
+                       "Mean " + niceNum(mc::stats::mean(v)) + "   Std dev " + niceNum(mc::stats::stdev(v)) + "   P5 " +
+                           niceNum(mc::stats::percentile(v, 0.05)) + "   P95 " + niceNum(mc::stats::percentile(v, 0.95)),
+                       col::muted);
+        }
+    }
+    void button(const std::string& b) override {
+        if (!ctl_) return;
+        if (b == "pause") {
+            ctl_->pause = !ctl_->pause;
+            refresh(true);
+        } else if (b == "stop") {
+            ctl_->pause = false;
+            ctl_->stop = true;
+            refresh(true);
+        }
+    }
+    void itemChanged(const std::string& name) override {
+        if (name != "var") return;
+        int i = selected("var");
+        if (i >= 0 && size_t(i) < names_.size()) {
+            var_ = names_[size_t(i)];
+            isOutput_ = outputs_[size_t(i)];
+            data_.clear();
+            refresh(true);
+        }
+    }
+
+private:
+    bool paused() const { return ctl_ && ctl_->pause && !ctl_->stop; }
+    void fillVariables() {
+        auto& sim = mc::Simulation::instance();
+        names_.clear();
+        outputs_.clear();
+        std::vector<std::string> items;
+        int sel = -1;
+        // outputs first, then inputs (as in the result window)
+        for (int pass = 0; pass < 2; ++pass)
+            for (const auto& v : sim.variables()) {
+                bool out = v.kind == mc::VarKind::Output;
+                if (v.kind == mc::VarKind::Correlation || out != (pass == 0)) continue;
+                if (mc::lower(v.name) == mc::lower(var_)) sel = int(names_.size());
+                names_.push_back(v.name);
+                outputs_.push_back(out);
+                items.push_back((out ? "[out] " : "[in] ") + v.name);
+            }
+        if (sel < 0 && !names_.empty()) sel = 0;
+        if (sel >= 0) {
+            var_ = names_[size_t(sel)];
+            isOutput_ = outputs_[size_t(sel)];
+        }
+        setItems("var", items, sel);
+    }
+    void refresh(bool now) {
+        if (closed()) return;
+        auto t = std::chrono::steady_clock::now();
+        if (!now && t - last_ < std::chrono::milliseconds(250)) return;
+        last_ = t;
+        auto& sim = mc::Simulation::instance();
+        Vec v;
+        if (sim.progressSamples(var_, v)) data_.swap(v);   // between runs: the last picture stays
+        done_ = std::max(done_, sim.completedIterations());
+        std::string state;
+        if (!ctl_) state = "Finished";
+        else if (ctl_->stop) state = "Stopping...";
+        else if (ctl_->pause) state = "Paused";
+        else if (ctl_->threads > 1) state = "Running on " + std::to_string(ctl_->threads.load()) + " threads";
+        else state = "Running";
+        if (state != state_) {
+            state_ = state;
+            setLabel("state", state);
+        }
+        std::string pauseLabel = ctl_ && ctl_->pause ? "Resume" : "Pause";
+        if (pauseLabel != pauseLabel_) {
+            pauseLabel_ = pauseLabel;
+            setLabel("pause", pauseLabel);
+        }
+        setEnabled("pause", ctl_ && !ctl_->stop);
+        setEnabled("stop", ctl_ && !ctl_->stop);
+        repaint();
+    }
+    mc::RunControl* ctl_;
+    std::string var_, label_, state_, pauseLabel_ = "Pause";
+    bool isOutput_ = true;
+    std::vector<std::string> names_;
+    std::vector<bool> outputs_;
+    Vec data_;
+    int total_ = 0, done_ = 0;
+    std::chrono::steady_clock::time_point start_ = std::chrono::steady_clock::now(), last_;
+};
+
+std::shared_ptr<SimulationPreview> openSimulationPreview(const Ctx& ctx, const Frame& frame, const std::string& variable, mc::RunControl& ctl) {
+    auto w = std::make_shared<PreviewWindow>(ctx, frame, variable, ctl);
+    w->show();
+    CanvasWindow::keep(w);
+    return w;
 }
 
 // ============================================================ variable list ("Show")

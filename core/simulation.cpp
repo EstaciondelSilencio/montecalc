@@ -59,6 +59,71 @@ int Simulation::ensureVariable(const std::string& name, VarKind kind, const std:
     return i;
 }
 
+namespace {
+// the iteration a worker thread is evaluating (Memory Calculation on several threads)
+struct WorkerIteration {
+    bool active = false;
+    int iteration = 0;
+    std::mt19937_64 rng;
+    std::vector<std::pair<double, Sampler>> recent;
+};
+thread_local WorkerIteration tlWorker;
+
+unsigned long long mix(unsigned long long x) {   // splitmix64
+    x += 0x9E3779B97F4A7C15ULL;
+    x = (x ^ (x >> 30)) * 0xBF58476D1CE4E5B9ULL;
+    x = (x ^ (x >> 27)) * 0x94D049BB133111EBULL;
+    return x ^ (x >> 31);
+}
+} // namespace
+
+int Simulation::iteration() const { return tlWorker.active ? tlWorker.iteration : iteration_; }
+
+std::mt19937_64& Simulation::rng() { return tlWorker.active ? tlWorker.rng : rng_; }
+
+void Simulation::beginWorkerIteration(int i) {
+    tlWorker.active = true;
+    tlWorker.iteration = i;
+    tlWorker.rng.seed(mix(baseSeed_ ^ mix((unsigned long long)i)));
+    tlWorker.recent.clear();
+}
+
+void Simulation::endWorkerIteration() {
+    tlWorker.active = false;
+    tlWorker.recent.clear();
+}
+
+void Simulation::completeIteration(int i) {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    if (i >= 0 && size_t(i) < done_.size() && !done_[i]) {
+        done_[i] = 1;
+        ++doneCount_;
+    }
+}
+
+int Simulation::completedIterations() const {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    return doneCount_;
+}
+
+bool Simulation::progressSamples(const std::string& name, std::vector<double>& out) const {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    out.clear();
+    if (mode_ != Mode::Simulate) return false;
+    int i = indexOf(name);
+    if (i < 0 || size_t(i) >= work_.size()) return false;
+    const auto& w = work_[i];
+    out.reserve(size_t(doneCount_));
+    for (size_t k = 0; k < w.size() && k < done_.size(); ++k)
+        if (done_[k] && std::isfinite(w[k])) out.push_back(w[k]);
+    return true;
+}
+
+bool Simulation::usesSeriesState() const {
+    std::lock_guard<std::recursive_mutex> g(mtx_);
+    return seriesUsed_;
+}
+
 const ResultSet* Simulation::active() const {
     if (active_ < 0 || active_ >= int(sets_.size())) return nullptr;
     return &sets_[active_];
@@ -70,8 +135,9 @@ double Simulation::input(const std::string& name, const std::string& desc, doubl
     bool named = !lower(name).empty();
     std::uniform_real_distribution<double> uni(0.0, 1.0);
     double v = inputValue(name, named, desc, expected, sampler, userDefined, uni);
-    if (recent_.size() > 4096) recent_.erase(recent_.begin(), recent_.begin() + 2048);
-    recent_.push_back({v, sampler});
+    auto& recent = tlWorker.active ? tlWorker.recent : recent_;
+    if (recent.size() > 4096) recent.erase(recent.begin(), recent.begin() + 2048);
+    recent.push_back({v, sampler});
     return v;
 }
 
@@ -103,10 +169,12 @@ double Simulation::inputValue(const std::string& name, bool named, const std::st
         return expected;
     }
     case Mode::Simulate: {
-        if (!named) return sampler(uni(rng_), rng_);
+        std::mt19937_64& g = rng();
+        if (!named) return sampler(uni(g), g);
         int i = ensureVariable(name, VarKind::Input, desc);
-        double v = locked_.count(lower(name)) ? expected : sampler(uniforms_[i][iteration_], rng_);
-        work_[i][iteration_] = v;
+        int it = iteration();
+        double v = locked_.count(lower(name)) ? expected : sampler(uniforms_[i][it], g);
+        work_[i][it] = v;
         return v;
     }
     }
@@ -123,7 +191,7 @@ double Simulation::output(const std::string& name, double value, bool hasValue) 
         if (++vars_[i].callsThisPass > 1) duplicates_.insert(vars_[i].name);
     } else if (mode_ == Mode::Simulate && hasValue) {
         int i = ensureVariable(name, VarKind::Output, "Output");
-        work_[i][iteration_] = value;
+        work_[i][iteration()] = value;
     }
     return ret;
 }
@@ -152,7 +220,8 @@ std::vector<std::string> Simulation::prepare(const Settings& s) {
     if (s.iterations < 1) throw std::invalid_argument("number of iterations must be at least 1");
     settings_ = s;
     iterations_ = s.iterations;
-    rng_.seed(s.seed > 0 ? (unsigned long long)s.seed : std::random_device{}());
+    baseSeed_ = s.seed > 0 ? (unsigned long long)s.seed : ((unsigned long long)std::random_device{}() << 32) ^ std::random_device{}();
+    rng_.seed(baseSeed_);
     std::vector<std::string> warn;
     for (const auto& d : duplicates_)
         warn.push_back("variable name '" + d + "' is used in more than one cell; only the last value is kept");
@@ -175,6 +244,9 @@ std::vector<std::string> Simulation::prepare(const Settings& s) {
     for (auto& w : cr.warnings) warn.push_back(w);
     uniforms_ = std::move(cr.u);
     work_.assign(vars_.size(), std::vector<double>(iterations_, kNaN));
+    done_.assign(size_t(iterations_), 0);
+    doneCount_ = 0;
+    seriesUsed_ = false;
     for (auto& v : vars_) v.callsThisPass = 0;
     iteration_ = 0;
     series_.clear();
@@ -192,6 +264,7 @@ void Simulation::setIteration(int i) {
 
 std::vector<double>& Simulation::seriesState(const std::string& key) {
     std::lock_guard<std::recursive_mutex> g(mtx_);
+    if (mode_ == Mode::Simulate) seriesUsed_ = true;
     return series_[lower(key)];
 }
 
@@ -202,7 +275,8 @@ void Simulation::clearSeriesState() {
 
 bool Simulation::samplerOfValue(double value, Sampler& out) const {
     std::lock_guard<std::recursive_mutex> g(mtx_);
-    for (auto it = recent_.rbegin(); it != recent_.rend(); ++it)
+    const auto& recent = tlWorker.active ? tlWorker.recent : recent_;
+    for (auto it = recent.rbegin(); it != recent.rend(); ++it)
         if (it->first == value) { out = it->second; return true; }
     return false;
 }
@@ -211,12 +285,12 @@ void Simulation::record(const std::string& name, VarKind kind, double value) {
     std::lock_guard<std::recursive_mutex> g(mtx_);
     if (mode_ != Mode::Simulate) return;
     int i = ensureVariable(name, kind, kind == VarKind::Output ? "Output" : "");
-    work_[i][iteration_] = value;
+    work_[i][iteration()] = value;
 }
 
 void Simulation::recordAt(int i, double value) {
     std::lock_guard<std::recursive_mutex> g(mtx_);
-    if (mode_ == Mode::Simulate && i >= 0 && size_t(i) < work_.size()) work_[i][iteration_] = value;
+    if (mode_ == Mode::Simulate && i >= 0 && size_t(i) < work_.size()) work_[i][iteration()] = value;
 }
 
 void Simulation::setVariableInfo(const std::string& name, VarKind kind, const std::string& desc, const std::string& cell) {
@@ -238,6 +312,15 @@ void Simulation::finish(const std::string& label) {
     ResultSet rs;
     rs.label = label;
     rs.iterations = iterations_;
+    // a stopped run: only the completed iterations (engines that do not report iterations keep all)
+    std::vector<size_t> keep;
+    bool partial = doneCount_ > 0 && doneCount_ < iterations_;
+    if (partial) {
+        for (size_t k = 0; k < done_.size(); ++k)
+            if (done_[k]) keep.push_back(k);
+        rs.iterations = int(keep.size());
+        settings_.iterations = rs.iterations;
+    }
     // inputs first, then outputs (registration order within each group)
     for (int pass = 0; pass < 2; ++pass)
         for (size_t i = 0; i < vars_.size(); ++i) {
@@ -245,13 +328,22 @@ void Simulation::finish(const std::string& label) {
             if (vars_[i].kind == VarKind::Correlation || isOut != (pass == 1)) continue;
             rs.index[lower(vars_[i].name)] = int(rs.vars.size());
             rs.vars.push_back(vars_[i]);
-            rs.data.push_back(work_[i]);
+            if (partial) {
+                std::vector<double> col;
+                col.reserve(keep.size());
+                for (size_t k : keep) col.push_back(work_[i][k]);
+                rs.data.push_back(std::move(col));
+            } else {
+                rs.data.push_back(work_[i]);
+            }
         }
     sets_.push_back(std::move(rs));
     active_ = int(sets_.size()) - 1;
     resultCorr_ = corr_;
     work_.clear();
     uniforms_.clear();
+    done_.clear();
+    doneCount_ = 0;
 }
 
 void Simulation::abort() {
@@ -259,6 +351,8 @@ void Simulation::abort() {
     mode_ = Mode::Expected;
     work_.clear();
     uniforms_.clear();
+    done_.clear();
+    doneCount_ = 0;
 }
 
 void Simulation::reset() {

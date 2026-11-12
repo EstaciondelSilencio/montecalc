@@ -4,6 +4,7 @@
 #include "../core/fitting.h"
 #include "../core/flofuncs.h"
 #include "../core/formula.h"
+#include "../core/runner.h"
 #include "../core/distributions.h"
 #include "../core/simulation.h"
 #include "../core/specfun.h"
@@ -590,6 +591,102 @@ static void testFormulaEngine() {
     CHECK(stats::stdev(npvs) > 50);
 }
 
+// Memory Calculation on worker threads: the same results for any thread count; stop keeps
+// the completed iterations; pause holds the workers
+static std::vector<double> parallelRun(int threads, int iterations, mc::RunControl& ctl, std::vector<double>* unnamedOut,
+                                       const std::function<void()>& idle) {
+    using namespace formula;
+    MemSource src;
+    src.set(1, 0, "0.1");
+    src.set(1, 1, "=FLOSIMULA_TRIANGULAR(80;120;100;\"Vol\")");
+    src.set(1, 2, "=FLOSIMULA_NORMAL(10;1;\"Price\")");
+    src.set(1, 3, "=B2*B3+FLOSIMULA_NORMAL(0;5)");   // an unnamed input: drawn from the worker's generator
+    src.set(1, 4, "=NPV(FLO_i_Rate;B4;B4;B4)-2000");
+    Simulation& sim = Simulation::instance();
+    sim.clearResultSets();
+    sim.beginRegistration();
+    Model reg;
+    std::string why;
+    std::vector<CellAddr> roots = {{0, 1, 1}, {0, 1, 2}, {0, 1, 3}, {0, 1, 4}};
+    reg.build(src, roots, why);
+    reg.beginIteration();
+    reg.value({0, 1, 4});
+    sim.setVariableInfo("NPV", VarKind::Output, "Output", "B5");
+    sim.setVariableInfo("Unnamed", VarKind::Output, "Output", "B4");
+    Settings s;
+    s.iterations = iterations;
+    s.seed = 11;
+    sim.prepare(s);
+    int npvIdx = sim.variableIndex("NPV"), unIdx = sim.variableIndex("Unnamed");
+    Model base;
+    base.build(src, roots, why);
+    mc::runParallel(0, iterations, threads,
+                    [&]() -> mc::IterationFn {
+                        auto m = std::make_shared<Model>(base);   // every worker has its own copy
+                        return [m, npvIdx, unIdx, &sim](int) {
+                            m->beginIteration();
+                            sim.recordAt(npvIdx, m->value({0, 1, 4}).num);
+                            sim.recordAt(unIdx, m->value({0, 1, 3}).num);
+                        };
+                    },
+                    ctl, idle);
+    sim.finish();
+    std::vector<double> npv;
+    sim.samples("NPV", npv);
+    if (unnamedOut) sim.samples("Unnamed", *unnamedOut);
+    return npv;
+}
+
+static void testParallelRun() {
+    mc::RunControl c1, c4, c8;
+    std::vector<double> u1, u4;
+    auto one = parallelRun(1, 4000, c1, &u1, nullptr);
+    auto four = parallelRun(4, 4000, c4, &u4, nullptr);
+    auto eight = parallelRun(8, 4000, c8, nullptr, nullptr);
+    CHECK(one.size() == 4000 && four.size() == 4000 && eight.size() == 4000);
+    CHECK(one == four && four == eight);   // independent of the thread count
+    CHECK(u1 == u4);
+    CHECK(c4.threads == 4);
+    double npv = 1000 * (1 / 1.1 + 1 / 1.21 + 1 / 1.331) - 2000;
+    CHECK_NEAR(stats::mean(one), npv, 30);
+    // stop after a while: the completed iterations are the result
+    mc::RunControl stop;
+    int calls = 0;
+    auto part = parallelRun(4, 200000, stop, nullptr, [&] {
+        if (++calls == 3) stop.stop = true;
+    });
+    CHECK(!part.empty() && part.size() < 200000);
+    CHECK(int(part.size()) == Simulation::instance().iterations());
+    for (double v : part) CHECK(std::isfinite(v));
+    // pause: no progress while paused, then resume to the end
+    mc::RunControl pause;
+    pause.pause = true;
+    int idleCalls = 0, doneWhilePaused = -1;
+    auto all = parallelRun(3, 3000, pause, nullptr, [&] {
+        ++idleCalls;
+        if (idleCalls == 5) doneWhilePaused = Simulation::instance().completedIterations();
+        if (idleCalls == 6) pause.pause = false;
+    });
+    CHECK(doneWhilePaused == 0);
+    CHECK(all.size() == 3000);
+    // a worker error stops the run and reaches the caller
+    Simulation& sim = Simulation::instance();
+    sim.beginRegistration();
+    sim.setVariableInfo("X", VarKind::Output, "Output", "A1");
+    Settings s;
+    s.iterations = 1000;
+    sim.prepare(s);
+    mc::RunControl err;
+    bool thrown = false;
+    try {
+        mc::runParallel(0, 1000, 4, [] { return mc::IterationFn([](int i) { if (i == 500) throw std::runtime_error("boom"); }); }, err, nullptr);
+    } catch (const std::exception& e) {
+        thrown = std::string(e.what()) == "boom";
+    }
+    sim.abort();
+    CHECK(thrown);
+}
+
 int main() {
     testSpecialFunctions();
     testDistributions();
@@ -604,6 +701,7 @@ int main() {
     testFloFunctions();
     testMcfloSemantics();
     testFormulaEngine();
+    testParallelRun();
     std::printf("%d passed, %d failed\n", g_pass, g_fail);
     return g_fail ? 1 : 0;
 }

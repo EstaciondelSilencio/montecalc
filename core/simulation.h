@@ -89,7 +89,7 @@ public:
     void clearSeriesState();
     // the sampler of the input that last returned `value` in this iteration (FLOsimula_Bounded)
     bool samplerOfValue(double value, Sampler& out) const;
-    std::mt19937_64& rng() { return rng_; }
+    std::mt19937_64& rng();   // the worker's generator inside a worker iteration, else the shared one
 
     // ---- called by the engine ----
     // Called during registration for every input (name "" = unnamed) and output a function
@@ -100,6 +100,20 @@ public:
     // Returns warnings. Throws std::exception on fatal problems.
     std::vector<std::string> prepare(const Settings& s);
     void setIteration(int i);
+    // ---- multi-threaded simulation (Memory Calculation) ----
+    // A worker thread evaluates iteration i: its inputs, outputs and random draws go to that
+    // iteration only. The extra draws (compound sums) come from a generator seeded from the
+    // run's seed and the iteration number, so the results do not depend on the thread count.
+    void beginWorkerIteration(int i);
+    void endWorkerIteration();
+    // The iteration is complete (any thread); a stopped run keeps the completed iterations.
+    void completeIteration(int i);
+    int completedIterations() const;
+    // values of the completed iterations of a running simulation (preview window); false if unknown
+    bool progressSamples(const std::string& name, std::vector<double>& out) const;
+    // did a function keep state from one iteration to the next (time series)? then the
+    // iterations must run in order on one thread
+    bool usesSeriesState() const;
     // Record a value for the current iteration (creates the variable if needed).
     void record(const std::string& name, VarKind kind, double value);
     int variableIndex(const std::string& name) const { std::lock_guard<std::recursive_mutex> g(mtx_); return indexOf(name); }
@@ -163,6 +177,11 @@ private:
     std::vector<std::vector<double>> work_;      // [var][iteration] of the running simulation
     std::mt19937_64 rng_{std::random_device{}()};
     int iteration_ = 0;
+    int iteration() const;   // the calling worker's iteration, else iteration_
+    unsigned long long baseSeed_ = 0;
+    std::vector<char> done_;
+    int doneCount_ = 0;
+    bool seriesUsed_ = false;
     int replay_ = 0;
     int iterations_ = 0;
     std::vector<ResultSet> sets_;
