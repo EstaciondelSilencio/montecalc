@@ -146,9 +146,10 @@ std::string dropDown(const std::string& id, const std::string& label) {
            "getSelectedItemIndex=\"GetSelectedIndex\" onAction=\"OnSelect\"/>";
 }
 
-std::string group(const std::string& id, const std::string& label, const std::string& body) {
+// image: shown when the ribbon is too narrow and the group collapses into one button
+std::string group(const std::string& id, const std::string& label, const std::string& body, const std::string& image = "") {
     labels().text[id] = label;
-    return "<group id=\"" + id + "\" getLabel=\"GetLabel\">" + body + "</group>";
+    return "<group id=\"" + id + "\" getLabel=\"GetLabel\"" + (image.empty() ? "" : " image=\"" + image + "\"") + ">" + body + "</group>";
 }
 
 std::string pickerMenu(const std::string& id, const std::string& label, const std::string& icon, int which) {
@@ -235,7 +236,9 @@ std::string ribbonXml() {
                                button("Lang?Choice=Auto", "Auto", "about") + plainButton("Lang?Choice=English", "English", "") +
                                    plainButton("Lang?Choice=Deutsch", "Deutsch", "") + plainButton("Lang?Choice=Espanol", "Espa\xC3\xB1ol", "")) +
                         button("About", "About MonteCalc", "logo");
-    std::string g8 = group("gOther", "Other", menuOf("mOther", "Other", "settings", other, true));
+    labels().text["AboutLogo"] = "About MonteCalc";
+    std::string logo = "<button id=\"AboutLogo\" tag=\"About\" getLabel=\"GetLabel\" image=\"logo_32\" size=\"large\" onAction=\"OnAction\"/>";
+    std::string g8 = group("gOther", "Other", menuOf("mOther", "Other", "settings", other, true) + logo, "logo_32");
     return "<customUI xmlns=\"http://schemas.microsoft.com/office/2009/07/customui\" onLoad=\"OnLoad\" loadImage=\"LoadImage\">"
            "<ribbon><tabs><tab id=\"tabMcFlo\" label=\"MC FLO\">" +
            g1 + g2 + g3 + g4 + g5 + g6 + g7 + g8 + "</tab></tabs></ribbon></customUI>";

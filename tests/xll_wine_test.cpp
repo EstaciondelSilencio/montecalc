@@ -4,6 +4,7 @@
 //   xll_wine_test ribbon <out.xml>      ribbon XML (as Office receives it) and its images
 //   xll_wine_test window <kind> [sec]   opens a window (results, tornado, decision, scatter, wizard,
 //                                       correlation, statistics, settings) for <sec> seconds
+//   xll_wine_test message                an information message (MC FLO logo)
 //   [lang]                              optional 4th argument: English, Deutsch or Espanol
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -16,6 +17,7 @@
 #include "../uno/ui.hpp"
 #include "../uno/windows.hpp"
 #include "../xll/ribbon.hpp"
+#include "../xll/win32ui.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -90,10 +92,18 @@ int main(int argc, char** argv) {
         DISPID id = 0;
         LPOLESTR names[] = {const_cast<LPOLESTR>(L"GetLabel")};
         HRESULT hn = d ? d->GetIDsOfNames(IID_NULL, names, 1, 0, &id) : E_FAIL;
-        std::printf("ribbon xml %zu chars, images %d/%d, factory %s, callbacks %s\n", xml.size(), ok, n, SUCCEEDED(hr) && d ? "ok" : "FAILED",
-                    SUCCEEDED(hn) && id == 3 ? "ok" : "FAILED");
+        // the MC FLO logo: icon resource 1 (file, windows, messages) and the large ribbon button
+        bool icon = FindResourceW(w32::module(), MAKEINTRESOURCEW(1), MAKEINTRESOURCEW(14)) && w32::logoIcon(false) != LoadIconW(nullptr, MAKEINTRESOURCEW(32512) /* IDI_APPLICATION */);
+        bool logoButton = xml.find("id=\"AboutLogo\"") != std::string::npos;
+        std::printf("ribbon xml %zu chars, images %d/%d, factory %s, callbacks %s, logo icon %s, logo button %s\n", xml.size(), ok, n,
+                    SUCCEEDED(hr) && d ? "ok" : "FAILED", SUCCEEDED(hn) && id == 3 ? "ok" : "FAILED", icon ? "ok" : "FAILED", logoButton ? "ok" : "FAILED");
         if (d) d->Release();
-        return ok == n && d ? 0 : 1;
+        return ok == n && d && icon && logoButton ? 0 : 1;
+    }
+    if (mode == "message") {   // information message with the MC FLO logo
+        SetTimer(nullptr, 1, 6000, closeForm);
+        w32::messageBox(nullptr, L"Simulation finished: 3000 iterations in 1.2 s", L"MonteCalc", false);
+        return 0;
     }
     if (mode == "window") {
         std::string kind = argc > 2 ? argv[2] : "results";

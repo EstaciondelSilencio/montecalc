@@ -358,6 +358,21 @@ def logo_image():
     return sq
 
 
+def write_logo_ico(path):
+    """the MC FLO logo as a Windows icon (the Excel add-in: file, windows, messages)"""
+    base = logo_image()
+    frames = []
+    for size in (256, 64, 48, 40, 32, 24, 20, 16):
+        im = base.resize((size, size), Image.LANCZOS)
+        if size <= 32:   # small sizes: stronger strokes, as the 16 px ribbon icon
+            r, g, b, a = im.split()
+            boost = 1.7 if size <= 20 else 1.4
+            im = Image.merge("RGBA", (r, g, b, a.point(lambda v, k=boost: min(255, int(v * k)))))
+        frames.append(im)
+    frames[0].save(path, format="ICO", sizes=[f.size for f in frames], append_images=frames[1:])
+    print("wrote", os.path.relpath(path))
+
+
 def write_logo(folder):
     """logo_16/26 (menu, toolbar, sidebar), logo_42 (Extension Manager)"""
     im = logo_image()

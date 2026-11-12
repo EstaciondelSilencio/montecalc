@@ -99,12 +99,16 @@ XLL_WIN_SRC := $(XLL_SRC) uno/model.cpp uno/engine.cpp uno/windows.cpp uno/influ
 XLL_WIN_LIBS := -lole32 -loleaut32 -luuid -lgdiplus -loleacc -lshlwapi -lwinhttp -lgdi32 -luser32 -ladvapi32
 MINGW := x86_64-w64-mingw32-g++
 
-$(B)/xll/MonteCalc-x64.xll: $(XLL_WIN_SRC) xll/*.h xll/*.hpp uno/*.hpp uno/*.inc core/*.h $(XLL_GEN)/xll_exports.inc
-	$(MINGW) $(XLL_FLAGS) -shared -static -static-libgcc -static-libstdc++ $(XLL_WIN_SRC) $(XLL_GEN)/montecalc_xll.def -o $@ $(XLL_WIN_LIBS)
+# resources: the MC FLO logo (icon) and the version information
+$(B)/xll/montecalc_res.o: xll/montecalc.rc xll/montecalc.ico $(XLL_GEN)/xll_exports.inc
+	x86_64-w64-mingw32-windres -I $(XLL_GEN) -I xll xll/montecalc.rc -O coff -o $@
+
+$(B)/xll/MonteCalc-x64.xll: $(XLL_WIN_SRC) xll/*.h xll/*.hpp uno/*.hpp uno/*.inc core/*.h $(XLL_GEN)/xll_exports.inc $(B)/xll/montecalc_res.o
+	$(MINGW) $(XLL_FLAGS) -shared -static -static-libgcc -static-libstdc++ $(XLL_WIN_SRC) $(B)/xll/montecalc_res.o $(XLL_GEN)/montecalc_xll.def -o $@ $(XLL_WIN_LIBS)
 
 # Windows test of the ribbon and the windows (run it with Wine or on Windows)
-$(B)/xll/xll_wine_test.exe: $(XLL_WIN_SRC) tests/xll_wine_test.cpp xll/*.h xll/*.hpp uno/*.hpp core/*.h $(XLL_GEN)/xll_exports.inc
-	$(MINGW) $(XLL_FLAGS) -static -static-libgcc -static-libstdc++ $(XLL_WIN_SRC) tests/xll_wine_test.cpp -o $@ $(XLL_WIN_LIBS)
+$(B)/xll/xll_wine_test.exe: $(XLL_WIN_SRC) tests/xll_wine_test.cpp xll/*.h xll/*.hpp uno/*.hpp core/*.h $(XLL_GEN)/xll_exports.inc $(B)/xll/montecalc_res.o
+	$(MINGW) $(XLL_FLAGS) -static -static-libgcc -static-libstdc++ $(XLL_WIN_SRC) tests/xll_wine_test.cpp $(B)/xll/montecalc_res.o -o $@ $(XLL_WIN_LIBS)
 
 xll: $(B)/xll/MonteCalc-x64.xll
 

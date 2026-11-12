@@ -15,6 +15,10 @@ HINSTANCE module();          // the .xll
 HWND excelWindow();          // Excel's main window (owner of MonteCalc's windows)
 HFONT uiFont(int shrink);    // the Windows message font, optionally smaller
 void baseUnits(int& bx, int& by);
+// the MC FLO logo (icon resource 1 of the .xll); the Windows default icon if it is missing
+HICON logoIcon(bool small);
+// message box with the MC FLO logo (information) or the Windows error icon
+int messageBox(HWND owner, const std::wstring& text, const std::wstring& title, bool error, UINT buttons = MB_OK);
 std::string pathOfUrl(const std::string& url);
 bool copyToClipboard(const std::string& text);
 // converts an HTML file with Microsoft Word: kind "word" (.docx) or "pdf"; "" if Word is not available

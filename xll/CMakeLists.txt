@@ -17,7 +17,7 @@ find_package(Python3 REQUIRED COMPONENTS Interpreter)
 get_filename_component(ROOT "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 set(GEN "${CMAKE_BINARY_DIR}/gen")
 file(MAKE_DIRECTORY "${GEN}")
-set(GENERATED "${GEN}/xll_exports.inc" "${GEN}/xll_register.inc" "${GEN}/functions_decl_xll.inc" "${GEN}/functions_impl_xll.inc"
+set(GENERATED "${GEN}/xll_exports.inc" "${GEN}/montecalc_version.h" "${GEN}/xll_register.inc" "${GEN}/functions_decl_xll.inc" "${GEN}/functions_impl_xll.inc"
     "${GEN}/montecalc_xll.def")
 add_custom_command(
   OUTPUT ${GENERATED}
@@ -35,11 +35,15 @@ set(XLL_WIN_SRC
 set(XLL_WIN_LIBS ole32 oleaut32 uuid gdiplus oleacc shlwapi winhttp gdi32 user32 advapi32)
 
 if(WIN32)
-  add_library(montecalc_xll SHARED ${XLL_SRC} ${XLL_WIN_SRC} "${GEN}/montecalc_xll.def" ${GENERATED})
+  enable_language(RC)
+  # resources: the MC FLO logo (icon 1) and the version information
+  set(XLL_RC "${ROOT}/xll/montecalc.rc")
+  set_source_files_properties("${XLL_RC}" PROPERTIES OBJECT_DEPENDS "${GEN}/montecalc_version.h;${ROOT}/xll/montecalc.ico")
+  add_library(montecalc_xll SHARED ${XLL_SRC} ${XLL_WIN_SRC} "${XLL_RC}" "${GEN}/montecalc_xll.def" ${GENERATED})
   set_target_properties(montecalc_xll PROPERTIES OUTPUT_NAME MonteCalc PREFIX "" SUFFIX ".xll")
   target_link_libraries(montecalc_xll PRIVATE ${XLL_WIN_LIBS})
   # ribbon and window test (no Excel needed): xll_win_test ribbon out.xml / xll_win_test window results 3
-  add_executable(xll_win_test ${XLL_SRC} ${XLL_WIN_SRC} "${ROOT}/tests/xll_wine_test.cpp" ${GENERATED})
+  add_executable(xll_win_test ${XLL_SRC} ${XLL_WIN_SRC} "${XLL_RC}" "${ROOT}/tests/xll_wine_test.cpp" ${GENERATED})
   target_link_libraries(xll_win_test PRIVATE ${XLL_WIN_LIBS})
   target_compile_definitions(xll_win_test PRIVATE MONTECALC_XLL _CRT_SECURE_NO_WARNINGS NOMINMAX)
   target_include_directories(xll_win_test PRIVATE "${GEN}" "${ROOT}/uno" "${ROOT}/xll")

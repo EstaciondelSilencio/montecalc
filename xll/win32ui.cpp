@@ -96,6 +96,31 @@ HFONT uiFont(int shrink) {
     return f;
 }
 
+HICON logoIcon(bool small) {
+    static HICON icons[2] = {nullptr, nullptr};
+    HICON& h = icons[small ? 1 : 0];
+    if (!h) {
+        int cx = GetSystemMetrics(small ? SM_CXSMICON : SM_CXICON), cy = GetSystemMetrics(small ? SM_CYSMICON : SM_CYICON);
+        h = static_cast<HICON>(LoadImageW(module(), MAKEINTRESOURCEW(1), IMAGE_ICON, cx, cy, LR_SHARED));
+        if (!h) h = LoadIconW(nullptr, IDI_APPLICATION);
+    }
+    return h;
+}
+
+int messageBox(HWND owner, const std::wstring& text, const std::wstring& title, bool error, UINT buttons) {
+    if (error || !FindResourceW(module(), MAKEINTRESOURCEW(1), MAKEINTRESOURCEW(14) /* RT_GROUP_ICON */))
+        return MessageBoxW(owner, text.c_str(), title.c_str(), buttons | (error ? MB_ICONERROR : MB_ICONINFORMATION));
+    MSGBOXPARAMSW p{};
+    p.cbSize = sizeof p;
+    p.hwndOwner = owner;
+    p.hInstance = module();
+    p.lpszText = text.c_str();
+    p.lpszCaption = title.c_str();
+    p.dwStyle = buttons | MB_USERICON;
+    p.lpszIcon = MAKEINTRESOURCEW(1);
+    return MessageBoxIndirectW(&p);
+}
+
 // dialog base units of the user interface font (as Windows dialogs: average letter width, height)
 void baseUnits(int& bx, int& by) {
     static int x = 0, y = 0;
@@ -665,7 +690,8 @@ struct Win32Window {
         wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
         wc.hbrBackground = nullptr;
         wc.lpszClassName = kClass;
-        wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
+        wc.hIcon = w32::logoIcon(false);
+        wc.hIconSm = w32::logoIcon(true);
         RegisterClassExW(&wc);
         done = true;
     }
@@ -1080,8 +1106,7 @@ int CanvasWindow::popup(int x, int y, const std::vector<std::pair<int, std::stri
 
 void CanvasWindow::message(const std::string& text, bool error) {
     std::fprintf(stderr, "[MonteCalc] %s\n", text.c_str());
-    MessageBoxW(hwnd_ ? static_cast<HWND>(hwnd_) : w32::excelWindow(), wide(tr(text)).c_str(), L"MonteCalc",
-                MB_OK | (error ? MB_ICONERROR : MB_ICONINFORMATION));
+    w32::messageBox(hwnd_ ? static_cast<HWND>(hwnd_) : w32::excelWindow(), wide(tr(text)), L"MonteCalc", error);
 }
 
 std::string CanvasWindow::svg(int w, int h, double scale) {
@@ -1131,7 +1156,7 @@ bool CanvasWindow::storeAsComment(const css::uno::Reference<css::frame::XModel>&
 
 void showMessage(const css::uno::Reference<css::uno::XComponentContext>&, const css::uno::Reference<css::frame::XFrame>&, const std::string& title,
                  const std::string& text, bool error) {
-    MessageBoxW(w32::excelWindow(), wide(tr(text)).c_str(), wide(tr(title)).c_str(), MB_OK | (error ? MB_ICONERROR : MB_ICONINFORMATION));
+    w32::messageBox(w32::excelWindow(), wide(tr(text)), wide(tr(title)), error);
 }
 
 namespace {
@@ -1176,6 +1201,8 @@ bool showForm(const css::uno::Reference<css::uno::XComponentContext>&, const std
         wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
         wc.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_BTNFACE + 1);
         wc.lpszClassName = L"MonteCalcForm";
+        wc.hIcon = w32::logoIcon(false);
+        wc.hIconSm = w32::logoIcon(true);
         RegisterClassExW(&wc);
         registered = true;
     }
@@ -1209,11 +1236,11 @@ bool showForm(const css::uno::Reference<css::uno::XComponentContext>&, const std
     int height = y + 24;
     RECT r{0, 0, X(width), Y(height)};
     DWORD style = WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_CLIPCHILDREN;
-    AdjustWindowRectEx(&r, style, FALSE, WS_EX_DLGMODALFRAME);
+    AdjustWindowRectEx(&r, style, FALSE, 0);   // a plain frame: the title bar shows the MC FLO logo
     HWND owner = GetActiveWindow();
     if (!owner) owner = w32::excelWindow();
     FormState st;
-    HWND h = CreateWindowExW(WS_EX_DLGMODALFRAME, L"MonteCalcForm", wide(tr(title)).c_str(), style, CW_USEDEFAULT, CW_USEDEFAULT, r.right - r.left,
+    HWND h = CreateWindowExW(0, L"MonteCalcForm", wide(tr(title)).c_str(), style, CW_USEDEFAULT, CW_USEDEFAULT, r.right - r.left,
                              r.bottom - r.top, owner, nullptr, w32::module(), &st);
     if (!h) return false;
     HFONT font = w32::uiFont(0);

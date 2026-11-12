@@ -40,7 +40,10 @@ results area (rows 34–42) fills in.
 
 ### The MC FLO ribbon tab
 
-The tab has the same groups, commands and icons as the LibreOffice version:
+The tab has the same groups, commands and icons as the LibreOffice version. The MC FLO logo
+is the large *About MonteCalc* button at the end of the tab. It is also the icon of the
+MonteCalc windows, dialogs and messages, and of the `.xll` file itself (*Properties → Details*
+shows the version).
 
 | Group | Commands |
 |---|---|
@@ -96,4 +99,4 @@ On Linux:
   the languages.
 - `make xll` cross-compiles the 64-bit `.xll` with mingw-w64.
 - `make build/xll/xll_wine_test.exe` builds the ribbon and window test. Run it with Wine or on
-  Windows: `xll_wine_test ribbon out.xml`, or `xll_wine_test window results|tornado|decision|scatter|wizard|settings 5 [Deutsch]`.
+  Windows: `xll_wine_test ribbon out.xml`, `xll_wine_test message`, or `xll_wine_test window results|tornado|decision|scatter|wizard|settings 5 [Deutsch]`.

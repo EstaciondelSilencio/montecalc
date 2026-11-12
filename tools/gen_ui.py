@@ -454,6 +454,7 @@ def main():
     import gen_icons
     icons = sorted(({c[3] for _, _, cmds in RIBBON for c in cmds} | set(FUNCTION_ICONS.values())) - {"logo"})
     gen_icons.write_all(os.path.join(EXT, "icons"), icons)
+    gen_icons.write_logo_ico(os.path.join(ROOT, "xll", "montecalc.ico"))   # the Excel add-in's icon resource
     gen_icons.write_logo(os.path.join(EXT, "icons"))   # MC FLO logo: About, sidebar deck, Extension Manager
     gen_icons.write_distributions(os.path.join(EXT, "icons"), [nm for names in flo_lists() for nm in names])
     write_xll_icons()
