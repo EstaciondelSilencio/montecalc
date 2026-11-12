@@ -187,7 +187,6 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
 }
 
 #ifdef _WIN32
-namespace {
 // Is this the thread that owns LibreOffice's windows? A command started by a script runs on
 // another thread; there LibreOffice's own thread is free to paint, and processing its events
 // from outside (which Windows does by waiting for that thread) could block both.
@@ -210,7 +209,8 @@ bool onWindowThread(const Reference<uno::XComponentContext>& ctx) {
     }
     return GetCurrentThreadId() == owner;
 }
-} // namespace
+#else
+bool onWindowThread(const Reference<uno::XComponentContext>&) { return true; }
 #endif
 
 void processEvents(const Reference<uno::XComponentContext>& ctx) {

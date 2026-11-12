@@ -38,6 +38,9 @@ void fitControlText(const css::uno::Reference<css::uno::XInterface>& control);
 // Lets the user interface work during a long computation on the calling thread (preview window,
 // pause / stop buttons). In Excel only MonteCalc's own windows get mouse and keyboard input.
 void processEvents(const css::uno::Reference<css::uno::XComponentContext>& ctx);
+// false when a command runs on another thread than the program's windows (LibreOffice on
+// Windows, commands started by scripts): such runs open no preview window
+bool onWindowThread(const css::uno::Reference<css::uno::XComponentContext>& ctx);
 
 // Shows a modal dialog with one row per field. Returns true on OK.
 bool showForm(const css::uno::Reference<css::uno::XComponentContext>& ctx, const std::string& title,

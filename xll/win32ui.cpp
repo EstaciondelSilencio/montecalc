@@ -1172,6 +1172,8 @@ bool isMonteCalcWindow(HWND h) {
 }
 } // namespace
 
+bool onWindowThread(const css::uno::Reference<css::uno::XComponentContext>&) { return true; }   // Excel: commands run on its thread
+
 void processEvents(const css::uno::Reference<css::uno::XComponentContext>&) {
     MSG m;
     int budget = 200;   // never get stuck in a message flood

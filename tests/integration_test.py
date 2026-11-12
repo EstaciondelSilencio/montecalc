@@ -49,6 +49,16 @@ OFFICE = None
 
 def watchdog(name, kw):
     print(f"\nHANG: command {name} {kw} did not return within {CMD_TIMEOUT} s; stopping LibreOffice", flush=True)
+    if os.name == "nt":   # thread stacks of LibreOffice (Debugging Tools for Windows on the CI machine)
+        try:
+            tl = subprocess.run(["tasklist", "/FI", "IMAGENAME eq soffice.bin", "/FO", "CSV", "/NH"], capture_output=True, text=True).stdout
+            pid = tl.split(",")[1].strip('"') if "," in tl else ""
+            kits = os.path.join(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"), "Windows Kits", "10", "Debuggers", "x64", "cdb.exe")
+            if pid and os.path.exists(kits):
+                r = subprocess.run([kits, "-p", pid, "-pv", "-c", "~*k 25; q"], capture_output=True, text=True, timeout=120)
+                print("soffice.bin threads:\n" + r.stdout[-30000:], flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"no thread stacks: {e}", flush=True)
     if OFFICE is not None:
         OFFICE.kill()
         try:

@@ -87,7 +87,9 @@ if(MSVC)
     set(_cppu_env msci)
   endif()
   target_compile_definitions(montecalc PRIVATE WNT CPPU_ENV=${_cppu_env} _CRT_SECURE_NO_WARNINGS NOMINMAX WIN32_LEAN_AND_MEAN)
-  target_compile_options(montecalc PRIVATE /EHsc /utf-8 /permissive- /Zc:__cplusplus /W3 /wd4251 /wd4275 /bigobj)
+  target_compile_options(montecalc PRIVATE /EHsc /utf-8 /permissive- /Zc:__cplusplus /W3 /wd4251 /wd4275 /bigobj /Zi)
+  # symbols (.pdb next to the build) for thread stacks when a test hangs; the release stays optimized
+  target_link_options(montecalc PRIVATE /DEBUG /OPT:REF /OPT:ICF)
   set_property(TARGET montecalc PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")  # LibreOffice uses /MD
   find_library(LO_CPPU icppu PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
   find_library(LO_CPPUHELPER icppuhelper PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
