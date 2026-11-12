@@ -96,11 +96,11 @@ HFONT uiFont(int shrink) {
     return f;
 }
 
-HICON logoIcon(bool small) {
+HICON logoIcon(bool smallIcon) {
     static HICON icons[2] = {nullptr, nullptr};
-    HICON& h = icons[small ? 1 : 0];
+    HICON& h = icons[smallIcon ? 1 : 0];
     if (!h) {
-        int cx = GetSystemMetrics(small ? SM_CXSMICON : SM_CXICON), cy = GetSystemMetrics(small ? SM_CYSMICON : SM_CYICON);
+        int cx = GetSystemMetrics(smallIcon ? SM_CXSMICON : SM_CXICON), cy = GetSystemMetrics(smallIcon ? SM_CYSMICON : SM_CYICON);
         h = static_cast<HICON>(LoadImageW(module(), MAKEINTRESOURCEW(1), IMAGE_ICON, cx, cy, LR_SHARED));
         if (!h) h = LoadIconW(nullptr, IDI_APPLICATION);
     }
