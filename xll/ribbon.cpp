@@ -643,9 +643,9 @@ bool connectRibbon() {
 
 } // namespace montecalc
 
-// COM entry points of the .xll (the ribbon add-in)
-extern "C" __declspec(dllexport) HRESULT __stdcall DllGetClassObject(REFCLSID clsid, REFIID riid, void** out) {
+// COM entry points of the .xll (the ribbon add-in); exported through montecalc_xll.def
+STDAPI DllGetClassObject(REFCLSID clsid, REFIID riid, void** out) {
     return montecalc::ribbonClassObject(clsid, riid, out);
 }
-extern "C" __declspec(dllexport) HRESULT __stdcall DllCanUnloadNow() { return S_FALSE; }
+STDAPI DllCanUnloadNow() { return S_FALSE; }
 #endif
