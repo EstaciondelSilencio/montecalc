@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 import uno
@@ -42,7 +43,24 @@ def prop(name, value):
     return p
 
 
+CMD_TIMEOUT = 180
+OFFICE = None
+
+
+def watchdog(name, kw):
+    print(f"\nHANG: command {name} {kw} did not return within {CMD_TIMEOUT} s; stopping LibreOffice", flush=True)
+    if OFFICE is not None:
+        OFFICE.kill()
+        try:
+            err = OFFICE.stderr.read().decode(errors="replace")
+            print("office messages:\n  " + "\n  ".join(l for l in err.splitlines() if l.strip())[-4000:], flush=True)
+        except Exception:  # noqa: BLE001
+            pass
+    os._exit(3)
+
+
 def main():
+    global OFFICE
     env = dict(os.environ, SAL_USE_VCLPLUGIN="svp")
     r = subprocess.run([UNOPKG, "add", "--force", f"-env:UserInstallation={PROFILE_URL}", OXT],
                        capture_output=True, text=True, env=env)
@@ -54,6 +72,7 @@ def main():
         [SOFFICE, f"-env:UserInstallation={PROFILE_URL}", "--headless", "--invisible", "--norestore",
          "--nologo", f"--accept=socket,host=localhost,port={PORT};urp;"],
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, env=env)
+    OFFICE = office
     try:
         ctx = connect()
         run_tests(ctx)
@@ -106,7 +125,13 @@ def run_tests(ctx):
 
     def cmd(name, **kw):
         args = tuple(prop(k, v) for k, v in kw.items()) + (prop("Silent", True),)
-        dispatcher.executeDispatch(frame, "org.montecalc:" + name, "", 0, args)
+        # a command that hangs fails the test with its name instead of a silent CI timeout
+        dog = threading.Timer(CMD_TIMEOUT, watchdog, (name, kw))
+        dog.start()
+        try:
+            dispatcher.executeDispatch(frame, "org.montecalc:" + name, "", 0, args)
+        finally:
+            dog.cancel()
 
     def select(ref):
         doc.CurrentController.select(cell(ref))

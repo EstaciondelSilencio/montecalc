@@ -32,7 +32,9 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <atomic>
 #include <chrono>
+#include <mutex>
 #include <cmath>
 #include <cstdio>
 #include <map>
@@ -1473,7 +1475,7 @@ void openCorrelogram(const Ctx& ctx, const Frame& frame) {
 class PreviewWindow : public CanvasWindow, public SimulationPreview {
 public:
     PreviewWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, mc::RunControl& ctl)
-        : CanvasWindow(ctx, frame, "MonteCalc - Simulation preview", 400, 236, 112), ctl_(&ctl), var_(variable) {
+        : CanvasWindow(ctx, frame, "MonteCalc - Simulation preview", 400, 236, 112), ctl_(&ctl), var(variable) {
         int x = panelX(), w = panelW(), y = 6;
         addLabel("lVar", "Variable", x, y, w);
         addList("var", {}, x, y + 10, w, 14, true);
@@ -1485,12 +1487,15 @@ public:
         // the drop-down is filled by startRun(), after show(): LibreOffice creates the controls there
     }
     // ---- SimulationPreview (engine) ----
-    void startRun(const std::string& label, int iterations) override {
-        label_ = label;
-        total_ = iterations;
-        start_ = std::chrono::steady_clock::now();
-        data_.clear();
-        done_ = 0;
+    void startRun(const std::string& runLabel, int iterations) override {
+        {
+            std::lock_guard<std::mutex> g(mtx_);
+            label = runLabel;
+            total = iterations;
+            start = std::chrono::steady_clock::now();
+            data.clear();
+            doneCount = 0;
+        }
         fillVariables();
         refresh(true);
     }
@@ -1501,6 +1506,22 @@ public:
     }
     // ---- window ----
     void paint(Painter& p, int w, int h) override {
+        // the engine's thread updates the figures, LibreOffice may paint on its own thread
+        Vec data_;
+        std::string var_, label_;
+        int total_, done_;
+        bool isOutput_;
+        std::chrono::steady_clock::time_point start_;
+        {
+            std::lock_guard<std::mutex> g(mtx_);
+            data_ = data;
+            var_ = var;
+            label_ = label;
+            total_ = total;
+            done_ = doneCount;
+            isOutput_ = isOutput;
+            start_ = start;
+        }
         p.rect(0, 0, w, h, &col::white, nullptr);
         int footer = 4 * p.textHeight() + 30;
         HistogramOptions o;
@@ -1560,9 +1581,12 @@ public:
         if (name != "var") return;
         int i = selected("var");
         if (i >= 0 && size_t(i) < names_.size()) {
-            var_ = names_[size_t(i)];
-            isOutput_ = outputs_[size_t(i)];
-            data_.clear();
+            {
+                std::lock_guard<std::mutex> g(mtx_);
+                var = names_[size_t(i)];
+                isOutput = outputs_[size_t(i)];
+                data.clear();
+            }
             refresh(true);
         }
     }
@@ -1575,20 +1599,26 @@ private:
         outputs_.clear();
         std::vector<std::string> items;
         int sel = -1;
+        std::string current;
+        {
+            std::lock_guard<std::mutex> g(mtx_);
+            current = var;
+        }
         // outputs first, then inputs (as in the result window)
         for (int pass = 0; pass < 2; ++pass)
             for (const auto& v : sim.variables()) {
                 bool out = v.kind == mc::VarKind::Output;
                 if (v.kind == mc::VarKind::Correlation || out != (pass == 0)) continue;
-                if (mc::lower(v.name) == mc::lower(var_)) sel = int(names_.size());
+                if (mc::lower(v.name) == mc::lower(current)) sel = int(names_.size());
                 names_.push_back(v.name);
                 outputs_.push_back(out);
                 items.push_back((out ? "[out] " : "[in] ") + v.name);
             }
         if (sel < 0 && !names_.empty()) sel = 0;
         if (sel >= 0) {
-            var_ = names_[size_t(sel)];
-            isOutput_ = outputs_[size_t(sel)];
+            std::lock_guard<std::mutex> g(mtx_);
+            var = names_[size_t(sel)];
+            isOutput = outputs_[size_t(sel)];
         }
         setItems("var", items, sel);
     }
@@ -1598,9 +1628,19 @@ private:
         if (!now && t - last_ < std::chrono::milliseconds(250)) return;
         last_ = t;
         auto& sim = mc::Simulation::instance();
+        std::string name;
+        {
+            std::lock_guard<std::mutex> g(mtx_);
+            name = var;
+        }
         Vec v;
-        if (sim.progressSamples(var_, v)) data_.swap(v);   // between runs: the last picture stays
-        done_ = std::max(done_, sim.completedIterations());
+        bool have = sim.progressSamples(name, v);
+        int completed = sim.completedIterations();
+        {
+            std::lock_guard<std::mutex> g(mtx_);
+            if (have && name == var) data.swap(v);   // between runs: the last picture stays
+            doneCount = std::max(doneCount, completed);
+        }
         std::string state;
         if (!ctl_) state = "Finished";
         else if (ctl_->stop) state = "Stopping...";
@@ -1620,14 +1660,15 @@ private:
         setEnabled("stop", ctl_ && !ctl_->stop);
         repaint();
     }
-    mc::RunControl* ctl_;
-    std::string var_, label_, state_, pauseLabel_ = "Pause";
-    bool isOutput_ = true;
+    mc::RunControl* ctl_;   // null after the run (done())
+    std::mutex mtx_;   // guards the figures below (paint takes a copy)
+    std::string var, label, state_, pauseLabel_ = "Pause";
+    bool isOutput = true;
     std::vector<std::string> names_;
     std::vector<bool> outputs_;
-    Vec data_;
-    int total_ = 0, done_ = 0;
-    std::chrono::steady_clock::time_point start_ = std::chrono::steady_clock::now(), last_;
+    Vec data;
+    int total = 0, doneCount = 0;
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now(), last_;
 };
 
 std::shared_ptr<SimulationPreview> openSimulationPreview(const Ctx& ctx, const Frame& frame, const std::string& variable, mc::RunControl& ctl) {

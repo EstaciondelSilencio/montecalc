@@ -19,6 +19,10 @@
 #include <com/sun/star/awt/XTextComponent.hpp>
 #include <com/sun/star/awt/XToolkit.hpp>
 #include <com/sun/star/awt/XReschedule.hpp>
+#include <com/sun/star/awt/XSystemDependentWindowPeer.hpp>
+#include <com/sun/star/frame/Desktop.hpp>
+#include <com/sun/star/frame/XDesktop2.hpp>
+#include <com/sun/star/lang/SystemDependent.hpp>
 #include <com/sun/star/awt/XWindowPeer.hpp>
 #include <com/sun/star/beans/XPropertySet.hpp>
 #include <com/sun/star/container/XNameContainer.hpp>
@@ -27,6 +31,12 @@
 #include <com/sun/star/lang/XMultiServiceFactory.hpp>
 
 #include <chrono>
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 
 using namespace com::sun::star;
 using com::sun::star::uno::Any;
@@ -176,7 +186,37 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
     return accepted;
 }
 
+#ifdef _WIN32
+namespace {
+// Is this the thread that owns LibreOffice's windows? A command started by a script runs on
+// another thread; there LibreOffice's own thread is free to paint, and processing its events
+// from outside (which Windows does by waiting for that thread) could block both.
+bool onWindowThread(const Reference<uno::XComponentContext>& ctx) {
+    static DWORD owner = 0;
+    if (!owner) {
+        try {
+            Reference<frame::XDesktop2> desk = frame::Desktop::create(ctx);
+            Reference<frame::XFrame> f = desk->getCurrentFrame();
+            Reference<awt::XSystemDependentWindowPeer> peer(f.is() ? f->getContainerWindow() : Reference<awt::XWindow>(), UNO_QUERY);
+            if (peer.is()) {
+                Sequence<sal_Int8> pid(16);
+                Any h = peer->getWindowHandle(pid, lang::SystemDependent::SYSTEM_WIN32);
+                sal_Int64 v = 0;
+                if (h >>= v) owner = GetWindowThreadProcessId(reinterpret_cast<HWND>(static_cast<intptr_t>(v)), nullptr);
+            }
+        } catch (const uno::Exception&) {
+        }
+        if (!owner) return false;   // unknown: do not process events from here
+    }
+    return GetCurrentThreadId() == owner;
+}
+} // namespace
+#endif
+
 void processEvents(const Reference<uno::XComponentContext>& ctx) {
+#ifdef _WIN32
+    if (!onWindowThread(ctx)) return;
+#endif
     // Bounded: single passes of the event loop for at most ~30 ms. (processEventsToIdle waits
     // until LibreOffice is idle, which a run started from another thread may never see.)
     static Reference<awt::XReschedule> rs;

@@ -208,7 +208,11 @@ std::set<std::shared_ptr<CanvasWindow>>& registry() {
 void CanvasWindow::keep(std::shared_ptr<CanvasWindow> w) {
     std::lock_guard<std::mutex> g(g_mtx);
     auto& r = registry();
-    for (auto it = r.begin(); it != r.end();) it = (*it)->closed() ? r.erase(it) : std::next(it);
+    // closed windows are released a few seconds later: a paint that is still running on the
+    // program's own thread (commands from scripts run on another one) never meets a deleted window
+    auto now = std::chrono::steady_clock::now();
+    for (auto it = r.begin(); it != r.end();)
+        it = (*it)->closed() && now - (*it)->closedAt_ > std::chrono::seconds(5) ? r.erase(it) : std::next(it);
     r.insert(w);
 }
 
@@ -544,6 +548,7 @@ void CanvasWindow::repaint() {
 void CanvasWindow::close() {
     if (closed_) return;
     rememberGeometry();
+    closedAt_ = std::chrono::steady_clock::now();
     closed_ = true;
     if (auto* l = dynamic_cast<WindowListener*>(listener_.get())) l->detach();
     try {

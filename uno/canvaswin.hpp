@@ -14,6 +14,8 @@
 #endif
 
 #include <functional>
+#include <atomic>
+#include <chrono>
 #include <map>
 #include <memory>
 #include <string>
@@ -155,7 +157,8 @@ private:
     int width_, height_, panelW_;
     double zoom_ = defaultZoom();
     bool exporting_ = false;
-    bool closed_ = false;
+    std::atomic<bool> closed_{false};   // read by LibreOffice's paint thread, set by the command's thread
+    std::chrono::steady_clock::time_point closedAt_;
     bool dragging_ = false;
 #ifndef MONTECALC_XLL
     css::uno::Reference<css::beans::XPropertySet> addModel(const char* type, const std::string& name, int x, int y, int w, int h);
