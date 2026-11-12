@@ -2,8 +2,12 @@
 // influence diagram, AI mentor and the variable list.
 #pragma once
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/frame/XFrame.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
+#else
+#include "../xll/uno_shim.hpp"
+#endif
 
 #include <string>
 

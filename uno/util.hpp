@@ -27,6 +27,8 @@ com::sun::star::uno::Sequence<T> seq(std::initializer_list<T> l) {
     return s;
 }
 
+// identity for code that may get a std::string where an OUString was before (model Cell)
+inline const std::string& u8(const std::string& s) { return s; }
 #ifdef MONTECALC_XLL
 inline std::string u8(const rtl::OUString& s) { return s.utf8(); }
 inline rtl::OUString ou(const std::string& s) { return rtl::OUString(s); }

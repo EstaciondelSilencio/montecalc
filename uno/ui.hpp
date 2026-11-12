@@ -1,8 +1,12 @@
 // MonteCalc - small UI helpers: message boxes and a programmatic form dialog
 #pragma once
 
+#ifdef MONTECALC_XLL
+#include "../xll/uno_shim.hpp"
+#else
 #include <com/sun/star/frame/XFrame.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
+#endif
 
 #include <string>
 #include <vector>
@@ -27,7 +31,9 @@ struct FormField {
 
 // Makes a button, check box or one-line label show its whole text: when the text is wider
 // than the control (a longer translation), the font is reduced in small steps (to 75 % at most).
+#ifndef MONTECALC_XLL
 void fitControlText(const css::uno::Reference<css::uno::XInterface>& control);
+#endif
 
 // Shows a modal dialog with one row per field. Returns true on OK.
 bool showForm(const css::uno::Reference<css::uno::XComponentContext>& ctx, const std::string& title,

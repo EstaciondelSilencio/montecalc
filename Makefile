@@ -81,7 +81,7 @@ clean:
 #   make xlltest   build and run the XLL against a mock Excel (Linux)
 #   make xll       cross-compile build/xll/MonteCalc-x64.xll with mingw-w64 (if installed)
 XLL_GEN  := $(B)/xll/gen
-XLL_SRC  := $(CORE_SRC) uno/addin.cpp uno/i18n.cpp xll/xll.cpp
+XLL_SRC  := $(CORE_SRC) uno/addin.cpp uno/i18n.cpp xll/xll.cpp xll/xlformula.cpp
 XLL_FLAGS := -std=c++17 -O2 -DMONTECALC_XLL -I$(XLL_GEN) -Iuno -Ixll
 
 $(XLL_GEN)/xll_exports.inc: tools/gen_functions.py tools/gen_ui.py
@@ -93,8 +93,18 @@ $(B)/xll/xll_test: $(XLL_SRC) tests/xll_test.cpp xll/*.h xll/*.hpp uno/*.hpp cor
 xlltest: $(B)/xll/xll_test
 	./$(B)/xll/xll_test
 
-$(B)/xll/MonteCalc-x64.xll: $(XLL_SRC) xll/*.h xll/*.hpp uno/*.hpp core/*.h $(XLL_GEN)/xll_exports.inc
-	x86_64-w64-mingw32-g++ $(XLL_FLAGS) -shared -static -static-libgcc -static-libstdc++ $(XLL_SRC) $(XLL_GEN)/montecalc_xll.def -o $@
+# the Windows add-in also has the ribbon, the windows and all commands (shared with the LibreOffice extension)
+XLL_WIN_SRC := $(XLL_SRC) uno/model.cpp uno/engine.cpp uno/windows.cpp uno/influence.cpp uno/deps.cpp uno/charts.cpp uno/painter.cpp \
+               uno/report.cpp uno/mentor.cpp uno/http.cpp xll/com.cpp xll/model_xl.cpp xll/win32ui.cpp xll/ribbon.cpp
+XLL_WIN_LIBS := -lole32 -loleaut32 -luuid -lgdiplus -loleacc -lshlwapi -lwinhttp -lgdi32 -luser32 -ladvapi32
+MINGW := x86_64-w64-mingw32-g++
+
+$(B)/xll/MonteCalc-x64.xll: $(XLL_WIN_SRC) xll/*.h xll/*.hpp uno/*.hpp uno/*.inc core/*.h $(XLL_GEN)/xll_exports.inc
+	$(MINGW) $(XLL_FLAGS) -shared -static -static-libgcc -static-libstdc++ $(XLL_WIN_SRC) $(XLL_GEN)/montecalc_xll.def -o $@ $(XLL_WIN_LIBS)
+
+# Windows test of the ribbon and the windows (run it with Wine or on Windows)
+$(B)/xll/xll_wine_test.exe: $(XLL_WIN_SRC) tests/xll_wine_test.cpp xll/*.h xll/*.hpp uno/*.hpp core/*.h $(XLL_GEN)/xll_exports.inc
+	$(MINGW) $(XLL_FLAGS) -static -static-libgcc -static-libstdc++ $(XLL_WIN_SRC) tests/xll_wine_test.cpp -o $@ $(XLL_WIN_LIBS)
 
 xll: $(B)/xll/MonteCalc-x64.xll
 

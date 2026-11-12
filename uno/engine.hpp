@@ -1,6 +1,7 @@
 // MonteCalc - simulation engine and MC FLO commands (protocol handler for "org.montecalc:")
 #pragma once
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/frame/XDispatch.hpp>
 #include <com/sun/star/frame/XDispatchProvider.hpp>
 #include <com/sun/star/frame/XFrame.hpp>
@@ -9,8 +10,12 @@
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
 #include <cppuhelper/implbase4.hxx>
+#else
+#include "../xll/uno_shim.hpp"
+#endif
 
 #include "../core/simulation.h"
+#include "model.hpp"
 
 #include <string>
 #include <vector>
@@ -31,8 +36,19 @@ struct RunOptions {
     bool dip = false;      // Use DIP: store outputs as FLO_r_ arrays in the model
 };
 
-RunOptions loadOptions(const css::uno::Reference<css::frame::XModel>& m);
-void saveOptions(const css::uno::Reference<css::frame::XModel>& m, const RunOptions& o);
+// multiple simulation: rows Variant | Value | Reference (=cell) of the stored range
+struct Variant {
+    std::string label;
+    double value = 0;
+    css::table::CellAddress ref;
+};
+std::vector<Variant> loadVariants(const ModelDoc& d);
+void restoreReplay(const ModelDoc& d);   // the model's own input formulas again (after "Analyse iteration")
+void storeDip(const ModelDoc& d);        // FLO_r_ arrays of the outputs (Use DIP)
+double cellValue(const Cell& c);         // NaN for texts and errors
+
+RunOptions loadOptions(const ModelDoc& d);
+void saveOptions(const ModelDoc& d, const RunOptions& o);
 
 // Runs a full simulation (all variants). Returns a summary text. Used by the
 // engine and by the result windows ("Start").
@@ -45,6 +61,14 @@ struct RunResult {
 RunResult runSimulation(const css::uno::Reference<css::uno::XComponentContext>& ctx,
                         const css::uno::Reference<css::frame::XFrame>& frame, const RunOptions& o);
 
+#ifdef MONTECALC_XLL
+// Excel: the MC FLO commands, run by the ribbon and the windows
+class Engine {
+public:
+    Engine() = default;
+    // e.g. run("Wizard", {{"Function", "Normal"}}); silent: no dialogs (arguments give the values)
+    void run(const std::string& command, const std::vector<css::beans::PropertyValue>& args = {}, bool silent = false);
+#else
 class Engine : public cppu::WeakImplHelper4<css::frame::XDispatchProvider, css::frame::XDispatch,
                                             css::lang::XInitialization, css::lang::XServiceInfo> {
 public:
@@ -62,8 +86,10 @@ public:
     sal_Bool SAL_CALL supportsService(const OUString& s) override;
     css::uno::Sequence<OUString> SAL_CALL getSupportedServiceNames() override;
     static css::uno::Sequence<OUString> serviceNames();
+#endif
 
 private:
+    void execute(const std::string& cmd);   // the command table (both programs)
     css::uno::Reference<css::uno::XComponentContext> ctx_;
     css::uno::Reference<css::frame::XFrame> frame_;
     bool silent_ = false;

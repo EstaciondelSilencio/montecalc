@@ -26,11 +26,26 @@ add_custom_command(
   COMMENT "Generating the function table")
 
 file(GLOB CORE_SRC CONFIGURE_DEPENDS "${ROOT}/core/*.cpp")
-set(XLL_SRC ${CORE_SRC} "${ROOT}/uno/addin.cpp" "${ROOT}/uno/i18n.cpp" "${ROOT}/xll/xll.cpp")
+set(XLL_SRC ${CORE_SRC} "${ROOT}/uno/addin.cpp" "${ROOT}/uno/i18n.cpp" "${ROOT}/xll/xll.cpp" "${ROOT}/xll/xlformula.cpp")
+# ribbon, windows and commands (Windows only; shared with the LibreOffice extension)
+set(XLL_WIN_SRC
+    "${ROOT}/uno/model.cpp" "${ROOT}/uno/engine.cpp" "${ROOT}/uno/windows.cpp" "${ROOT}/uno/influence.cpp" "${ROOT}/uno/deps.cpp"
+    "${ROOT}/uno/charts.cpp" "${ROOT}/uno/painter.cpp" "${ROOT}/uno/report.cpp" "${ROOT}/uno/mentor.cpp" "${ROOT}/uno/http.cpp"
+    "${ROOT}/xll/com.cpp" "${ROOT}/xll/model_xl.cpp" "${ROOT}/xll/win32ui.cpp" "${ROOT}/xll/ribbon.cpp")
+set(XLL_WIN_LIBS ole32 oleaut32 uuid gdiplus oleacc shlwapi winhttp gdi32 user32 advapi32)
 
 if(WIN32)
-  add_library(montecalc_xll SHARED ${XLL_SRC} "${GEN}/montecalc_xll.def" ${GENERATED})
+  add_library(montecalc_xll SHARED ${XLL_SRC} ${XLL_WIN_SRC} "${GEN}/montecalc_xll.def" ${GENERATED})
   set_target_properties(montecalc_xll PROPERTIES OUTPUT_NAME MonteCalc PREFIX "" SUFFIX ".xll")
+  target_link_libraries(montecalc_xll PRIVATE ${XLL_WIN_LIBS})
+  # ribbon and window test (no Excel needed): xll_win_test ribbon out.xml / xll_win_test window results 3
+  add_executable(xll_win_test ${XLL_SRC} ${XLL_WIN_SRC} "${ROOT}/tests/xll_wine_test.cpp" ${GENERATED})
+  target_link_libraries(xll_win_test PRIVATE ${XLL_WIN_LIBS})
+  target_compile_definitions(xll_win_test PRIVATE MONTECALC_XLL _CRT_SECURE_NO_WARNINGS NOMINMAX)
+  target_include_directories(xll_win_test PRIVATE "${GEN}" "${ROOT}/uno" "${ROOT}/xll")
+  if(MSVC)
+    target_compile_options(xll_win_test PRIVATE /EHsc /utf-8 /permissive- /bigobj /W3 /wd4244 /wd4267)
+  endif()
   set(TARGET montecalc_xll)
 else()
   add_executable(xll_test ${XLL_SRC} "${ROOT}/tests/xll_test.cpp" ${GENERATED})

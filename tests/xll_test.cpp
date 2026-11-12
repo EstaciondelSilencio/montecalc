@@ -4,6 +4,7 @@
 //
 // Build and run: make xlltest
 #include "../xll/xlapi.h"
+#include "../xll/xlformula.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -260,6 +261,17 @@ int main() {
     mcLangEnglish();
     check(mcReset() == 1 && std::isnan(value(mc_FMC_Average(&y, &m))) == false, "Reset");
 
+    std::printf("formula syntax LibreOffice <-> Excel\n");
+    {
+        using montecalc::xlf::fromExcel;
+        using montecalc::xlf::toExcel;
+        check(toExcel("=FMC_NORMAL(10;2)") == "=FMC_NORMAL(10,2)", "argument separator");
+        check(toExcel("=SUM($'Model Data'.A1:B2;Sheet2.$C$3)") == "=SUM('Model Data'!A1:B2,'Sheet2'!$C$3)", "sheet references");
+        check(toExcel("={1;2|3;4}") == "={1,2;3,4}", "array constants");
+        check(toExcel("=IF(A1>0;\"a;b\";\"x\")") == "=IF(A1>0,\"a;b\",\"x\")", "string literals untouched");
+        check(fromExcel("=SUM('Model Data'!A1:B2,'Sheet2'!$C$3)") == "=SUM($'Model Data'.A1:B2;$'Sheet2'.$C$3)", "back to LibreOffice syntax");
+        check(fromExcel(toExcel("={1;2|3;4}")) == "={1;2|3;4}", "array round trip");
+    }
     std::printf("\n%s: %d of %d checks failed\n", failures ? "FAILED" : "PASSED", failures, checks);
     return failures ? 1 : 0;
 }

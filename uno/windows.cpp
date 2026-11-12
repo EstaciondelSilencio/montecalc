@@ -16,6 +16,7 @@
 #include "../core/formula.h"
 #include "../core/stats.h"
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/Key.hpp>
 #include <com/sun/star/beans/XPropertySet.hpp>
 #include <com/sun/star/container/XIndexAccess.hpp>
@@ -24,6 +25,9 @@
 #include <com/sun/star/table/CellContentType.hpp>
 #include <com/sun/star/table/XColumnRowRange.hpp>
 #include <com/sun/star/text/XText.hpp>
+#else
+#include "../xll/uno_shim.hpp"
+#endif
 
 #include <algorithm>
 #include <array>
@@ -40,8 +44,10 @@ using namespace com::sun::star;
 using com::sun::star::uno::Any;
 using com::sun::star::uno::Reference;
 using com::sun::star::uno::Sequence;
+#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY;
 using com::sun::star::uno::UNO_QUERY_THROW;
+#endif
 
 namespace montecalc {
 
@@ -90,7 +96,7 @@ Vec previewSamples(const ModelDoc& d, const table::CellAddress& a, int n) {
             auto c = d.cell(a);
             for (int i = 0; i < std::min(n, 2000); ++i) {
                 d.recalc();
-                if (c->getError() == 0) out.push_back(c->getValue());
+                if (c.error() == 0) out.push_back(c.value());
             }
         }
     } catch (...) {
@@ -112,7 +118,7 @@ void insertIntoCurrentCell(const Frame& frame, const std::string& formula, const
     ModelDoc d = docOf(frame);
     table::CellAddress a;
     if (!d.currentCell(a)) throw std::runtime_error("select a cell in the model first");
-    d.cell(a)->setFormula(ou(formula));
+    d.cell(a).setFormula(ou(formula));
     if (!name.empty()) {
         d.setNamedRange((kind == mc::VarKind::Input ? "FLO_i_" : kind == mc::VarKind::Output ? "FLO_o_" : "FLO_c_") + mc::formula::sanitizeName(name), a);
     }
@@ -791,7 +797,7 @@ public:
                                niceNum(mc::stats::percentile(v, 0.95)));
             message("The diagram was stored as a comment of cell " + d.cellName(a) + ".");
         } else if (b == "rerun") {
-            RunOptions o = loadOptions(frame_->getController()->getModel());
+            RunOptions o = loadOptions(docOf(frame_));
             if (o.s.seed == -1) o.s.seed = 0;
             runSimulation(ctx_, frame_, o);
             vars_ = mc::Simulation::instance().resultVariables();
@@ -847,7 +853,7 @@ std::shared_ptr<ResultWindow> correlationScatter(const Ctx& ctx, const Frame& fr
         w->showCorrelation(v.corrA, v.corrB);
         return w;
     }
-    double rho = docOf(frame).cell(v.addr)->getValue();
+    double rho = docOf(frame).cell(v.addr).value();
     int type = 0;
     std::string func;
     std::vector<std::string> args;
@@ -1355,9 +1361,7 @@ public:
         }
         if (b == "copy") {
             ModelDoc d = docOf(frame_);
-            Reference<sheet::XSpreadsheets> sheets = d.doc()->getSheets();
-            if (!sheets->hasByName("FLO_Fit")) sheets->insertNewByName("FLO_Fit", sal_Int16(d.sheetNames().size()));
-            Reference<sheet::XSpreadsheet> sh(sheets->getByName("FLO_Fit"), UNO_QUERY_THROW);
+            int sh = d.ensureSheet("FLO_Fit");
             std::vector<std::vector<Any>> rows;
             if (!tsMode_) {
                 rows.push_back({Any(OUString("Distribution")), Any(OUString("RSS")), Any(OUString("KS statistic")), Any(OUString("KS p-value")),
@@ -1370,13 +1374,7 @@ public:
                 for (auto& f : tfits_)
                     rows.push_back({Any(ou(f.name)), Any(f.aic), Any(f.rss), Any(f.theilU), Any(OUString("")), Any(ou(f.formula.substr(1)))});
             }
-            Sequence<Sequence<Any>> s(sal_Int32(rows.size()));
-            for (size_t i = 0; i < rows.size(); ++i) {
-                Sequence<Any> r(6);
-                for (int j = 0; j < 6; ++j) r.getArray()[j] = rows[i][j];
-                s.getArray()[i] = r;
-            }
-            Reference<sheet::XCellRangeData>(sh->getCellRangeByPosition(0, 0, 5, sal_Int32(rows.size()) - 1), UNO_QUERY_THROW)->setDataArray(s);
+            d.writeTable(sh, 0, 0, rows);
             message("The results were written to the sheet FLO_Fit (copy any formula into the model).");
         }
     }
@@ -1507,7 +1505,7 @@ public:
             std::string def = v.description.size() > 48 ? v.description.substr(0, 48) + "..." : v.description;
             bool locked = v.kind == mc::VarKind::Input && mc::Simulation::instance().isLocked(v.name);
             rows.push_back({v.name + (v.named ? "" : " (unnamed)") + (locked ? " [locked]" : ""), kind, d.cellName(v.addr, true), def,
-                            niceNum(d.cell(v.addr)->getValue())});
+                            niceNum(d.cell(v.addr).value())});
             colors.push_back(v.kind == mc::VarKind::Input ? Color{221, 235, 247} : v.kind == mc::VarKind::Output ? Color{252, 228, 214} : Color{255, 242, 204});
         }
         const int font = 11;   // larger than the other tables: this list is read, not glanced at
@@ -1563,10 +1561,8 @@ void writeContextSheet(const Ctx& ctx, const Frame& frame) {
     ModelDoc d = docOf(frame);
     ModelGraph g = buildGraph(d);
     auto& sim = mc::Simulation::instance();
-    Reference<sheet::XSpreadsheets> sheets = d.doc()->getSheets();
-    if (sheets->hasByName("FLO_Context")) sheets->removeByName("FLO_Context");
-    sheets->insertNewByName("FLO_Context", sal_Int16(d.sheetNames().size()));
-    Reference<sheet::XSpreadsheet> sh(sheets->getByName("FLO_Context"), UNO_QUERY_THROW);
+    d.removeSheet("FLO_Context");
+    int sh = d.ensureSheet("FLO_Context");
     std::vector<std::vector<Any>> rows;
     auto t = [](const std::string& s) { return Any(ou(s)); };
     auto n = [](double v) { return std::isfinite(v) ? Any(v) : Any(OUString()); };
@@ -1599,17 +1595,8 @@ void writeContextSheet(const Ctx& ctx, const Frame& frame) {
                         n(has ? mc::stats::percentile(s, 0.95) : std::nan("")), n(has ? mc::stats::min(s) : std::nan("")),
                         n(has ? mc::stats::max(s) : std::nan("")), n(r), t(with), t(deps)});
     }
-    for (size_t i = 0; i < rows.size(); ++i) {
-        for (size_t j = 0; j < rows[i].size(); ++j) {
-            auto c = sh->getCellByPosition(sal_Int32(j), sal_Int32(i));
-            double dv;
-            OUString sv;
-            if (rows[i][j] >>= dv) c->setValue(dv);
-            else if ((rows[i][j] >>= sv) && !sv.isEmpty()) Reference<text::XText>(c, UNO_QUERY_THROW)->setString(sv);
-        }
-    }
-    auto cols = Reference<table::XColumnRowRange>(sh, UNO_QUERY_THROW)->getColumns();
-    for (sal_Int32 c = 0; c < 13; ++c) Reference<beans::XPropertySet>(cols->getByIndex(c), UNO_QUERY_THROW)->setPropertyValue("OptimalWidth", Any(true));
+    d.writeTable(sh, 0, 0, rows);
+    d.optimalWidth(sh, 0, 13);
 }
 
 std::string modelContextText(const Frame& frame) {
@@ -1725,7 +1712,7 @@ public:
         if (names_.size() < 2) throw std::runtime_error("at least two named input variables are needed (define inputs, then use Register variables)");
         // editing an existing correlation: take over its values
         std::string fa, fb; double fr = 0.5; int ft = 0;
-        bool existing = parseCorrelationFormula(u8(d.cell(target_)->getFormula()), fa, fb, fr, ft);
+        bool existing = parseCorrelationFormula(u8(d.cell(target_).formula()), fa, fb, fr, ft);
         int i1 = existing ? indexOf(fa, 0) : 0, i2 = existing ? indexOf(fb, 1) : 1;
         if (!existing) fr = 0.5;
         int x = panelX(), w = panelW(), y = 6;
@@ -1813,7 +1800,7 @@ public:
         bool ok;
         double r = parseNumber(text("r"), ok);
         int type = std::max(0, selected("type"));
-        d.cell(target_)->setFormula(ou("=FLOsimula_correlation(" + quote(a) + ";" + quote(b) + ";" + fmtNum(r) + ";" + std::to_string(type) + ")"));
+        d.cell(target_).setFormula(ou("=FLOsimula_correlation(" + quote(a) + ";" + quote(b) + ";" + fmtNum(r) + ";" + std::to_string(type) + ")"));
         d.removeNamedRangesWithPrefix("FLO_c_" + mc::formula::sanitizeName(a + "_" + b));
         d.setNamedRange("FLO_c_" + mc::formula::sanitizeName(a + "_" + b), target_);
         d.setBackground(target_, kColorCorrelation);

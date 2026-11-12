@@ -366,7 +366,7 @@ private:
         if (group_ != "Simulation") return;
         auto m = model();
         if (!m.is()) return;
-        RunOptions o = loadOptions(m);
+        RunOptions o = loadOptions(ModelDoc(m));
         setText("best", fmtNum(o.s.best));
         setText("real", fmtNum(o.s.real));
         setText("worst", fmtNum(o.s.worst));
@@ -378,7 +378,7 @@ private:
     void storeSettings() {
         auto m = model();
         if (!m.is()) return;
-        RunOptions o = loadOptions(m);
+        RunOptions o = loadOptions(ModelDoc(m));
         bool ok1, ok2, ok3, ok4;
         double best = parseNumber(text("best"), ok1), real = parseNumber(text("real"), ok2), worst = parseNumber(text("worst"), ok3);
         double it = parseNumber(text("iterations"), ok4);
@@ -389,7 +389,7 @@ private:
         o.s.useCorrelations = checked("usecorr");
         o.visualize = checked("visualize");
         o.memory = checked("memory");
-        saveOptions(m, o);
+        saveOptions(ModelDoc(m), o);
         mc::Simulation::instance().setSettings(o.s);
     }
 

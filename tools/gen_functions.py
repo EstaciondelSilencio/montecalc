@@ -494,7 +494,8 @@ def write_xll(out):
 
 # command functions of the XLL (xll/xll.cpp), exported by name
 XLL_COMMANDS = ["mcStart", "mcReset", "mcSettings", "mcLanguage", "mcAbout", "mcInsertOutput", "mcLangAuto", "mcLangEnglish",
-                "mcLangGerman", "mcLangSpanish"]
+                "mcLangGerman", "mcLangSpanish", "mcRunInternal", "mcRelabel", "mcConnectRibbon", "xlAutoRemove", "DllGetClassObject PRIVATE",
+                "DllCanUnloadNow PRIVATE"]
 
 
 def main(out):

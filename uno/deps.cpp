@@ -2,13 +2,19 @@
 #include "deps.hpp"
 #include "util.hpp"
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/text/XText.hpp>
+#else
+#include "../xll/uno_shim.hpp"
+#endif
 
 #include <deque>
 
 using namespace com::sun::star;
 using com::sun::star::uno::Reference;
+#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY_THROW;
+#endif
 
 namespace montecalc {
 
@@ -76,8 +82,8 @@ ModelGraph buildGraph(const ModelDoc& doc) {
     }
     for (const auto& v : g.vars) {
         auto c = doc.cell(v.addr);
-        g.numValues.push_back(c->getError() ? std::nan("") : c->getValue());
-        g.cellValues.push_back(u8(Reference<text::XText>(c, UNO_QUERY_THROW)->getString()));
+        g.numValues.push_back(c.error() ? std::nan("") : c.value());
+        g.cellValues.push_back(u8(c.text()));
     }
     return g;
 }

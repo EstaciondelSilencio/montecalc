@@ -14,7 +14,14 @@
 #include "../core/stats.h"
 #include "../core/formula.h"
 #include "../uno/addin.hpp"
+#include "../uno/engine.hpp"
 #include "../uno/i18n.hpp"
+#include "../uno/model.hpp"
+#ifdef _WIN32
+#include "com.hpp"
+#include "ribbon.hpp"
+#include "win32ui.hpp"
+#endif
 
 #include <chrono>
 #include <tuple>
@@ -28,8 +35,8 @@
 #include <vector>
 
 using namespace montecalc;
-using com::sun::star::uno::Any;
-using com::sun::star::uno::Sequence;
+using ::com::sun::star::uno::Any;
+using ::com::sun::star::uno::Sequence;
 
 // ============================================================ the call back into Excel
 
@@ -535,6 +542,10 @@ const std::vector<Command>& commands() {
         {"mcLangGerman", "MCFLO.LanguageGerman", "Language: Deutsch", "Deutsch"},
         {"mcLangSpanish", "MCFLO.LanguageSpanish", "Language: Espa\xC3\xB1ol", "Espa\xC3\xB1ol"},
         {"mcAbout", "MCFLO.About", "About MonteCalc", "Version and licence"},
+        // not in the menu
+        {"mcRunInternal", "MCFLO.RunInternal", nullptr, nullptr},
+        {"mcRelabel", "MCFLO.Relabel", nullptr, nullptr},
+        {"mcConnectRibbon", "MCFLO.ConnectRibbon", nullptr, nullptr},
     };
     return c;
 }
@@ -549,6 +560,9 @@ void registerCommands() {
 }
 
 const char* kMenu = "MC FLO";
+bool g_menuShown = false;
+bool g_ribbonLoaded = false;
+bool haveRibbon() { return g_ribbonLoaded; }
 const double kBar = 10;   // worksheet menu bar (shown on the Add-ins tab)
 
 void removeMenu() {
@@ -560,6 +574,7 @@ void addMenu() {
     removeMenu();
     std::vector<std::vector<std::string>> rows{{kMenu, "", "", "", ""}};
     for (const auto& c : commands()) {
+        if (!c.menu) continue;
         if (std::string(c.proc) == "mcLangAuto" || std::string(c.proc) == "mcAbout") rows.push_back({"-", "", "", "", ""});
         std::string label = c.menu;
         if (label.rfind("Language: ", 0) == 0) label = tr("Language") + ": " + label.substr(10);
@@ -568,6 +583,16 @@ void addMenu() {
     }
     Oper bar(kBar), menu(rows);
     excel(xlfAddMenu, nullptr, {bar.get(), menu.get()});
+    g_menuShown = true;
+}
+
+// MCFLO.ConnectRibbon again in two seconds (Application.OnTime)
+void scheduleRetry() {
+    XlValue now;
+    excel(74 /* xlfNow */, &now, {});
+    if (!now.ok()) return;
+    Oper when(now.x.val.num + 2.0 / 86400.0), macro("MCFLO.ConnectRibbon");
+    excel(148 | xlCommand /* xlcOnTime */, nullptr, {when.get(), macro.get()});
 }
 
 void alert(const std::string& text, bool error = false) {
@@ -653,11 +678,11 @@ bool escapePressed() {
     return v.ok() && (v.x.xltype & 0xFFF) == xltypeBool && v.x.val.xbool;
 }
 
-std::string runSimulation(const mc::Settings& s) {
+// one run (one variant): registration pass, then every iteration recalculates (or evaluates the
+// model in memory) and records the variables' cells
+void runOneXl(const RunOptions& o, const std::string& label, RunResult& rr) {
     auto& sim = mc::Simulation::instance();
-    auto t0 = std::chrono::steady_clock::now();
-    sim.clearResultSets();
-    // 1. registration: every FLOsimula_ function reports its cell
+    const mc::Settings& s = o.s;
     g_cells.clear();
     sim.beginRegistration();
     calcNow();
@@ -678,7 +703,6 @@ std::string runSimulation(const mc::Settings& s) {
         calcNow();
         throw std::runtime_error("No output variable found. Mark a result with =<cell>+FLOsimula_output(\"Name\") (Insert output variable).");
     }
-    // 2. prepare
     std::vector<std::string> warnings;
     try {
         warnings = sim.prepare(s);
@@ -688,20 +712,47 @@ std::string runSimulation(const mc::Settings& s) {
         calcNow();
         throw;
     }
-    // 3. iterations
+    for (auto& w : warnings) rr.warnings.push_back((label.empty() ? "" : label + ": ") + w);
+    // Memory Calculation: the model's formulas evaluated in memory instead of recalculating Excel
+    std::unique_ptr<mc::formula::Model> mem;
+    std::unique_ptr<mc::formula::Source> src;
+    std::vector<mc::formula::CellAddr> memAddr;
+#ifdef _WIN32
+    ModelDoc doc;
+    if (o.memory && doc.valid()) {
+        src = doc.formulaSource();
+        mem = std::make_unique<mc::formula::Model>();
+        for (auto& r : rec) memAddr.push_back({doc.sheetIndex(r.pos.sheetName), r.pos.col, r.pos.row});
+        std::string why;
+        if (!mem->build(*src, memAddr, why)) {
+            rr.warnings.push_back("Memory calculation not possible (" + why + "); the spreadsheet was recalculated instead.");
+            mem.reset();
+        }
+    }
+#endif
+    rr.memoryUsed = mem != nullptr;
     Oper echoOff(false), echoOn(true);
-    excel(xlcEcho, nullptr, {echoOff.get()});
+    bool echo = o.visualize && !mem;
+    if (!echo) excel(xlcEcho, nullptr, {echoOff.get()});
     int step = std::max(1, s.iterations / 100);
     try {
         for (int i = 0; i < s.iterations; ++i) {
             sim.setIteration(i);
-            calcNow();
-            for (auto& r : rec) {
-                double v;
-                sim.recordAt(r.index, readCell(r.pos, v) ? v : std::nan(""));
+            if (mem) {
+                mem->beginIteration();
+                for (size_t k = 0; k < rec.size(); ++k) {
+                    mc::Value v = mem->value(memAddr[k]);
+                    sim.recordAt(rec[k].index, v.kind == mc::Value::Number || v.kind == mc::Value::Bool ? v.num : std::nan(""));
+                }
+            } else {
+                calcNow();
+                for (auto& r : rec) {
+                    double v;
+                    sim.recordAt(r.index, readCell(r.pos, v) ? v : std::nan(""));
+                }
             }
             if (i % step == 0) {
-                status("MonteCalc: " + std::to_string(i * 100 / s.iterations) + "%");
+                status("MonteCalc" + (label.empty() ? std::string() : " (" + label + ")") + ": " + std::to_string(i * 100 / s.iterations) + "%");
                 if (escapePressed()) throw std::runtime_error("The simulation was cancelled.");
             }
         }
@@ -713,25 +764,83 @@ std::string runSimulation(const mc::Settings& s) {
         status("");
         throw;
     }
-    sim.finish("");
-    sim.setMode(s.seed == -1 ? mc::Mode::Random : mc::Mode::Expected);
-    calcNow();   // expected values again; the fMC_ functions show the results
-    excel(xlcEcho, nullptr, {echoOn.get()});
+    sim.finish(label);
+    if (!echo) excel(xlcEcho, nullptr, {echoOn.get()});
     status("");
-    double secs = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
-    std::ostringstream os;
-    os << "Simulation finished: " << s.iterations << " iterations in " << fmt(std::round(secs * 100) / 100) << " s\n\n";
-    for (const auto& name : sim.resultNames(mc::VarKind::Output)) {
-        std::vector<double> v;
-        sim.samples(name, v);
-        os << "  " << name << ": mean " << fmt(mc::stats::mean(v)) << ", std dev " << fmt(mc::stats::stdev(v)) << "\n";
-    }
-    if (!warnings.empty()) {
-        os << "\nWarnings:\n";
-        for (auto& w : warnings) os << " - " << w << "\n";
-    }
-    return os.str();
 }
+
+// all variants of a multiple simulation (or one run), as runSimulation in the LibreOffice engine
+RunResult runAllXl(const RunOptions& o) {
+    RunResult rr;
+    auto& sim = mc::Simulation::instance();
+    auto t0 = std::chrono::steady_clock::now();
+    std::vector<Variant> variants;
+#ifdef _WIN32
+    ModelDoc d;
+    if (d.valid()) {
+        restoreReplay(d);
+        variants = loadVariants(d);
+    }
+#endif
+    sim.clearResultSets();
+    if (variants.empty()) {
+        runOneXl(o, "", rr);
+    } else {
+#ifdef _WIN32
+        std::map<std::string, std::pair<css::table::CellAddress, std::string>> saved;
+        for (auto& v : variants) {
+            std::string k = d.cellName(v.ref);
+            if (!saved.count(k)) saved[k] = {v.ref, d.cell(v.ref).formula()};
+        }
+        try {
+            for (auto& v : variants) {
+                d.cell(v.ref).setValue(v.value);
+                runOneXl(o, v.label, rr);
+            }
+        } catch (...) {
+            for (auto& [k, sv] : saved) d.cell(sv.first).setFormula(sv.second);
+            throw;
+        }
+        for (auto& [k, sv] : saved) d.cell(sv.first).setFormula(sv.second);
+        sim.selectResultSet(0);
+#endif
+    }
+    rr.seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    sim.setMode(o.s.seed == -1 ? mc::Mode::Random : mc::Mode::Expected);
+    calcNow();   // expected values again; the fMC_ functions show the results
+#ifdef _WIN32
+    if (o.dip && d.valid()) storeDip(d);
+#endif
+    std::ostringstream os;
+    auto labels = sim.resultSetLabels();
+    os << "Simulation finished: " << o.s.iterations << " iterations" << (labels.size() > 1 ? " x " + std::to_string(labels.size()) + " variants" : "")
+       << " in " << fmt(std::round(rr.seconds * 100) / 100) << " s" << (rr.memoryUsed ? " (memory calculation)" : "") << "\n\n";
+    int active = sim.activeResultSet();
+    for (size_t vi = 0; vi < labels.size(); ++vi) {
+        if (labels.size() > 1) os << "Variant " << labels[vi] << ":\n";
+        sim.selectResultSet(int(vi));
+        for (const auto& name : sim.resultNames(mc::VarKind::Output)) {
+            std::vector<double> v;
+            sim.samples(name, v);
+            os << "  " << name << ": mean " << fmtNum(mc::stats::mean(v)) << ", std dev " << fmtNum(mc::stats::stdev(v)) << ", worst "
+               << fmtNum(mc::stats::percentile(v, o.s.worst)) << ", real " << fmtNum(mc::stats::percentile(v, o.s.real)) << ", best "
+               << fmtNum(mc::stats::percentile(v, o.s.best)) << "\n";
+        }
+    }
+    if (active >= 0) sim.selectResultSet(active);
+    if (!rr.warnings.empty()) {
+        os << "\nWarnings:\n";
+        for (auto& w : rr.warnings) os << " - " << w << "\n";
+    }
+    rr.summary = os.str();
+    return rr;
+}
+
+// options of a run requested from a window or the ribbon (MCFLO.RunInternal)
+bool g_inCommand = false;
+RunOptions g_pending;
+RunResult g_pendingResult;
+std::string g_pendingError;
 
 double askNumber(const std::string& prompt, double def, bool& cancelled) {
     Oper msg(tr(prompt)), type(1.0), title(tr("MonteCalc - Settings")), deflt(def);
@@ -757,24 +866,81 @@ int command(Fn fn) {
 void setLanguage(const char* choice) {
     setLanguageSetting(choice);
     registerFunctions();   // Function Wizard categories in the new language
-    addMenu();
+    if (g_menuShown || !haveRibbon()) addMenu();
+#ifdef _WIN32
+    ribbonInvalidate();
+#endif
 }
 
 } // namespace
 
 // ============================================================ commands
 
+namespace montecalc {
+// the simulation for the shared commands (Engine::cmdRun, result window "Start"): inside a command the
+// C API loop runs directly, from a window or the ribbon through Application.Run("MCFLO.RunInternal")
+RunResult runSimulation(const css::uno::Reference<css::uno::XComponentContext>&, const css::uno::Reference<css::frame::XFrame>&, const RunOptions& o) {
+#ifdef _WIN32
+    if (!g_inCommand) {
+        g_pending = o;
+        g_pendingResult = RunResult();
+        g_pendingError.clear();
+        montecalc::com::runMacro("MCFLO.RunInternal");
+        if (!g_pendingError.empty()) throw std::runtime_error(g_pendingError);
+        return g_pendingResult;
+    }
+#endif
+    return runAllXl(o);
+}
+} // namespace montecalc
+
+namespace {
+// Excel's object model reachable (the windows and most commands need it); not in the mock test
+bool haveObjectModel() {
+#ifdef _WIN32
+    return montecalc::com::haveApplication() || montecalc::com::findApplication(montecalc::w32::excelWindow());
+#else
+    return false;
+#endif
+}
+
+// a shared MC FLO command (uno/engine.cpp) from a C API command
+int engineCommand(const char* name) {
+    return command([&] {
+        g_inCommand = true;
+        struct Reset { ~Reset() { g_inCommand = false; } } reset;
+        Engine().run(name);
+    });
+}
+} // namespace
+
+XLL_EXPORT int XLL_CALL mcRunInternal() {
+    g_inCommand = true;
+    try {
+        g_pendingResult = runAllXl(g_pending);
+    } catch (const std::exception& e) {
+        g_pendingError = e.what();
+    } catch (...) {
+        g_pendingError = "MonteCalc: unexpected error";
+    }
+    g_inCommand = false;
+    return 1;
+}
+
 XLL_EXPORT int XLL_CALL mcStart() {
-    return command([] {
+    if (haveObjectModel()) return engineCommand("Start");
+    return command([] {   // without Excel's object model (tests): the run and its summary
         auto& sim = mc::Simulation::instance();
         if (sim.busy()) throw std::runtime_error("a simulation is running");
-        mc::Settings s = loadSettings();
-        sim.setSettings(s);
-        alert(runSimulation(s));
+        RunOptions o;
+        o.s = loadSettings();
+        sim.setSettings(o.s);
+        alert(runAllXl(o).summary);
     });
 }
 
 XLL_EXPORT int XLL_CALL mcReset() {
+    if (haveObjectModel()) return engineCommand("Reset");
     return command([] {
         auto& sim = mc::Simulation::instance();
         sim.reset();
@@ -784,6 +950,7 @@ XLL_EXPORT int XLL_CALL mcReset() {
 }
 
 XLL_EXPORT int XLL_CALL mcSettings() {
+    if (haveObjectModel()) return engineCommand("Settings");
     return command([] {
         mc::Settings s = loadSettings();
         bool c = false;
@@ -800,24 +967,19 @@ XLL_EXPORT int XLL_CALL mcSettings() {
         double corr = askNumber("Use correlations (1 = yes, 0 = no)", s.useCorrelations ? 1 : 0, c);
         if (c) return;
         if (it < 1 || it > 100000000) throw std::runtime_error("# iterations must be between 1 and 100,000,000.");
-        if (!(worst > 0 && worst < real && real < best && best < 1))
-            throw std::runtime_error("The levels must satisfy 0 < worst < real < best < 1.");
+        if (!(worst > 0 && worst < real && real < best && best < 1)) throw std::runtime_error("The levels must satisfy 0 < worst < real < best < 1.");
         saveSetting("Iterations", std::round(it));
         saveSetting("Seed", std::round(seed));
         saveSetting("Worst", worst);
         saveSetting("Real", real);
         saveSetting("Best", best);
         saveSetting("UseCorrelations", corr != 0 ? 1 : 0);
-        auto& sim = mc::Simulation::instance();
-        sim.setSettings(loadSettings());
-        if (!sim.busy()) {
-            sim.setMode(seed == -1 ? mc::Mode::Random : mc::Mode::Expected);
-            calcNow();
-        }
+        mc::Simulation::instance().setSettings(loadSettings());
     });
 }
 
 XLL_EXPORT int XLL_CALL mcInsertOutput() {
+    if (haveObjectModel()) return engineCommand("InsertOutput");
     return command([] {
         XlValue cell;
         excel(xlfActiveCell, &cell, {});
@@ -845,13 +1007,42 @@ XLL_EXPORT int XLL_CALL mcLangEnglish() { return command([] { setLanguage("Engli
 XLL_EXPORT int XLL_CALL mcLangGerman() { return command([] { setLanguage("Deutsch"); }); }
 XLL_EXPORT int XLL_CALL mcLangSpanish() { return command([] { setLanguage("Espa\xC3\xB1ol"); }); }
 XLL_EXPORT int XLL_CALL mcLanguage() { return mcLangAuto(); }
+// after a language change in the ribbon: Function Wizard categories (and the fallback menu)
+XLL_EXPORT int XLL_CALL mcRelabel() {
+    return command([] {
+        registerFunctions();
+        if (g_menuShown) addMenu();
+    });
+}
 
 XLL_EXPORT int XLL_CALL mcAbout() {
+    if (haveObjectModel()) return engineCommand("About");
     return command([] {
         alert("MonteCalc for Excel - Monte Carlo simulation with the MC FLO functions.\n"
               "FLOsimula_ model functions, fMC_ result and tool functions (Insert Function, categories as on the MC FLO ribbon).\n"
               "Menu MC FLO on the Add-ins tab: Start simulation, Reset, Settings, Insert output variable, Language.");
     });
+}
+
+namespace montecalc {
+void ribbonLoaded() { g_ribbonLoaded = true; }
+void ribbonLanguageChanged() {
+#ifdef _WIN32
+    montecalc::com::runMacro("MCFLO.Relabel");   // Function Wizard categories (C API)
+    ribbonInvalidate();
+#endif
+}
+} // namespace montecalc
+
+// connects the ribbon once Excel's object model is ready (at start-up without a workbook it is not)
+XLL_EXPORT int XLL_CALL mcConnectRibbon() {
+#ifdef _WIN32
+    static int tries = 0;
+    if (connectRibbon()) return 1;
+    if (++tries < 30) scheduleRetry();
+    else addMenu();   // no ribbon: the menu on the Add-ins tab
+#endif
+    return 1;
 }
 
 // ============================================================ add-in manager interface
@@ -860,12 +1051,26 @@ XLL_EXPORT int XLL_CALL xlAutoOpen() {
     mc::Simulation::instance().setRegistrationObserver(observe);
     registerFunctions();
     registerCommands();
+#ifdef _WIN32
+    // the MC FLO ribbon tab (a COM add-in in this .xll); the Add-ins menu only if it cannot be shown
+    registerRibbon();
+    if (!connectRibbon()) scheduleRetry();
+#else
     addMenu();
+#endif
     return 1;
 }
 
 XLL_EXPORT int XLL_CALL xlAutoClose() {
-    removeMenu();
+    if (g_menuShown) removeMenu();
+    return 1;
+}
+
+// the add-in is removed in the Add-in Manager: the ribbon goes too
+XLL_EXPORT int XLL_CALL xlAutoRemove() {
+#ifdef _WIN32
+    unregisterRibbon();
+#endif
     return 1;
 }
 

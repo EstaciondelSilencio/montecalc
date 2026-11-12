@@ -13,7 +13,9 @@ compatibility.
 
 **Microsoft Excel:** the same functions are also available as an Excel add-in
 (`MonteCalc-Excel-x64.xll` / `-x86.xll`). It provides all 178 `FLOsimula_` / `fMC_` functions,
-the simulation, and English, German and Spanish menus. See **[docs/EXCEL.md](docs/EXCEL.md)**.
+the simulation, an **MC FLO ribbon tab** with all commands, the result window, wizards,
+correlation, influence diagram and AI mentor windows, and English, German and Spanish menus.
+See **[docs/EXCEL.md](docs/EXCEL.md)**.
 
 ## Quick start
 
@@ -277,9 +279,13 @@ tools/  gen_functions.py: one table generating IDL, C++, wizard metadata and doc
         tab, sidebar deck registration and icons, and uno/i18n_catalog.inc from i18n_catalog.py
 xll/    Microsoft Excel add-in: xll.cpp (C API: registration, argument/result conversion,
         simulation commands, MC FLO menu), xlapi.h (the C API declarations used),
-        uno_shim.hpp (stand-ins for the UNO types, so uno/addin.cpp compiles for Excel)
+        uno_shim.hpp (stand-ins for the UNO types, so the shared uno/ code compiles for Excel),
+        ribbon.cpp (MC FLO ribbon tab: COM add-in inside the .xll), win32ui.cpp (the window
+        toolkit on Win32 + GDI+), model_xl.cpp / com.cpp (workbook access through COM),
+        xlformula.cpp (formula syntax LibreOffice <-> Excel)
 tests/  core_tests.cpp, integration_test.py (headless LibreOffice, run as a normal user),
-        xll_test.cpp (the Excel add-in against a mock Excel)
+        xll_test.cpp (the Excel add-in against a mock Excel), xll_wine_test.cpp (ribbon and
+        windows on Windows / Wine)
 ```
 
 A run works in four steps:

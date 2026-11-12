@@ -182,6 +182,22 @@ std::string translate(const std::string& s, Lang l, bool exactOnly) {
     auto it = t.exact.find(s);
     if (it != t.exact.end()) return it->second->t[li];
     if (exactOnly) return s;
+    // composed messages: each line on its own (indentation and list dashes kept)
+    if (s.find('\n') != std::string::npos) {
+        std::string out;
+        size_t start = 0;
+        while (start <= s.size()) {
+            size_t nl = s.find('\n', start);
+            std::string line = s.substr(start, nl == std::string::npos ? std::string::npos : nl - start);
+            size_t lead = line.find_first_not_of(" -");
+            if (lead != std::string::npos) line = line.substr(0, lead) + translate(line.substr(lead), l, false);
+            out += line;
+            if (nl == std::string::npos) break;
+            out += '\n';
+            start = nl + 1;
+        }
+        return out;
+    }
     for (const auto& p : t.patterns) {
         std::vector<std::string> holes;
         if (!matchParts(s, p.parts, 0, 0, holes)) continue;

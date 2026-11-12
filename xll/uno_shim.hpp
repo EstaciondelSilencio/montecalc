@@ -33,6 +33,7 @@ public:
             if (std::tolower(static_cast<unsigned char>(a[i])) != std::tolower(static_cast<unsigned char>(b[i]))) return false;
         return true;
     }
+    bool equalsAscii(const char* o) const { return s_ == (o ? o : ""); }
     bool operator==(const OUString& o) const { return s_ == o.s_; }
     bool operator!=(const OUString& o) const { return s_ != o.s_; }
     bool operator<(const OUString& o) const { return s_ < o.s_; }
@@ -128,14 +129,70 @@ private:
 };
 
 struct XInterface {};
+struct XComponentContext {};
+struct Exception {   // never thrown in Excel; keeps catch clauses of the shared code valid
+    rtl::OUString Message;
+};
+// LibreOffice object references: in Excel the code never holds such objects; an empty
+// Reference keeps signatures (context, frame, model) unchanged
 template <class T>
 class Reference {
 public:
     Reference() = default;
     bool is() const { return false; }
+    T* get() const { return nullptr; }
+    // only the stateless placeholders below (frame -> controller -> model) are reached this way
+    T* operator->() const {
+        static T placeholder;
+        return &placeholder;
+    }
 };
 
 } // namespace uno
+
+namespace table {
+struct CellAddress {
+    sal_Int16 Sheet = 0;
+    sal_Int32 Column = 0, Row = 0;
+    CellAddress() = default;
+    CellAddress(sal_Int16 s, sal_Int32 c, sal_Int32 r) : Sheet(s), Column(c), Row(r) {}
+};
+struct CellRangeAddress {
+    sal_Int16 Sheet = 0;
+    sal_Int32 StartColumn = 0, StartRow = 0, EndColumn = 0, EndRow = 0;
+    CellRangeAddress() = default;
+    CellRangeAddress(sal_Int16 s, sal_Int32 c0, sal_Int32 r0, sal_Int32 c1, sal_Int32 r1)
+        : Sheet(s), StartColumn(c0), StartRow(r0), EndColumn(c1), EndRow(r1) {}
+};
+struct XCellRange {};
+} // namespace table
+
+namespace frame {
+// in Excel the document is the active workbook: ModelDoc(model) ignores the placeholder
+struct XModel {};
+struct XController {
+    uno::Reference<XModel> getModel() const { return {}; }
+};
+struct XFrame {
+    uno::Reference<XController> getController() const { return {}; }
+};
+} // namespace frame
+
+namespace beans {
+struct PropertyValue {
+    rtl::OUString Name;
+    uno::Any Value;
+};
+} // namespace beans
+
+namespace awt {
+// key codes as LibreOffice's awt::Key (the Win32 window maps virtual keys to them)
+namespace Key {
+constexpr int NUM0 = 256, NUM1 = 257, NUM9 = 265, A = 512, B = 513, C = 514, D = 515, E = 516, F = 517, G = 518, H = 519, I = 520, J = 521, K = 522, L = 523, M = 524, N = 525, O = 526, P = 527, Q = 528, R = 529, S = 530, T = 531, U = 532, V = 533, W = 534, X = 535, Y = 536, Z = 537, DOWN = 1024, UP = 1025, LEFT = 1026, RIGHT = 1027, HOME = 1028, END = 1029,
+              PAGEUP = 1030, PAGEDOWN = 1031, RETURN = 1280, ESCAPE = 1281, TAB = 1282, BACKSPACE = 1283, SPACE = 1284, INSERT = 1285,
+              KEY_DELETE = 1286, ADD = 1287, SUBTRACT = 1288, MULTIPLY = 1289, DIVIDE = 1290, F1 = 768, F2 = 769, F3 = 770, F4 = 771, F5 = 772, F6 = 773, F7 = 774, F8 = 775, F9 = 776, F10 = 777, F11 = 778, F12 = 779;
+}
+} // namespace awt
 
 namespace lang {
 struct IllegalArgumentException {
@@ -143,5 +200,6 @@ struct IllegalArgumentException {
     rtl::OUString Message;
 };
 struct Locale {};
+struct XComponent {};
 } // namespace lang
 }}} // namespace com::sun::star

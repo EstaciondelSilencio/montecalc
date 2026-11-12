@@ -8,8 +8,13 @@
 #include "ui.hpp"
 #include "util.hpp"
 #include "windows.hpp"
+#ifdef MONTECALC_XLL
+#include "../xll/win32ui.hpp"
+#endif
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/beans/PropertyValue.hpp>
+#ifndef MONTECALC_XLL
 #include <com/sun/star/datatransfer/DataFlavor.hpp>
 #include <com/sun/star/datatransfer/XTransferable.hpp>
 #include <com/sun/star/datatransfer/clipboard/SystemClipboard.hpp>
@@ -18,6 +23,12 @@
 #include <com/sun/star/frame/XStorable.hpp>
 #include <com/sun/star/util/XCloseable.hpp>
 #include <cppuhelper/implbase1.hxx>
+#else
+#include "../xll/uno_shim.hpp"
+#endif
+#else
+#include "../xll/uno_shim.hpp"
+#endif
 
 #include "http.hpp"
 
@@ -35,8 +46,12 @@ using namespace com::sun::star;
 using com::sun::star::uno::Any;
 using com::sun::star::uno::Reference;
 using com::sun::star::uno::Sequence;
+#ifndef MONTECALC_XLL
+#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY;
 using com::sun::star::uno::UNO_QUERY_THROW;
+#endif
+#endif
 
 namespace montecalc {
 
@@ -312,7 +327,11 @@ const char* kWikiIndex =
     "=FLOsimula_correlation(\"A\";\"B\";0.8;0) and =B30+FLOsimula_output(\"NPV\"). Never invent function names.";
 
 const char* kSystemPrompt =
+#ifdef MONTECALC_XLL
+    "You are the AI mentor of MonteCalc, a Monte Carlo simulation add-in for Microsoft Excel that follows the MC FLO "
+#else
     "You are the AI mentor of MonteCalc, a Monte Carlo simulation add-in for LibreOffice Calc that follows the MC FLO "
+#endif
     "conventions (FLOsimula_ model functions, FLO_i_ inputs, FLO_c_ correlations, FLO_o_ outputs, fMC_ result functions). "
     "You receive the structure of the user's model - inputs with their distributions, correlations, dependencies and "
     "outputs - together with the statistics of the last simulation. MonteCalc computes the simulation; you interpret it. "
@@ -321,6 +340,7 @@ const char* kSystemPrompt =
     "instead of estimating it. Suggest concrete next steps in MonteCalc terms (for example a sensitivity check, a "
     "correlation to add, or an fMC_ function) when they help. Answer in plain text with short paragraphs and lists.";
 
+#ifndef MONTECALC_XLL
 class ClipboardText : public cppu::WeakImplHelper1<datatransfer::XTransferable> {
 public:
     explicit ClipboardText(const OUString& t) : t_(t) {}
@@ -337,6 +357,7 @@ public:
 private:
     OUString t_;
 };
+#endif
 
 } // namespace
 
@@ -524,6 +545,11 @@ public:
         std::string base = documentsDir() + "/MonteCalc_mentor_" + stamp;
         std::ofstream(base + ".html") << html();
         if (kind == "html") return base + ".html";
+#ifdef MONTECALC_XLL
+        // Word / PDF: Word converts the HTML (without Word the HTML file is kept)
+        std::string file = w32::convertHtml(base + ".html", kind);
+        return file.empty() ? base + ".html" : file;
+#else
         // Word / PDF: open the HTML in Writer and store it with the matching filter
         Reference<frame::XComponentLoader> loader(frame::Desktop::create(ctx_), UNO_QUERY_THROW);
         beans::PropertyValue hidden, filter;
@@ -540,6 +566,7 @@ public:
         Reference<util::XCloseable>(doc, UNO_QUERY_THROW)->close(true);
         std::remove((base + ".html").c_str());
         return file;
+#endif
     }
 
     bool key(int code, int, bool ctrl, bool) override {
@@ -565,8 +592,12 @@ public:
         }
         if (b == "clear") { messages_.clear(); shown_.clear(); setText("history", ""); afterShow(); return; }
         if (b == "copy") {
+#ifdef MONTECALC_XLL
+            w32::copyToClipboard(transcript());
+#else
             auto cb = datatransfer::clipboard::SystemClipboard::create(ctx_);
             cb->setContents(new ClipboardText(ou(transcript())), nullptr);
+#endif
             setLabel("status", "Conversation copied to the clipboard.");
             return;
         }

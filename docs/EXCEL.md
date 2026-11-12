@@ -21,54 +21,65 @@ No Visual C++ runtime or other installation is needed.
 
 ## Use
 
-Open `examples/business_case.xlsx`, which is also attached to the release. Go to the **Add-ins** tab and
-choose **MC FLO → Start simulation**. The results area (rows 34–42) fills in.
+Open `examples/business_case.xlsx`, which is also attached to the release. Excel shows an **MC FLO**
+tab in the ribbon. Click **Start** in the *Simulation* group. The result window opens and the
+results area (rows 34–42) fills in.
 
 - **Model functions:** all `FLOsimula_…` functions, with the same names and argument order as in
   MC FLO and the LibreOffice version, for example `=FLOsimula_PERT(200000,350000,250000,"MarketSize")`.
   Excel separates arguments with `,`, or `;` in German and Spanish Excel.
-- **Outputs:** mark a result with `=B29+FLOsimula_output("NPV")`, or select the cell and choose
-  *MC FLO → Insert output variable…*.
-- **Correlations:** use `=FLOsimula_correlation("Share","Price",-0.6,0)`. The type codes are those
-  of MC FLO.
+- **Outputs:** mark a result with `=B29+FLOsimula_output("NPV")`, or select the cell and click
+  *Insert output*.
+- **Correlations:** `=FLOsimula_correlation("Share","Price",-0.6,0)`, or *Insert correlation*,
+  which opens the correlation window. The type codes are those of MC FLO.
 - **Results:** all `fMC_…` functions. *Formulas → Insert Function* shows them in the MC FLO
-  categories: Descriptive Statistics, Relationship functions, Portfolio/Financial Functions,
-  Parameter-free statistics, Classical Linear Regression, Generative/Bayesian statistics, Other
-  functions, and MC FLO Model functions for the `FLOsimula_` functions. The Function Wizard shows
-  a description of each function and of each argument.
+  categories, with a description of each function and argument. The *Functions* menu of the
+  ribbon lists them by category as well.
 - **Array results:** functions that return a table spill automatically in Microsoft 365 and Excel 2021.
   In older versions, select the output range and confirm with Ctrl+Shift+Enter.
 
-### MC FLO menu (Add-ins tab)
+### The MC FLO ribbon tab
 
-| Entry | What it does |
+The tab has the same groups, commands and icons as the LibreOffice version:
+
+| Group | Commands |
 |---|---|
-| Start simulation | Runs the simulation. A first calculation finds the input and output cells, then every iteration recalculates the workbook and records the variables. Esc cancels. At the end a summary is shown, and the `fMC_` functions show the results. |
-| Reset | Forgets the results. |
-| Settings… | Iterations, seed (0 = random, −1 = preview mode), worst/real/best case levels and *use correlations*. The values are stored in the workbook as hidden names `MonteCalc_Iterations`, `MonteCalc_Seed`, … |
-| Insert output variable… | Adds `+FLOsimula_output("Name")` to the selected cell. |
-| Language: Auto / English / Deutsch / Español | Language of the menu, messages, dialogs and the Function Wizard categories. "Auto" follows the Windows display language. The choice is shared with the LibreOffice version (`Documents\MC_FLO_language.txt`). |
-| About MonteCalc | Version information. |
+| Model specification | Continuous, discrete and time-series distribution menus (each opens the wizard), Wizard, Insert correlation, Insert output, Register, Lock, Fit distribution |
+| Information | Influence diagram, Functions menu (the `fMC_` functions by MC FLO category, plus the Function Wizard), Model, Show variables, AI mentor |
+| Simulation | Best / Real / Worst levels and Iterations (edit boxes), *Use correlations* and *Visualize* check boxes, Multiple simulation (variants), Start, Reset, Settings |
+| Statistics | Variable drop-down, Show statistical parameters, Result window, Select variant |
+| Correlations | X / Y drop-downs, Calculate correlations, Correlogram |
+| Iteration | Iteration number, Replay, Expected values |
+| Results | Close and save results (result workbook), Store results, Change histogram |
+| Other | Sort ascending / descending, Model check, Forecast tool, Batch, Hide / load formulas, Variables, Write context, Preview, Language (Auto / English / Deutsch / Español), About |
+
+### Windows
+
+The windows are those of the LibreOffice version, drawn natively on Windows:
+- result window: histogram, cumulative curve, tornado chart, decision matrix, scatter / regression,
+  statistics table, with magic stripe, certainty level and limits;
+- distribution wizard with preview, fit window, correlation window and correlogram;
+- variable list, influence diagram and AI mentor.
+
+The language of the ribbon, the windows, the messages and the Function Wizard categories follows
+the *Language* choice. "Auto" follows the Windows display language. The choice is shared with
+the LibreOffice version (`Documents\MC_FLO_language.txt`).
 
 The commands are also macros (`MCFLO.Start`, `MCFLO.Reset`, `MCFLO.Settings`, …). You can call
 them from VBA with `Application.Run "MCFLO.Start"`.
 
+### If the MC FLO tab does not appear
+
+The ribbon tab comes from a small COM add-in inside the `.xll`, which registers itself for the
+current user when the add-in loads (no administrator rights needed). If the tab is missing, check
+*File → Options → Add-ins → Manage: COM Add-ins → Go…* and tick **MonteCalc**. The commands are
+also on the **Add-ins** tab (*MC FLO* menu) as a fallback.
+
 ## Differences from the LibreOffice version
 
-The spreadsheet functions are identical: same code, same results for the same seed. The
-LibreOffice windows are built on LibreOffice's own user interface toolkit, so they are not part of
-the Excel add-in:
-- the result window (histogram, tornado chart, decision matrix, scatter plots);
-- the wizards;
-- the influence diagram;
-- the correlation window;
-- the AI mentor.
-
-The Excel add-in also does not include multiple simulation (variants), Memory Calculation or the
-result workbook. In Excel, use the `fMC_` functions and Excel's own charts for the results.
-
-Function descriptions in the Function Wizard are in English. The menu, messages, dialogs and
-category names follow the chosen language.
+The functions, windows and commands are the same code with the same results for the same seed.
+Saved result files are `.xlsx` instead of `.ods`. Function descriptions in the Function Wizard are
+in English. The menu, ribbon, messages, windows and category names follow the chosen language.
 
 ## Build
 
@@ -84,3 +95,5 @@ On Linux:
   registration, the menu, a full simulation, the result functions, arrays, errors, settings and
   the languages.
 - `make xll` cross-compiles the 64-bit `.xll` with mingw-w64.
+- `make build/xll/xll_wine_test.exe` builds the ribbon and window test. Run it with Wine or on
+  Windows: `xll_wine_test ribbon out.xml`, or `xll_wine_test window results|tornado|decision|scatter|wizard|settings 5 [Deutsch]`.

@@ -1,9 +1,13 @@
 // MonteCalc - result workbook (Summary, Statistics, Sensitivity, Variants, Data)
 #pragma once
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/frame/XModel.hpp>
 #include <com/sun/star/lang/XComponent.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
+#else
+#include "../xll/uno_shim.hpp"
+#endif
 
 #include <string>
 
@@ -15,7 +19,7 @@ namespace css = com::sun::star;
 // simulation. `model` is the model document (its URL is remembered for
 // "Close and save results"). Returns a note (e.g. CSV export path) or "".
 std::string createReport(const css::uno::Reference<css::uno::XComponentContext>& ctx, bool hidden,
-                         css::uno::Reference<css::lang::XComponent>* created,
+                         class ModelDoc* created,
                          const css::uno::Reference<css::frame::XModel>& model);
 
 // Rebuilds the Statistics sheet of a result workbook with a new number of bins.

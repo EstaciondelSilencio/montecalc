@@ -118,6 +118,23 @@ jobs:
           $count = ([regex]::Matches($e, "\smc_\w+")).Count
           Write-Host "exports ok: $count mc_ functions"
           if ($count -lt 178) { throw "only $count function exports" }
+          foreach ($n in "DllGetClassObject", "DllCanUnloadNow", "mcRunInternal", "mcConnectRibbon") {
+            if ($e -notmatch "\s$n\r?\n") { throw "missing export $n" }
+          }
+      - name: Test the ribbon and the windows
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          .\build-xll\xll_win_test.exe ribbon ribbon.xml
+          if ($LASTEXITCODE -ne 0) { throw "ribbon test failed" }
+          [xml]$x = Get-Content ribbon.xml
+          $buttons = $x.SelectNodes("//*[local-name()='button']").Count
+          Write-Host "ribbon: $buttons buttons"
+          if ($buttons -lt 150) { throw "only $buttons ribbon buttons" }
+          foreach ($k in "results", "tornado", "wizard") {
+            .\build-xll\xll_win_test.exe window $k 2
+            if ($LASTEXITCODE -ne 0) { throw "window $k failed" }
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: MonteCalc-Excel-${{ matrix.arch }}

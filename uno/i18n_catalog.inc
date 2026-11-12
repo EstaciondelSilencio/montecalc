@@ -420,6 +420,8 @@
 {{"Simulation finished: {} iterations x {} variants in {} s", "Simulation beendet: {} Iterationen x {} Varianten in {} s", "Simulaci\xc3""\xb3""n terminada: {} iteraciones x {} variantes en {} s"}},
 {{"Simulation finished: {} iterations in {} s (memory calculation)", "Simulation beendet: {} Iterationen in {} s (Memory Calculation)", "Simulaci\xc3""\xb3""n terminada: {} iteraciones en {} s (memory calculation)"}},
 {{"Simulation finished: {} iterations in {} s", "Simulation beendet: {} Iterationen in {} s", "Simulaci\xc3""\xb3""n terminada: {} iteraciones en {} s"}},
+{{"{}: mean {}, std dev {}, worst {}, real {}, best {}", "{}: Mittelwert {}, Std.abw. {}, Worst {}, Real {}, Best {}", "{}: media {}, desv. est. {}, peor {}, real {}, mejor {}"}},
+{{"Variant {}:", "Variante {}:", "Variante {}:"}},
 {{"Memory calculation not possible ({}); the spreadsheet was recalculated instead.", "Memory Calculation nicht m\xc3""\xb6""glich ({}); stattdessen wurde die Tabelle neu berechnet.", "Memory calculation no es posible ({}); en su lugar se recalcul\xc3""\xb3"" la hoja."}},
 {{"Unknown command: {}", "Unbekannter Befehl: {}", "Comando desconocido: {}"}},
 {{"The active document is not a MonteCalc result workbook.", "Das aktive Dokument ist keine MonteCalc Ergebnisarbeitsmappe.", "El documento activo no es un libro de resultados de MonteCalc."}},

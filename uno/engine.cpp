@@ -6,12 +6,16 @@
 #include "ui.hpp"
 #include "util.hpp"
 #include "windows.hpp"
+#ifdef MONTECALC_XLL
+#include "../xll/com.hpp"
+#endif
 
 #include "../core/fitting.h"
 #include "../core/flofuncs.h"
 #include "../core/formula.h"
 #include "../core/stats.h"
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/Toolkit.hpp>
 #include <com/sun/star/awt/XToolkitExperimental.hpp>
 #include <com/sun/star/beans/PropertyAttribute.hpp>
@@ -56,6 +60,9 @@
 #include <com/sun/star/container/XEnumeration.hpp>
 #include <com/sun/star/container/XEnumerationAccess.hpp>
 #include <cppuhelper/supportsservice.hxx>
+#else
+#include "../xll/uno_shim.hpp"
+#endif
 
 #include <algorithm>
 #include <chrono>
@@ -71,8 +78,10 @@ using namespace com::sun::star;
 using com::sun::star::uno::Any;
 using com::sun::star::uno::Reference;
 using com::sun::star::uno::Sequence;
+#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY;
 using com::sun::star::uno::UNO_QUERY_THROW;
+#endif
 
 namespace montecalc {
 
@@ -81,45 +90,6 @@ namespace {
 const char* kPrefix = "org.montecalc:";
 
 // ---------------------------------------------------------------- document properties
-Reference<beans::XPropertyContainer> userProps(const Reference<frame::XModel>& m) {
-    Reference<document::XDocumentPropertiesSupplier> s(m, UNO_QUERY);
-    if (!s.is()) return {};
-    return s->getDocumentProperties()->getUserDefinedProperties();
-}
-
-Any readPropAny(const Reference<frame::XModel>& m, const char* name) {
-    Reference<beans::XPropertySet> ps(userProps(m), UNO_QUERY);
-    OUString n = OUString::createFromAscii(name);
-    if (!ps.is() || !ps->getPropertySetInfo()->hasPropertyByName(n)) return {};
-    return ps->getPropertyValue(n);
-}
-
-double readProp(const Reference<frame::XModel>& m, const char* name, double def) {
-    Any a = readPropAny(m, name);
-    double d;
-    if (a >>= d) return d;
-    OUString s;
-    if (a >>= s) { bool ok; double v = parseNumber(u8(s), ok); if (ok) return v; }
-    return def;
-}
-
-std::string readPropText(const Reference<frame::XModel>& m, const char* name) {
-    OUString s;
-    readPropAny(m, name) >>= s;
-    return u8(s);
-}
-
-void writeProp(const Reference<frame::XModel>& m, const char* name, const Any& v) {
-    auto c = userProps(m);
-    Reference<beans::XPropertySet> ps(c, UNO_QUERY);
-    if (!ps.is()) return;
-    OUString n = OUString::createFromAscii(name);
-    if (ps->getPropertySetInfo()->hasPropertyByName(n)) {
-        c->removeProperty(n);
-    }
-    if (v.hasValue()) c->addProperty(n, beans::PropertyAttribute::REMOVABLE, v);
-}
-
 bool argValue(const Sequence<beans::PropertyValue>& args, const char* name, Any& out) {
     for (const auto& p : args)
         if (p.Name.equalsAscii(name)) { out = p.Value; return true; }
@@ -154,11 +124,6 @@ bool validateOptions(const RunOptions& o, std::string& err) {
 }
 
 // ---------------------------------------------------------------- variants (multiple simulation)
-struct Variant {
-    std::string label;
-    double value = 0;
-    table::CellAddress ref;
-};
 
 bool parseRange(const ModelDoc& d, const std::string& text, table::CellRangeAddress& r) {
     std::string t;
@@ -186,9 +151,11 @@ std::string rangeText(const ModelDoc& d, const table::CellRangeAddress& r) {
     return d.cellName(a, true) + ":" + d.cellName(b, false);
 }
 
+} // namespace
+
 std::vector<Variant> loadVariants(const ModelDoc& d) {
     std::vector<Variant> v;
-    std::string t = readPropText(d.model(), "MonteCalc.Variants");
+    std::string t = d.propertyText("MonteCalc.Variants");
     table::CellRangeAddress r;
     if (t.empty() || !parseRange(d, t, r) || r.EndColumn - r.StartColumn < 2) return v;
     for (sal_Int32 row = r.StartRow; row <= r.EndRow; ++row) {
@@ -196,10 +163,10 @@ std::vector<Variant> loadVariants(const ModelDoc& d) {
         auto c0 = d.cell(table::CellAddress(r.Sheet, r.StartColumn, row));
         auto c1 = d.cell(table::CellAddress(r.Sheet, r.StartColumn + 1, row));
         auto c2 = d.cell(table::CellAddress(r.Sheet, r.StartColumn + 2, row));
-        x.label = u8(Reference<text::XText>(c0, UNO_QUERY_THROW)->getString());
-        x.value = c1->getValue();
-        std::string ref = c2->getType() == table::CellContentType_FORMULA ? u8(c2->getFormula())
-                                                                           : u8(Reference<text::XText>(c2, UNO_QUERY_THROW)->getString());
+        x.label = u8(c0.text());
+        x.value = c1.value();
+        std::string ref = c2.type() == CellType::Formula ? u8(c2.formula())
+                                                                           : u8(c2.text());
         if (!ref.empty() && ref[0] == '=') ref = ref.substr(1);
         if (x.label.empty() || !d.parseAddress(ref, x.ref)) continue;
         if (ref.find('.') == std::string::npos) x.ref.Sheet = r.Sheet;
@@ -209,18 +176,20 @@ std::vector<Variant> loadVariants(const ModelDoc& d) {
 }
 
 // saved formulas of input cells while an iteration is shown ("Analyse selected iteration")
-std::map<void*, std::vector<std::pair<table::CellAddress, OUString>>>& replayStore() {
-    static std::map<void*, std::vector<std::pair<table::CellAddress, OUString>>> s;
+std::map<const void*, std::vector<std::pair<table::CellAddress, std::string>>>& replayStore() {
+    static std::map<const void*, std::vector<std::pair<table::CellAddress, std::string>>> s;
     return s;
 }
 
 void restoreReplay(const ModelDoc& d) {
     auto& store = replayStore();
-    auto it = store.find(d.model().get());
+    auto it = store.find(d.key());
     if (it == store.end()) return;
-    for (auto& [a, f] : it->second) d.cell(a)->setFormula(f);
+    for (auto& [a, f] : it->second) d.cell(a).setFormula(f);
     store.erase(it);
 }
+
+namespace {
 
 // span of the first FLOsimula call in a formula: [nameStart, openParen, closeParen]
 bool callSpan(const std::string& f, size_t& open, size_t& close) {
@@ -253,80 +222,73 @@ std::string quote(const std::string& s) {
 
 } // namespace
 
-RunOptions loadOptions(const Reference<frame::XModel>& m) {
+RunOptions loadOptions(const ModelDoc& d) {
     RunOptions o;
-    o.s.iterations = int(readProp(m, "MonteCalc.Iterations", 1000));
-    o.s.seed = (long long)readProp(m, "MonteCalc.Seed", 0);
-    o.s.worst = readProp(m, "MonteCalc.Worst", 0.05);
-    o.s.real = readProp(m, "MonteCalc.Real", 0.5);
-    o.s.best = readProp(m, "MonteCalc.Best", 0.95);
-    o.s.bins = int(readProp(m, "MonteCalc.Bins", 20));
-    o.visualize = readProp(m, "MonteCalc.Visualize", 0) != 0;
-    o.report = readProp(m, "MonteCalc.Report", 0) != 0;
-    o.memory = readProp(m, "MonteCalc.Memory", 0) != 0;
-    o.dip = readProp(m, "MonteCalc.DIP", 0) != 0;
-    o.s.useCorrelations = readProp(m, "MonteCalc.UseCorrelations", 1) != 0;
+    auto readProp = [&](const char* n, double def) { return d.property(n, def); };
+    o.s.iterations = int(readProp("MonteCalc.Iterations", 1000));
+    o.s.seed = (long long)readProp("MonteCalc.Seed", 0);
+    o.s.worst = readProp("MonteCalc.Worst", 0.05);
+    o.s.real = readProp("MonteCalc.Real", 0.5);
+    o.s.best = readProp("MonteCalc.Best", 0.95);
+    o.s.bins = int(readProp("MonteCalc.Bins", 20));
+    o.visualize = readProp("MonteCalc.Visualize", 0) != 0;
+    o.report = readProp("MonteCalc.Report", 0) != 0;
+    o.memory = readProp("MonteCalc.Memory", 0) != 0;
+    o.dip = readProp("MonteCalc.DIP", 0) != 0;
+    o.s.useCorrelations = readProp("MonteCalc.UseCorrelations", 1) != 0;
     return o;
 }
 
-void saveOptions(const Reference<frame::XModel>& m, const RunOptions& o) {
-    writeProp(m, "MonteCalc.Iterations", Any(double(o.s.iterations)));
-    writeProp(m, "MonteCalc.Seed", Any(double(o.s.seed)));
-    writeProp(m, "MonteCalc.Worst", Any(o.s.worst));
-    writeProp(m, "MonteCalc.Real", Any(o.s.real));
-    writeProp(m, "MonteCalc.Best", Any(o.s.best));
-    writeProp(m, "MonteCalc.Bins", Any(double(o.s.bins)));
-    writeProp(m, "MonteCalc.Visualize", Any(o.visualize ? 1.0 : 0.0));
-    writeProp(m, "MonteCalc.Report", Any(o.report ? 1.0 : 0.0));
-    writeProp(m, "MonteCalc.Memory", Any(o.memory ? 1.0 : 0.0));
-    writeProp(m, "MonteCalc.DIP", Any(o.dip ? 1.0 : 0.0));
-    writeProp(m, "MonteCalc.UseCorrelations", Any(o.s.useCorrelations ? 1.0 : 0.0));
+void saveOptions(const ModelDoc& d, const RunOptions& o) {
+    auto writeProp = [&](const char* n, const Any& v) { d.setProperty(n, v); };
+    writeProp("MonteCalc.Iterations", Any(double(o.s.iterations)));
+    writeProp("MonteCalc.Seed", Any(double(o.s.seed)));
+    writeProp("MonteCalc.Worst", Any(o.s.worst));
+    writeProp("MonteCalc.Real", Any(o.s.real));
+    writeProp("MonteCalc.Best", Any(o.s.best));
+    writeProp("MonteCalc.Bins", Any(double(o.s.bins)));
+    writeProp("MonteCalc.Visualize", Any(o.visualize ? 1.0 : 0.0));
+    writeProp("MonteCalc.Report", Any(o.report ? 1.0 : 0.0));
+    writeProp("MonteCalc.Memory", Any(o.memory ? 1.0 : 0.0));
+    writeProp("MonteCalc.DIP", Any(o.dip ? 1.0 : 0.0));
+    writeProp("MonteCalc.UseCorrelations", Any(o.s.useCorrelations ? 1.0 : 0.0));
 }
 
 // ============================================================ simulation run
 
-namespace {
-
-struct Recorder {
-    std::vector<VarCell> cells;   // inputs and outputs to record
-    std::vector<Reference<table::XCell>> xcells;
-    std::vector<int> index;       // variable index in the simulation state
-};
-
-double cellValue(const Reference<table::XCell>& c) {
-    if (c->getError() != 0) return std::nan("");
-    if (c->getType() == table::CellContentType_TEXT) return std::nan("");
-    return c->getValue();
+double cellValue(const Cell& c) {
+    if (c.error() != 0) return std::nan("");
+    if (c.type() == CellType::Text) return std::nan("");
+    return c.value();
 }
 
-void storeDip(const ModelDoc& d) {
+void storeDip(const ModelDoc& d0) {
     auto& sim = mc::Simulation::instance();
     auto outs = sim.resultNames(mc::VarKind::Output);
-    Reference<sheet::XSpreadsheets> sheets = d.doc()->getSheets();
-    if (!sheets->hasByName("FLO_Results")) sheets->insertNewByName("FLO_Results", sal_Int16(d.sheetNames().size()));
-    Reference<sheet::XSpreadsheet> sh(sheets->getByName("FLO_Results"), UNO_QUERY_THROW);
-    Reference<beans::XPropertySet>(sh, UNO_QUERY_THROW)->setPropertyValue("IsVisible", Any(false));
-    int sheetIdx = d.sheetIndex("FLO_Results");
-    ModelDoc& md = const_cast<ModelDoc&>(d);
-    md.removeNamedRangesWithPrefix("FLO_r_");
+    ModelDoc d = d0;
+    int sheetIdx = d.ensureSheet("FLO_Results", false);
+    d.removeNamedRangesWithPrefix("FLO_r_");
     for (size_t j = 0; j < outs.size(); ++j) {
         std::vector<double> v;
         sim.samples(outs[j], v);
         if (v.empty() || v.size() > 1000000) continue;
-        Sequence<Sequence<Any>> data(sal_Int32(v.size() + 1));
-        data.getArray()[0] = seq<Any>({Any(ou(outs[j]))});
-        for (size_t i = 0; i < v.size(); ++i) data.getArray()[i + 1] = seq<Any>({std::isfinite(v[i]) ? Any(v[i]) : Any(OUString())});
-        auto rg = sh->getCellRangeByPosition(sal_Int32(j), 0, sal_Int32(j), sal_Int32(v.size()));
-        Reference<sheet::XCellRangeData>(rg, UNO_QUERY_THROW)->setDataArray(data);
+        std::vector<std::vector<Any>> data(v.size() + 1);
+        data[0] = {Any(ou(outs[j]))};
+        for (size_t i = 0; i < v.size(); ++i) data[i + 1] = {std::isfinite(v[i]) ? Any(v[i]) : Any()};
+        d.writeTable(sheetIdx, 0, int(j), data);
         // FLO_r_<name> refers to the values (without the header)
-        Reference<beans::XPropertySet> ps(d.doc(), UNO_QUERY_THROW);
-        Reference<sheet::XNamedRanges> nr(ps->getPropertyValue("NamedRanges"), UNO_QUERY_THROW);
-        std::string name = "FLO_r_" + mc::formula::sanitizeName(outs[j]);
-        std::string col = mc::formula::columnName(int(j));
-        nr->addNewByName(ou(name), ou("$'FLO_Results'.$" + col + "$2:$" + col + "$" + std::to_string(v.size() + 1)),
-                         table::CellAddress(sal_Int16(sheetIdx), 0, 0), 0);
+        d.setNamedArea("FLO_r_" + mc::formula::sanitizeName(outs[j]), sheetIdx, int(j), 1, int(v.size()));
     }
 }
+
+#ifndef MONTECALC_XLL
+namespace {
+
+struct Recorder {
+    std::vector<VarCell> cells;   // inputs and outputs to record
+    std::vector<Cell> xcells;
+    std::vector<int> index;       // variable index in the simulation state
+};
 
 void runOne(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame, const ModelDoc& d,
             const RunOptions& o, const std::string& label, RunResult& rr, const Reference<task::XStatusIndicator>& ind) {
@@ -437,21 +399,21 @@ RunResult runSimulation(const Reference<uno::XComponentContext>& ctx, const Refe
             runOne(ctx, frame, d, o, "", rr, ind);
         } else {
             // remember the reference cells and restore them afterwards
-            std::map<std::string, std::pair<table::CellAddress, OUString>> saved;
+            std::map<std::string, std::pair<table::CellAddress, std::string>> saved;
             for (auto& v : variants) {
                 std::string k = d.cellName(v.ref);
-                if (!saved.count(k)) saved[k] = {v.ref, d.cell(v.ref)->getFormula()};
+                if (!saved.count(k)) saved[k] = {v.ref, d.cell(v.ref).formula()};
             }
             try {
                 for (auto& v : variants) {
-                    d.cell(v.ref)->setValue(v.value);
+                    d.cell(v.ref).setValue(v.value);
                     runOne(ctx, frame, d, o, v.label, rr, ind);
                 }
             } catch (...) {
-                for (auto& [k, s] : saved) d.cell(s.first)->setFormula(s.second);
+                for (auto& [k, s] : saved) d.cell(s.first).setFormula(s.second);
                 throw;
             }
-            for (auto& [k, s] : saved) d.cell(s.first)->setFormula(s.second);
+            for (auto& [k, s] : saved) d.cell(s.first).setFormula(s.second);
             sim.selectResultSet(0);
         }
     } catch (...) {
@@ -467,7 +429,7 @@ RunResult runSimulation(const Reference<uno::XComponentContext>& ctx, const Refe
     std::ostringstream os;
     auto labels = sim.resultSetLabels();
     os << "Simulation finished: " << o.s.iterations << " iterations" << (labels.size() > 1 ? " x " + std::to_string(labels.size()) + " variants" : "")
-       << " in " << fmtNum(rr.seconds) << " s" << (rr.memoryUsed ? " (memory calculation)" : "") << ".\n\n";
+       << " in " << fmtNum(rr.seconds) << " s" << (rr.memoryUsed ? " (memory calculation)" : "") << "\n\n";
     int active = sim.activeResultSet();
     for (size_t vi = 0; vi < labels.size(); ++vi) {
         if (labels.size() > 1) os << "Variant " << labels[vi] << ":\n";
@@ -489,7 +451,11 @@ RunResult runSimulation(const Reference<uno::XComponentContext>& ctx, const Refe
     return rr;
 }
 
+#endif   // LibreOffice simulation driver (Excel: xll/xll.cpp)
+
 // ============================================================ UNO plumbing
+
+#ifndef MONTECALC_XLL
 
 void Engine::initialize(const Sequence<Any>& args) {
     if (args.getLength() > 0) args[0] >>= frame_;
@@ -524,6 +490,9 @@ Reference<frame::XModel> Engine::model() {
     if (!frame_.is() || !frame_->getController().is()) return {};
     return frame_->getController()->getModel();
 }
+#else
+Reference<frame::XModel> Engine::model() { return {}; }   // ModelDoc: the active workbook
+#endif
 
 void Engine::message(const std::string& title, const std::string& text, bool error) {
     if (silent_) {
@@ -552,6 +521,7 @@ bool Engine::ask(const std::string& title, std::vector<FormField>& fields) {
     return showForm(ctx_, title, fields);
 }
 
+#ifndef MONTECALC_XLL
 void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>& args) {
     args_ = args;
     i18nSetContext(ctx_);
@@ -579,6 +549,46 @@ void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>
         args_ = Sequence<beans::PropertyValue>(extra.data(), sal_Int32(extra.size()));
     }
     silent_ = argNum(args_, "Silent", 0) != 0;
+    execute(cmd);
+}
+#endif
+
+#ifdef MONTECALC_XLL
+void Engine::run(const std::string& command, const std::vector<beans::PropertyValue>& args, bool silent) {
+    args_ = Sequence<beans::PropertyValue>(sal_Int32(args.size()));
+    for (size_t i = 0; i < args.size(); ++i) args_[sal_Int32(i)] = args[i];
+    silent_ = silent || argNum(args_, "Silent", 0) != 0;
+    std::string cmd = command, query;
+    size_t qm = cmd.find('?');   // "Wizard?Function=Normal" as in the LibreOffice menus
+    if (qm != std::string::npos) {
+        query = cmd.substr(qm + 1);
+        cmd = cmd.substr(0, qm);
+        std::vector<beans::PropertyValue> extra(args.begin(), args.end());
+        size_t pos = 0;
+        while (pos <= query.size()) {
+            size_t amp = query.find('&', pos);
+            std::string kv = query.substr(pos, amp == std::string::npos ? std::string::npos : amp - pos);
+            size_t eq = kv.find('=');
+            if (eq != std::string::npos) {
+                beans::PropertyValue p;
+                p.Name = ou(kv.substr(0, eq));
+                std::string val = kv.substr(eq + 1);
+                bool ok;
+                double num = parseNumber(val, ok);
+                p.Value = ok ? Any(num) : Any(ou(val));
+                extra.push_back(p);
+            }
+            if (amp == std::string::npos) break;
+            pos = amp + 1;
+        }
+        args_ = Sequence<beans::PropertyValue>(sal_Int32(extra.size()));
+        for (size_t i = 0; i < extra.size(); ++i) args_[sal_Int32(i)] = extra[i];
+    }
+    execute(cmd);
+}
+#endif
+
+void Engine::execute(const std::string& cmd) {
     try {
         ModelDoc d(model());
         if (!d.valid() && cmd != "About" && cmd != "Mentor") {
@@ -619,7 +629,7 @@ void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>
 
 void Engine::cmdSettings() {
     auto m = model();
-    RunOptions o = loadOptions(m);
+    RunOptions o = loadOptions(ModelDoc(m));
     std::vector<FormField> f = {
         {"# iterations", std::to_string(o.s.iterations)},
         {"Seed (0 = random, -1 = preview mode)", std::to_string(o.s.seed)},
@@ -652,7 +662,7 @@ void Engine::cmdSettings() {
     std::string err;
     if (!ok) err = "Please enter numbers only.";
     if (!err.empty() || !validateOptions(n, err)) { message("MonteCalc", err, true); return; }
-    saveOptions(m, n);
+    saveOptions(ModelDoc(m), n);
     if (f[11].value != languageSetting()) setLanguageSetting(f[11].value);   // menus follow LibreOffice's language
     auto& sim = mc::Simulation::instance();
     sim.setSettings(n.s);
@@ -665,7 +675,7 @@ void Engine::cmdSettings() {
 
 void Engine::cmdRun() {
     auto m = model();
-    RunOptions o = loadOptions(m);
+    RunOptions o = loadOptions(ModelDoc(m));
     o.s.iterations = int(argNum(args_, "Iterations", o.s.iterations));
     o.s.seed = (long long)argNum(args_, "Seed", double(o.s.seed));
     o.visualize = argNum(args_, "Visualize", o.visualize) != 0;
@@ -720,13 +730,20 @@ void Engine::cmdStoreResults() {
 void Engine::cmdSaveResults() {
     // "Close and save results": store the result workbook next to the model
     auto m = model();
-    std::string modelUrl = readPropText(m, "MonteCalc.Model");
+    std::string modelUrl = ModelDoc(m).propertyText("MonteCalc.Model");
     if (modelUrl.empty()) { message("MonteCalc", "The active document is not a MonteCalc result workbook.", true); return; }
     std::string dir = modelUrl.substr(0, modelUrl.rfind('/') + 1), base = modelUrl.substr(modelUrl.rfind('/') + 1);
     base = base.substr(0, base.rfind('.'));
     std::time_t t = std::time(nullptr);
     char stamp[64];
     std::strftime(stamp, sizeof stamp, "%d_%m_%Y_%H_%M_%S", std::localtime(&t));
+#ifdef MONTECALC_XLL
+    std::string url = dir + base + "_" + stamp + "_MC_FLO.xlsx";
+    ModelDoc d(m);
+    d.saveAs(url);
+    message("MonteCalc", "Results saved as " + url);
+    if (!silent_) d.close();
+#else
     std::string url = dir + base + "_" + stamp + "_MC_FLO.ods";
     Reference<frame::XStorable> st(m, UNO_QUERY_THROW);
     beans::PropertyValue pv;
@@ -736,6 +753,7 @@ void Engine::cmdSaveResults() {
     Reference<util::XCloseable> cl(m, UNO_QUERY);
     message("MonteCalc", "Results saved as " + url);
     if (cl.is() && !silent_) cl->close(true);
+#endif
 }
 
 void Engine::cmdReplay() {
@@ -751,14 +769,14 @@ void Engine::cmdReplay() {
     if (!ok || it < 1 || it > sim.iterations()) { message("MonteCalc", "Iteration must be between 1 and " + std::to_string(sim.iterations()) + ".", true); return; }
     ModelDoc d(model());
     restoreReplay(d);
-    auto& saved = replayStore()[d.model().get()];
+    auto& saved = replayStore()[d.key()];
     for (const auto& v : d.scan()) {
         if (v.kind != mc::VarKind::Input) continue;
         std::vector<double> s;
         if (!sim.samples(v.name, s) || it > int(s.size()) || !std::isfinite(s[it - 1])) continue;
         auto c = d.cell(v.addr);
-        saved.push_back({v.addr, c->getFormula()});
-        c->setValue(s[it - 1]);
+        saved.push_back({v.addr, c.formula()});
+        c.setValue(s[it - 1]);
     }
     d.recalc();
 }
@@ -790,7 +808,7 @@ void Engine::cmdSelectVariant() {
         if (labels[i] == f[0].value) {
             sim.selectResultSet(int(i));
             for (auto& v : loadVariants(d))
-                if (v.label == labels[i]) d.cell(v.ref)->setValue(v.value);
+                if (v.label == labels[i]) d.cell(v.ref).setValue(v.value);
         }
     d.recalc();
 }
@@ -806,7 +824,7 @@ void Engine::cmdChangeHistogram() {
     s.bins = b;
     sim.setSettings(s);
     auto m = model();
-    if (!readPropText(m, "MonteCalc.Model").empty()) rebuildStatistics(ctx_, m, b);
+    if (!ModelDoc(m).propertyText("MonteCalc.Model").empty()) rebuildStatistics(ctx_, m, b);
 }
 
 void Engine::cmdCalcCorrelations() {
@@ -846,14 +864,8 @@ void Engine::cmdModel() {
     if (!stale.empty()) {
         auto names = d.sheetNames();
         for (size_t si = 0; si < names.size(); ++si) {
-            Reference<sheet::XCellRangesQuery> q(d.sheet(int(si)), UNO_QUERY_THROW);
-            Reference<sheet::XSheetCellRanges> ranges = q->queryContentCells(sheet::CellFlags::FORMULA);
-            if (!ranges.is()) continue;
-            Reference<container::XEnumeration> en = ranges->getCells()->createEnumeration();
-            while (en->hasMoreElements()) {
-                Reference<table::XCell> c(en->nextElement(), UNO_QUERY);
-                if (!c.is()) continue;
-                std::string f = u8(c->getFormula()), uf = mc::lower(f);
+            for (auto& [addr, f0] : d.formulaCells(int(si))) {
+                std::string f = f0, uf = mc::lower(f);
                 bool changed = false;
                 for (auto& n : stale) {
                     std::string ln = mc::lower(n);
@@ -871,7 +883,7 @@ void Engine::cmdModel() {
                         }
                     }
                 }
-                if (changed) { c->setFormula(ou(f)); ++replaced; }
+                if (changed) { d.cell(addr).setFormula(f); ++replaced; }
             }
         }
         for (auto& n : stale) d.removeNamedRange(n);
@@ -899,8 +911,8 @@ void Engine::cmdRegister() {
         std::string name;
         if (c.addr.Column > 0) {
             auto l = d.cell(table::CellAddress(c.addr.Sheet, c.addr.Column - 1, c.addr.Row));
-            if (l->getType() == table::CellContentType_TEXT)
-                name = mc::formula::sanitizeName(u8(Reference<text::XText>(l, UNO_QUERY_THROW)->getString()));
+            if (l.type() == CellType::Text)
+                name = mc::formula::sanitizeName(u8(l.text()));
         }
         if (name.empty() || used.count(mc::lower(name))) name = d.defaultName(c.addr);
         used.insert(mc::lower(name));
@@ -920,7 +932,7 @@ void Engine::cmdRegister() {
         std::string inner;
         for (size_t i = 0; i < args.size(); ++i) inner += (i ? ";" : "") + args[i];
         std::string nf = f.substr(0, open + 1) + inner + f.substr(close);
-        d.cell(c.addr)->setFormula(ou(nf));
+        d.cell(c.addr).setFormula(ou(nf));
         c.name = name;
         c.named = true;
         ++renamed;
@@ -947,13 +959,15 @@ void Engine::cmdInsertOutput() {
     table::CellAddress a;
     if (!d.currentCell(a)) { message("MonteCalc", "Select the cell with the result to analyse.", true); return; }
     std::vector<FormField> f = {{"Name", ""}};
-    auto l = a.Column > 0 ? d.cell(table::CellAddress(a.Sheet, a.Column - 1, a.Row)) : Reference<table::XCell>();
-    if (l.is() && l->getType() == table::CellContentType_TEXT) f[0].value = mc::formula::sanitizeName(u8(Reference<text::XText>(l, UNO_QUERY_THROW)->getString()));
+    if (a.Column > 0) {
+        auto l = d.cell(table::CellAddress(a.Sheet, a.Column - 1, a.Row));
+        if (l.type() == CellType::Text) f[0].value = mc::formula::sanitizeName(l.text());
+    }
     if (!ask("MonteCalc - Insert output variable", f)) return;
     std::string name = mc::formula::sanitizeName(f[0].value);
     if (f[0].value.empty()) { message("MonteCalc", "Please enter a name.", true); return; }
     auto c = d.cell(a);
-    std::string cur = u8(c->getFormula()), nf;
+    std::string cur = u8(c.formula()), nf;
     std::string out = "FLOsimula_output(" + quote(name) + ")";
     if (cur.empty()) nf = "=+" + out;
     else if (cur[0] == '=') {
@@ -964,7 +978,7 @@ void Engine::cmdInsertOutput() {
     } else {
         nf = "=" + cur + "+" + out;
     }
-    c->setFormula(ou(nf));
+    c.setFormula(ou(nf));
     d.setNamedRange("FLO_o_" + name, a);
     d.setBackground(a, kColorOutput);
 }
@@ -998,25 +1012,24 @@ void Engine::cmdLock() {
 
 void Engine::cmdMultipleSimulation() {
     ModelDoc d(model());
-    auto m = model();
     table::CellRangeAddress r;
     if (!d.selectionRange(r)) return;
     // remove the previous selection's marking
-    std::string old = readPropText(m, "MonteCalc.Variants");
+    std::string old = d.propertyText("MonteCalc.Variants");
     table::CellRangeAddress or_;
     if (!old.empty() && parseRange(d, old, or_))
         for (sal_Int32 row = or_.StartRow; row <= or_.EndRow; ++row)
             for (sal_Int32 col = or_.StartColumn; col <= or_.EndColumn; ++col) d.setBackground(table::CellAddress(or_.Sheet, col, row), -1);
     bool single = r.StartColumn == r.EndColumn && r.StartRow == r.EndRow;
     if (single || r.EndColumn - r.StartColumn < 2) {
-        writeProp(m, "MonteCalc.Variants", Any());
+        d.setProperty("MonteCalc.Variants", Any());
         message("MonteCalc", "Multiple simulation reset.");
         return;
     }
-    writeProp(m, "MonteCalc.Variants", Any(ou(rangeText(d, r))));
+    d.setProperty("MonteCalc.Variants", Any(ou(rangeText(d, r))));
     auto v = loadVariants(d);
     if (v.empty()) {
-        writeProp(m, "MonteCalc.Variants", Any());
+        d.setProperty("MonteCalc.Variants", Any());
         message("MonteCalc", "Select rows with Variant, Value and Reference (=cell), without headings.", true);
         return;
     }
@@ -1043,39 +1056,35 @@ void Engine::cmdHideFormulas() {
     ModelDoc d(model());
     auto cells = d.scan();
     if (cells.empty()) { message("MonteCalc", "No MC FLO formulas found.", true); return; }
-    Reference<sheet::XSpreadsheets> sheets = d.doc()->getSheets();
-    if (!sheets->hasByName("FLO_Hidden")) sheets->insertNewByName("FLO_Hidden", sal_Int16(d.sheetNames().size()));
-    Reference<sheet::XSpreadsheet> h(sheets->getByName("FLO_Hidden"), UNO_QUERY_THROW);
-    Reference<beans::XPropertySet>(h, UNO_QUERY_THROW)->setPropertyValue("IsVisible", Any(false));
+    int h = d.ensureSheet("FLO_Hidden", false);
     // append below existing entries
     sal_Int32 row = 0;
-    while (h->getCellByPosition(0, row)->getType() != table::CellContentType_EMPTY) ++row;
+    while (d.cell(table::CellAddress(sal_Int16(h), 0, row)).type() != CellType::Empty) ++row;
     for (auto& c : cells) {
         auto x = d.cell(c.addr);
-        h->getCellByPosition(0, row)->setFormula(ou(d.cellName(c.addr)));
-        Reference<text::XText>(h->getCellByPosition(1, row), UNO_QUERY_THROW)->setString(x->getFormula());
+        d.cell(table::CellAddress(sal_Int16(h), 0, row)).setText(d.cellName(c.addr));
+        d.cell(table::CellAddress(sal_Int16(h), 1, row)).setText(x.formula());
         ++row;
-        double v = x->getValue();
-        x->setValue(v);
+        double v = x.value();
+        x.setValue(v);
     }
     message("MonteCalc - Hide formulas", std::to_string(cells.size()) + " MC FLO formulas replaced by their values. Use 'Load formulas' to restore them.");
 }
 
 void Engine::cmdLoadFormulas() {
     ModelDoc d(model());
-    Reference<sheet::XSpreadsheets> sheets = d.doc()->getSheets();
-    if (!sheets->hasByName("FLO_Hidden")) { message("MonteCalc", "There are no hidden formulas.", true); return; }
-    Reference<sheet::XSpreadsheet> h(sheets->getByName("FLO_Hidden"), UNO_QUERY_THROW);
+    int h = d.sheetIndex("FLO_Hidden");
+    if (h < 0) { message("MonteCalc", "There are no hidden formulas.", true); return; }
     int n = 0;
     for (sal_Int32 row = 0;; ++row) {
-        auto a = h->getCellByPosition(0, row);
-        if (a->getType() == table::CellContentType_EMPTY) break;
+        auto a = d.cell(table::CellAddress(sal_Int16(h), 0, row));
+        if (a.type() == CellType::Empty) break;
         table::CellAddress addr;
-        if (!d.parseAddress(u8(Reference<text::XText>(a, UNO_QUERY_THROW)->getString()), addr)) continue;
-        d.cell(addr)->setFormula(Reference<text::XText>(h->getCellByPosition(1, row), UNO_QUERY_THROW)->getString());
+        if (!d.parseAddress(a.text(), addr)) continue;
+        d.cell(addr).setFormula(d.cell(table::CellAddress(sal_Int16(h), 1, row)).text());
         ++n;
     }
-    sheets->removeByName("FLO_Hidden");
+    d.removeSheet("FLO_Hidden");
     d.recalc();
     message("MonteCalc - Load formulas", std::to_string(n) + " formulas restored.");
 }
@@ -1092,21 +1101,11 @@ void Engine::cmdModelCheck() {
     auto src = d.formulaSource();
     for (size_t s = 0; s < names.size(); ++s) {
         if (names[s].rfind("FLO_", 0) == 0) continue;
-        Reference<sheet::XCellRangesQuery> q(d.sheet(int(s)), UNO_QUERY_THROW);
-        auto vals = q->queryContentCells(sheet::CellFlags::VALUE);
-        if (vals.is()) {
-            auto en = vals->getCells()->createEnumeration();
-            while (en->hasMoreElements()) { en->nextElement(); ++constants; }
-        }
-        auto ranges = q->queryContentCells(sheet::CellFlags::FORMULA);
-        if (!ranges.is()) continue;
-        auto en = ranges->getCells()->createEnumeration();
-        while (en->hasMoreElements()) {
-            Reference<table::XCell> c(en->nextElement(), UNO_QUERY);
+        constants += long(d.valueCells(int(s)).size());
+        for (auto& [addr, f] : d.formulaCells(int(s))) {
             ++formulas;
-            auto addr = Reference<sheet::XCellAddressable>(c, UNO_QUERY_THROW)->getCellAddress();
-            std::string cell = d.cellName(addr), f = u8(c->getFormula());
-            if (c->getError() != 0) out.push_back({"Error value", cell, f});
+            std::string cell = d.cellName(addr);
+            if (d.cell(addr).error() != 0) out.push_back({"Error value", cell, f});
             mc::formula::NodePtr tree;
             try { tree = mc::formula::parse(f, int(s), src.get()); } catch (const std::exception& e) {
                 out.push_back({"Not supported by Memory Calculation", cell, e.what()});
@@ -1172,21 +1171,14 @@ void Engine::cmdModelCheck() {
     if (std::none_of(cells.begin(), cells.end(), [](auto& v) { return v.kind == mc::VarKind::Output; }))
         out.push_back({"No output variable", "", "Insert at least one output variable."});
 
-    Reference<frame::XComponentLoader> loader(frame::Desktop::create(ctx_), UNO_QUERY_THROW);
-    beans::PropertyValue hidden;
-    hidden.Name = "Hidden";
-    hidden.Value <<= silent_;
-    Reference<sheet::XSpreadsheetDocument> rep(loader->loadComponentFromURL("private:factory/scalc", "_blank", 0, seq<beans::PropertyValue>({hidden})), UNO_QUERY_THROW);
-    Reference<container::XIndexAccess> ia(rep->getSheets(), UNO_QUERY_THROW);
-    Reference<sheet::XSpreadsheet> sh(ia->getByIndex(0), UNO_QUERY_THROW);
-    Reference<container::XNamed>(sh, UNO_QUERY_THROW)->setName("Model check");
+    ModelDoc rep = ModelDoc::newDocument(ctx_, silent_);
+    rep.renameSheet(0, "Model check");
     std::vector<std::vector<Any>> rows = {{Any(OUString("Category")), Any(OUString("Cell")), Any(OUString("Detail"))}};
     rows.push_back({Any(OUString("Summary")), Any(OUString("")), Any(ou(std::to_string(formulas) + " formulas, " + std::to_string(constants) + " constants, " +
                                                                           std::to_string(cells.size()) + " MC FLO variables, " + std::to_string(out.size()) + " findings"))});
     for (auto& f : out) rows.push_back({Any(ou(f.category)), Any(ou(f.cell)), Any(ou(f.detail))});
-    Sequence<Sequence<Any>> data(sal_Int32(rows.size()));
-    for (size_t i = 0; i < rows.size(); ++i) data.getArray()[i] = seq<Any>({rows[i][0], rows[i][1], rows[i][2]});
-    Reference<sheet::XCellRangeData>(sh->getCellRangeByPosition(0, 0, 2, sal_Int32(rows.size()) - 1), UNO_QUERY_THROW)->setDataArray(data);
+    rep.writeTable(0, 0, 0, rows);
+    rep.optimalWidth(0, 0, 3);
     if (silent_) std::fprintf(stderr, "[MonteCalc] Model check: %zu findings\n", out.size());
 }
 
@@ -1203,7 +1195,7 @@ void Engine::cmdSort(bool asc) {
     for (size_t i = 0; i < v.size(); ++i) {
         table::CellAddress a = column ? table::CellAddress(r.Sheet, r.EndColumn + 1, r.StartRow + sal_Int32(i))
                                       : table::CellAddress(r.Sheet, r.StartColumn + sal_Int32(i), r.EndRow + 1);
-        d.cell(a)->setValue(v[i]);
+        d.cell(a).setValue(v[i]);
     }
 }
 
@@ -1249,14 +1241,11 @@ void writeSeries(const ModelDoc& d, table::CellAddress start, bool rowWise, cons
     for (size_t i = 0; i < v.size(); ++i) {
         table::CellAddress a = start;
         if (rowWise) a.Column += sal_Int32(i); else a.Row += sal_Int32(i);
-        d.cell(a)->setValue(v[i]);
+        d.cell(a).setValue(v[i]);
     }
 }
 
-void annotate(const ModelDoc& d, const table::CellAddress& a, const std::string& text) {
-    Reference<sheet::XSheetAnnotationsSupplier> s(d.sheet(a.Sheet), UNO_QUERY);
-    if (s.is()) s->getAnnotations()->insertNew(a, ou(text));
-}
+void annotate(const ModelDoc& d, const table::CellAddress& a, const std::string& text) { d.setComment(a, text); }
 
 } // namespace
 
@@ -1297,23 +1286,17 @@ void Engine::cmdStartBatch() {
     std::vector<std::string> errors;
     auto names = d.sheetNames();
     for (size_t s = 0; s < names.size(); ++s) {
-        Reference<sheet::XCellRangesQuery> q(d.sheet(int(s)), UNO_QUERY_THROW);
-        auto ranges = q->queryContentCells(sheet::CellFlags::FORMULA);
-        if (!ranges.is()) continue;
-        auto en = ranges->getCells()->createEnumeration();
-        std::vector<Reference<table::XCell>> batch;
-        while (en->hasMoreElements()) {
-            Reference<table::XCell> c(en->nextElement(), UNO_QUERY);
-            std::string u = u8(c->getFormula());
+        std::vector<std::pair<table::CellAddress, std::string>> batch;
+        for (auto& fc : d.formulaCells(int(s))) {
+            std::string u = fc.second;
             for (auto& ch : u) ch = char(std::toupper((unsigned char)ch));
-            if (u.find("FMC_BATCH_") != std::string::npos) batch.push_back(c);
+            if (u.find("FMC_BATCH_") != std::string::npos) batch.push_back(fc);
         }
-        for (auto& c : batch) {
-            auto addr = Reference<sheet::XCellAddressable>(c, UNO_QUERY_THROW)->getCellAddress();
+        for (auto& [addr, formula] : batch) {
             try {
                 std::string func;
                 std::vector<std::string> args;
-                if (!mc::formula::findCall(u8(c->getFormula()), "FMC_BATCH_", func, args) || args.empty())
+                if (!mc::formula::findCall(formula, "FMC_BATCH_", func, args) || args.empty())
                     throw std::runtime_error("cannot read the batch formula");
                 auto num = [&](size_t i, double def) {
                     if (i >= args.size()) return def;
@@ -1322,7 +1305,7 @@ void Engine::cmdStartBatch() {
                     double v = parseNumber(mc::formula::unquote(t, ok), ok);
                     if (ok) return v;
                     table::CellAddress ra;
-                    if (d.parseAddress(t, ra)) return d.cell(ra)->getValue();
+                    if (d.parseAddress(t, ra)) return d.cell(ra).value();
                     return def;
                 };
                 table::CellRangeAddress rg;
@@ -1333,8 +1316,8 @@ void Engine::cmdStartBatch() {
                 for (sal_Int32 row = rg.StartRow; row <= rg.EndRow; ++row)
                     for (sal_Int32 col = rg.StartColumn; col <= rg.EndColumn; ++col) {
                         auto x = d.cell(table::CellAddress(rg.Sheet, col, row));
-                        if (x->getType() == table::CellContentType_VALUE || (x->getType() == table::CellContentType_FORMULA && x->getError() == 0))
-                            y.push_back(x->getValue());
+                        if (x.type() == CellType::Value || (x.type() == CellType::Formula && x.error() == 0))
+                            y.push_back(x.value());
                     }
                 int h = int(num(1, 1));
                 bool rowWise = num(2, 0) == 0;
@@ -1379,6 +1362,9 @@ const std::vector<FunctionCategory>& functionMenu() {
     return m;
 }
 
+#ifdef MONTECALC_XLL
+void Engine::cmdFunctions() { message("MonteCalc", "Use the Functions menu of the MC FLO tab.", false); }
+#else
 void Engine::cmdFunctions() {
     // a popup menu with one submenu per category, opened at the top left of the sheet
     Reference<awt::XPopupMenu> menu = awt::PopupMenu::create(ctx_);
@@ -1401,6 +1387,7 @@ void Engine::cmdFunctions() {
     if (c >= cats.size() || k >= cats[c].functions.size()) return;
     insertFunction(cats[c].functions[k]);
 }
+#endif
 
 void Engine::cmdInsertFunction() { insertFunction(argText(args_, "Name")); }
 
@@ -1412,16 +1399,24 @@ void Engine::insertFunction(const std::string& name) {
     table::CellAddress a;
     if (!d.currentCell(a)) { message("MonteCalc - Insert function", "Select a cell for the function.", true); return; }
     auto c = d.cell(a);
-    if (!u8(c->getFormula()).empty()) { message("MonteCalc - Insert function", "Select an empty cell for the function.", true); return; }
-    c->setFormula(ou("=" + name + "()"));
+    if (!u8(c.formula()).empty()) { message("MonteCalc - Insert function", "Select an empty cell for the function.", true); return; }
+    c.setFormula(ou("=" + name + "()"));
     if (silent_) return;
+#ifdef MONTECALC_XLL
+    com::application().obj("Dialogs", {com::Var(450)}).call("Show");   // xlDialogFunctionWizard
+#else
     Reference<frame::XDispatchHelper> h = frame::DispatchHelper::create(ctx_);
     h->executeDispatch(Reference<frame::XDispatchProvider>(frame_, UNO_QUERY_THROW), ".uno:FunctionDialog", "", 0, {});
+#endif
 }
 
 void Engine::cmdAbout() {
     message("About MonteCalc",
+#ifdef MONTECALC_XLL
+            "MonteCalc - Monte Carlo simulation for Microsoft Excel, following the MC FLO workflow.\n\n"
+#else
             "MonteCalc - Monte Carlo simulation for LibreOffice Calc, following the MC FLO workflow.\n\n"
+#endif
             "1. Model uncertain inputs with FLOsimula_ functions (Choose Wizard or Fit distribution).\n"
             "2. Insert correlations and output variables; Register variables.\n"
             "3. Start the simulation and analyse the result window, the result workbook or the fMC_ functions.");

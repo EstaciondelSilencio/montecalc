@@ -11,8 +11,12 @@
 #include "../core/formula.h"
 #include "../core/stats.h"
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/Key.hpp>
 #include <com/sun/star/table/CellContentType.hpp>
+#else
+#include "../xll/uno_shim.hpp"
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -565,7 +569,7 @@ public:
         if (a == "reload" || a == "variables") { load(); return; }
         if (a == "refresh") {
             ModelDoc d(frame_->getController()->getModel());
-            for (size_t i = 0; i < g_.vars.size(); ++i) g_.numValues[i] = d.cell(g_.vars[i].addr)->getValue();
+            for (size_t i = 0; i < g_.vars.size(); ++i) g_.numValues[i] = d.cell(g_.vars[i].addr).value();
             repaint();
             return;
         }
@@ -647,7 +651,7 @@ public:
     void editFormula(int var) {
         ModelDoc d(frame_->getController()->getModel());
         auto cell = d.cell(g_.vars[var].addr);
-        std::string f = u8(cell->getFormula());
+        std::string f = u8(cell.formula());
         std::vector<mc::formula::RangeAddr> refs;
         auto src = d.formulaSource();
         std::string list;
@@ -682,7 +686,7 @@ public:
                 pos += old.size();
             }
         }
-        cell->setFormula(ou(nf));  // writing replaces the cell content
+        cell.setFormula(ou(nf));  // writing replaces the cell content
         d.recalc();
         load();  // relationships may have changed
     }

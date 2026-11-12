@@ -2,8 +2,13 @@
 // screen (UNO XGraphics) or into SVG (for "Export image" and comment images).
 #pragma once
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/XFont.hpp>
 #include <com/sun/star/awt/XGraphics.hpp>
+#else
+#include "../xll/uno_shim.hpp"
+namespace Gdiplus { class Graphics; }
+#endif
 
 #include "i18n.hpp"
 
@@ -49,6 +54,25 @@ public:
     virtual int textHeight(int size = 0) = 0;
 };
 
+#ifdef MONTECALC_XLL
+// Screen painter on Win32 (GDI+, anti-aliased): Excel windows and exported images
+class GdiPainter : public Painter {
+public:
+    explicit GdiPainter(Gdiplus::Graphics& g) : g_(g) {}
+    void line(int x1, int y1, int x2, int y2, const Color& c, int width, bool dashed) override;
+    void rect(int x, int y, int w, int h, const Color* fill, const Color* stroke) override;
+    void roundRect(int x, int y, int w, int h, int radius, const Color* fill, const Color* stroke) override;
+    void ellipse(int x, int y, int w, int h, const Color* fill, const Color* stroke) override;
+    void polygon(const std::vector<int>& xs, const std::vector<int>& ys, const Color* fill, const Color* stroke) override;
+    void polyline(const std::vector<int>& xs, const std::vector<int>& ys, const Color& c, int width) override;
+    void text(int x, int y, const std::string& s, const Color& c, bool bold, int size) override;
+    int textWidth(const std::string& s, int size) override;
+    int textHeight(int size) override;
+
+private:
+    Gdiplus::Graphics& g_;
+};
+#else
 // Screen painter on an XGraphics
 class ScreenPainter : public Painter {
 public:
@@ -73,6 +97,8 @@ private:
     std::map<int, int> sizedH_;
     css::uno::Reference<css::awt::XFont> fontFor(int size, bool bold);
 };
+
+#endif
 
 // Draws through another painter with all coordinates, line widths and font sizes
 // multiplied by `zoom` (window zoom, high-resolution export). Callers keep working in

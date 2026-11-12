@@ -3,6 +3,7 @@
 
 #include "painter.hpp"
 
+#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/XControl.hpp>
 #include <com/sun/star/awt/XControlContainer.hpp>
 #include <com/sun/star/beans/XPropertySet.hpp>
@@ -10,6 +11,7 @@
 #include <com/sun/star/frame/XFrame.hpp>
 #include <com/sun/star/lang/XMultiServiceFactory.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
+#endif
 
 #include <functional>
 #include <map>
@@ -109,11 +111,36 @@ public:
     css::uno::Reference<css::frame::XFrame> frame_;
 
 private:
+#ifdef MONTECALC_XLL
+    // Excel (Win32): the window, its controls and their fonts
+    friend struct Win32Window;
+    void* hwnd_ = nullptr;
+    struct Ctl {
+        std::string name, type, text;   // type: button, label, edit, combo, list, check, slider
+        void* hwnd = nullptr;
+        int id = 0;
+        unsigned style = 0;
+        bool checked = false;
+        int smin = 0, smax = 0, sval = 0;
+        void* font = nullptr;   // a smaller font when the text does not fit
+    };
+    std::vector<Ctl> ctls_;
+    std::map<std::string, sal_Int32> textColors_;
+    std::map<std::string, std::string> pending_;   // label / text set before show()
+    void* ctl(const std::string& name) const;
+    void addControl(const std::string& type, const std::string& name, const std::string& text, int x, int y, int w, int h, unsigned style);
+    int duX(int du) const;
+    int duY(int du) const;
+    int canvasPixels();
+    bool shown_ = false;
+#else
     friend class WindowListener;
     css::uno::Reference<css::lang::XMultiServiceFactory> model_;
     css::uno::Reference<css::container::XNameContainer> container_;
     css::uno::Reference<css::awt::XControl> dialog_;
     css::uno::Reference<css::uno::XInterface> listener_;
+    css::uno::Reference<css::awt::XControl> control(const std::string& name);
+#endif
     std::vector<std::string> buttons_, lists_, checks_, sliders_, watched_;
     struct Rect { int x, y, w, h; };
     std::vector<std::pair<std::string, Rect>> rects_;   // original control rectangles (dialog units)
@@ -130,8 +157,9 @@ private:
     bool exporting_ = false;
     bool closed_ = false;
     bool dragging_ = false;
+#ifndef MONTECALC_XLL
     css::uno::Reference<css::beans::XPropertySet> addModel(const char* type, const std::string& name, int x, int y, int w, int h);
-    css::uno::Reference<css::awt::XControl> control(const std::string& name);
+#endif
     int panelPixels();
 };
 
