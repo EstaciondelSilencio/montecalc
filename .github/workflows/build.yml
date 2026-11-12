@@ -84,7 +84,7 @@ jobs:
         run: |
           $env:SOFFICE = Join-Path $env:LO_PROGRAM "soffice.exe"
           $env:UNOPKG  = Join-Path $env:LO_PROGRAM "unopkg.com"
-          & (Join-Path $env:LO_PROGRAM "python.exe") tests/integration_test.py build-win/MonteCalc-windows_x86_64.oxt
+          & (Join-Path $env:LO_PROGRAM "python.exe") -u tests/integration_test.py build-win/MonteCalc-windows_x86_64.oxt
       - uses: actions/upload-artifact@v4
         if: always()
         with:

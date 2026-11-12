@@ -18,13 +18,15 @@
 #include <com/sun/star/awt/XMessageBoxFactory.hpp>
 #include <com/sun/star/awt/XTextComponent.hpp>
 #include <com/sun/star/awt/XToolkit.hpp>
-#include <com/sun/star/awt/XToolkitExperimental.hpp>
+#include <com/sun/star/awt/XReschedule.hpp>
 #include <com/sun/star/awt/XWindowPeer.hpp>
 #include <com/sun/star/beans/XPropertySet.hpp>
 #include <com/sun/star/container/XNameContainer.hpp>
 #include <com/sun/star/lang/XComponent.hpp>
 #include <com/sun/star/lang/XMultiComponentFactory.hpp>
 #include <com/sun/star/lang/XMultiServiceFactory.hpp>
+
+#include <chrono>
 
 using namespace com::sun::star;
 using com::sun::star::uno::Any;
@@ -175,10 +177,14 @@ bool showForm(const Reference<uno::XComponentContext>& ctx, const std::string& t
 }
 
 void processEvents(const Reference<uno::XComponentContext>& ctx) {
-    static Reference<awt::XToolkitExperimental> tk;
+    // Bounded: single passes of the event loop for at most ~30 ms. (processEventsToIdle waits
+    // until LibreOffice is idle, which a run started from another thread may never see.)
+    static Reference<awt::XReschedule> rs;
     try {
-        if (!tk.is() && ctx.is()) tk.set(awt::Toolkit::create(ctx), UNO_QUERY);
-        if (tk.is()) tk->processEventsToIdle();
+        if (!rs.is() && ctx.is()) rs.set(awt::Toolkit::create(ctx), UNO_QUERY);
+        if (!rs.is()) return;
+        auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(30);
+        for (int i = 0; i < 50 && std::chrono::steady_clock::now() < end; ++i) rs->reschedule();
     } catch (const uno::Exception&) {
     }
 }
