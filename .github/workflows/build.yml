@@ -226,3 +226,4 @@ jobs:
             MonteCalc-Excel-x86.xll
             examples/business_case.ods
             examples/business_case.xlsx
+            docs/MonteCalc_Handbook.pdf
