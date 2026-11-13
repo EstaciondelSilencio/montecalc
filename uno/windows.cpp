@@ -1017,6 +1017,17 @@ public:
         } catch (...) {
         }
     }
+    // "0,5" typed with a German / Spanish decimal comma is 0.5 (a comma would separate arguments in the formula)
+    static std::string decimalPoint(const std::string& t0) {
+        std::string t = trim(t0);
+        size_t c = t.find(',');
+        if (c == std::string::npos || t.find(',', c + 1) != std::string::npos) return t;
+        std::string u = t;
+        u[c] = '.';
+        bool ok;
+        parseNumber(u, ok);
+        return ok ? u : t;
+    }
     static std::string trim(const std::string& s) {
         size_t a = s.find_first_not_of(' '), b = s.find_last_not_of(' ');
         return a == std::string::npos ? std::string() : s.substr(a, b - a + 1);
@@ -1198,12 +1209,13 @@ public:
                 // MC FLO order: parameters; Variable_name; Number; Min; Max; Round
                 std::vector<std::string> parts;
                 for (size_t i = 0; i < fn->params.size(); ++i) {
-                    std::string t = text("e" + std::to_string(i));
+                    std::string t = decimalPoint(text("e" + std::to_string(i)));
                     if (t.empty() && fn->minParams && i >= fn->minParams) break;
                     parts.push_back(t);
                 }
                 parts.push_back(quote(name));
-                std::vector<std::string> opts = {text("number"), text("min"), text("max"), text("round")};
+                std::vector<std::string> opts = {decimalPoint(text("number")), decimalPoint(text("min")), decimalPoint(text("max")),
+                                                 decimalPoint(text("round"))};
                 while (!opts.empty() && opts.back().empty()) opts.pop_back();
                 for (auto& o : opts) parts.push_back(o);
                 f = "=" + fn->name + "(";

@@ -138,14 +138,15 @@ DISPID Disp::id(const char* name) const {
 }
 
 namespace {
-std::string invokeError(const char* name, HRESULT hr, const EXCEPINFO& ei) {
+std::string invokeError(const char* name, HRESULT hr, EXCEPINFO& ei) {
+    // Excel fills the exception details in only on request
+    if (hr == DISP_E_EXCEPTION && ei.pfnDeferredFillIn) ei.pfnDeferredFillIn(&ei);
     std::string m = std::string("Excel: ") + name + " failed";
-    if (ei.bstrDescription) m += ": " + narrow(ei.bstrDescription);
-    else {
-        char b[32];
-        std::snprintf(b, sizeof b, " (0x%08lX)", static_cast<unsigned long>(hr));
-        m += b;
-    }
+    if (ei.bstrDescription && *ei.bstrDescription) m += ": " + narrow(ei.bstrDescription);
+    char b[48];
+    HRESULT code = hr == DISP_E_EXCEPTION && ei.scode ? ei.scode : hr;
+    std::snprintf(b, sizeof b, " (0x%08lX)", static_cast<unsigned long>(code));
+    m += b;
     return m;
 }
 } // namespace

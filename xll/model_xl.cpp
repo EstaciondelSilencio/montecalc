@@ -53,8 +53,18 @@ std::string Cell::formula() const {
 }
 
 void Cell::setFormula(const std::string& f) const {
-    if (!f.empty() && f[0] == '=') c_->range.put("Formula", Var(xlf::toExcel(f)));
-    else c_->range.put("Formula", Var(f));
+    std::string x = !f.empty() && f[0] == '=' ? xlf::toExcel(f) : f;
+    try {
+        c_->range.put("Formula", Var(x));
+    } catch (const std::exception& first) {
+        // refused from a window's event: once more inside a command that Excel runs itself
+        try {
+            com::Disp range = c_->range;
+            runInExcelCommand([range, x] { range.put("Formula", Var(x)); });
+        } catch (const std::exception&) {
+            throw std::runtime_error(std::string(first.what()) + "\n" + x);   // the formula Excel did not accept
+        }
+    }
 }
 
 double Cell::value() const { return value2(c_->range).num(0); }

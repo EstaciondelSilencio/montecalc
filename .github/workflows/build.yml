@@ -159,7 +159,7 @@ jobs:
           $count = ([regex]::Matches($e, "\smc_\w+")).Count
           Write-Host "exports ok: $count mc_ functions"
           if ($count -lt 178) { throw "only $count function exports" }
-          foreach ($n in "DllGetClassObject", "DllCanUnloadNow", "mcRunInternal", "mcConnectRibbon") {
+          foreach ($n in "DllGetClassObject", "DllCanUnloadNow", "mcRunInternal", "mcRunInCommand", "mcConnectRibbon") {
             if ($e -notmatch "\s$n\r?\n") { throw "missing export $n" }
           }
       - name: Test the ribbon and the windows

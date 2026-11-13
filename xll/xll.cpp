@@ -30,6 +30,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <functional>
 #include <map>
 #include <memory>
 #include <sstream>
@@ -546,6 +547,7 @@ const std::vector<Command>& commands() {
         {"mcAbout", "MCFLO.About", "About MonteCalc", "Version and licence"},
         // not in the menu
         {"mcRunInternal", "MCFLO.RunInternal", nullptr, nullptr},
+        {"mcRunInCommand", "MCFLO.RunInCommand", nullptr, nullptr},
         {"mcRelabel", "MCFLO.Relabel", nullptr, nullptr},
         {"mcConnectRibbon", "MCFLO.ConnectRibbon", nullptr, nullptr},
     };
@@ -915,6 +917,40 @@ int engineCommand(const char* name) {
     });
 }
 } // namespace
+
+// a change of the workbook made from inside a command that Excel itself runs (Application.Run):
+// there Excel always accepts it, also when it refused the same change from a window's event
+namespace {
+std::function<void()> g_inCommandFn;
+std::string g_inCommandError;
+} // namespace
+
+XLL_EXPORT int XLL_CALL mcRunInCommand() {
+    g_inCommandError.clear();
+    try {
+        if (g_inCommandFn) g_inCommandFn();
+    } catch (const std::exception& e) {
+        g_inCommandError = e.what();
+    }
+    return 1;
+}
+
+namespace montecalc {
+void runInExcelCommand(const std::function<void()>& fn) {
+#ifdef _WIN32
+    if (g_inCommand) { fn(); return; }   // already inside a command
+    g_inCommandFn = fn;
+    g_inCommandError = "Excel did not run MonteCalc's command";
+    struct Clear { ~Clear() { g_inCommandFn = nullptr; } } clear;
+    bool was = g_inCommand;
+    montecalc::com::runMacro("MCFLO.RunInCommand");
+    g_inCommand = was;
+    if (!g_inCommandError.empty()) throw std::runtime_error(g_inCommandError);
+#else
+    fn();
+#endif
+}
+} // namespace montecalc
 
 XLL_EXPORT int XLL_CALL mcRunInternal() {
     g_inCommand = true;

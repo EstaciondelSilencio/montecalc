@@ -22,6 +22,7 @@ using std::min;
 }
 #include <gdiplus.h>
 #include <cwchar>
+#include <deque>
 
 #include "../uno/canvaswin.hpp"
 #include "../uno/i18n.hpp"
@@ -374,8 +375,10 @@ int GdiPainter::textHeight(int size) { return int(std::ceil(fontOf(size > 0 ? si
 
 // ================================================================ CanvasWindow
 
+void deliverQueuedKeys();   // queued keystrokes of MonteCalc's windows (see keyboardHook)
 namespace {
 const wchar_t* kClass = L"MonteCalcWindow";
+constexpr UINT WM_APP_KEYS = WM_APP + 0x143;
 std::mutex g_mtx;
 std::set<std::shared_ptr<CanvasWindow>>& registry() {
     static std::set<std::shared_ptr<CanvasWindow>> r;
@@ -564,6 +567,9 @@ struct Win32Window {
                     }
             return reinterpret_cast<LRESULT>(panelBrush);
         }
+        case WM_APP_KEYS:
+            deliverQueuedKeys();
+            return 0;
         case WM_COMMAND:
             if (w && lp) {
                 int id = LOWORD(wp), code = HIWORD(wp);
@@ -886,6 +892,7 @@ namespace {
 // keyboard messages of MonteCalc's windows itself (Tab moves between the fields) and leaves Excel
 // an empty message. Forms and message boxes have their own loops and are left alone.
 HHOOK g_keyHook = nullptr;
+std::deque<MSG> g_keys;   // keystrokes of MonteCalc's windows, handled by the window itself (WM_APP_KEYS)
 
 LRESULT CALLBACK keyboardHook(int code, WPARAM wp, LPARAM lp) {
     if (code == HC_ACTION && wp == PM_REMOVE) {
@@ -895,10 +902,11 @@ LRESULT CALLBACK keyboardHook(int code, WPARAM wp, LPARAM lp) {
             wchar_t cls[64] = {0};
             if (root) GetClassNameW(root, cls, 64);
             if (std::wcscmp(cls, kClass) == 0) {
-                if (!(m->message == WM_KEYDOWN && m->wParam == VK_TAB && IsDialogMessageW(root, m))) {
-                    TranslateMessage(m);
-                    DispatchMessageW(m);
-                }
+                // Not handled here: this runs inside Excel's message retrieval, where Excel refuses
+                // changes to the workbook (a Return that saves the wizard). The window takes them
+                // from the queue as an ordinary message.
+                g_keys.push_back(*m);
+                if (g_keys.size() == 1) PostMessageW(root, WM_APP_KEYS, 0, 0);
                 m->message = WM_NULL;   // Excel gets nothing to do
             }
         }
@@ -906,6 +914,19 @@ LRESULT CALLBACK keyboardHook(int code, WPARAM wp, LPARAM lp) {
     return CallNextHookEx(g_keyHook, code, wp, lp);
 }
 } // namespace
+
+// the queued keystrokes (WM_APP_KEYS in the window procedure)
+void deliverQueuedKeys() {
+    while (!g_keys.empty()) {
+        MSG m = g_keys.front();
+        g_keys.pop_front();
+        if (!IsWindow(m.hwnd)) continue;
+        HWND root = GetAncestor(m.hwnd, GA_ROOT);
+        if (m.message == WM_KEYDOWN && m.wParam == VK_TAB && IsDialogMessageW(root, &m)) continue;   // next / previous field
+        TranslateMessage(&m);   // the characters come back through the hook and the queue
+        DispatchMessageW(&m);
+    }
+}
 
 namespace w32 {
 void installKeyboardHook() {
