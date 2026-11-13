@@ -10,6 +10,12 @@
 namespace montecalc {
 namespace com {
 
+// Excel's late-bound members follow the caller's locale: with German or Spanish settings,
+// Range.Formula would expect ";" between arguments and "," as decimal mark. MonteCalc always
+// speaks English (US) to Excel, as VBA does; the formulas are converted to that syntax.
+constexpr LCID kEnglishUS = MAKELCID(MAKELANGID(LANG_ENGLISH, SUBLANG_ENGLISH_US), SORT_DEFAULT);
+
+
 std::wstring wide(const std::string& s) {
     if (s.empty()) return {};
     int n = MultiByteToWideChar(CP_UTF8, 0, s.data(), int(s.size()), nullptr, 0);
@@ -133,7 +139,7 @@ DISPID Disp::id(const char* name) const {
     std::wstring w = wide(name);
     LPOLESTR n = &w[0];
     DISPID d;
-    if (FAILED(p_->GetIDsOfNames(IID_NULL, &n, 1, LOCALE_USER_DEFAULT, &d))) throw std::runtime_error(std::string("Excel: unknown member ") + name);
+    if (FAILED(p_->GetIDsOfNames(IID_NULL, &n, 1, kEnglishUS, &d))) throw std::runtime_error(std::string("Excel: unknown member ") + name);
     return d;
 }
 
@@ -158,7 +164,7 @@ Var Disp::get(const char* name, const std::vector<Var>& args) const {
     DISPPARAMS dp{a.empty() ? nullptr : a.data(), nullptr, UINT(a.size()), 0};
     Var r;
     EXCEPINFO ei{};
-    HRESULT hr = p_->Invoke(d, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_METHOD | DISPATCH_PROPERTYGET, &dp, r.get(), &ei, nullptr);
+    HRESULT hr = p_->Invoke(d, IID_NULL, kEnglishUS, DISPATCH_METHOD | DISPATCH_PROPERTYGET, &dp, r.get(), &ei, nullptr);
     if (FAILED(hr)) {
         std::string m = invokeError(name, hr, ei);
         SysFreeString(ei.bstrSource);
@@ -177,7 +183,7 @@ void Disp::put(const char* name, const Var& value, const std::vector<Var>& args)
     DISPID named = DISPID_PROPERTYPUT;
     DISPPARAMS dp{a.data(), &named, UINT(a.size()), 1};
     EXCEPINFO ei{};
-    HRESULT hr = p_->Invoke(d, IID_NULL, LOCALE_USER_DEFAULT, DISPATCH_PROPERTYPUT, &dp, nullptr, &ei, nullptr);
+    HRESULT hr = p_->Invoke(d, IID_NULL, kEnglishUS, DISPATCH_PROPERTYPUT, &dp, nullptr, &ei, nullptr);
     if (FAILED(hr)) {
         std::string m = invokeError(name, hr, ei);
         SysFreeString(ei.bstrSource);
