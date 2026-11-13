@@ -368,8 +368,11 @@ int GdiPainter::textWidth(const std::string& s, int size) {
     Gdiplus::StringFormat f(Gdiplus::StringFormat::GenericTypographic());
     f.SetFormatFlags(f.GetFormatFlags() | Gdiplus::StringFormatFlagsMeasureTrailingSpaces);
     Gdiplus::RectF box;
-    g_.MeasureString(w.c_str(), INT(w.size()), &fontOf(size > 0 ? size : kTextFont, false), Gdiplus::PointF(0, 0), &f, &box);
-    return int(std::ceil(box.Width));
+    // measured as drawn (grid-fitted glyphs are wider) and in bold, the wider of the two weights,
+    // so labels and the boxes around them (magic stripe) always fit
+    g_.SetTextRenderingHint(Gdiplus::TextRenderingHintAntiAliasGridFit);
+    g_.MeasureString(w.c_str(), INT(w.size()), &fontOf(size > 0 ? size : kTextFont, true), Gdiplus::PointF(0, 0), &f, &box);
+    return int(std::ceil(box.Width)) + 1;
 }
 
 int GdiPainter::textHeight(int size) { return int(std::ceil(fontOf(size > 0 ? size : kTextFont, false).GetHeight(&g_))); }

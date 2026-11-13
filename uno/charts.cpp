@@ -93,7 +93,9 @@ Plot drawHistogram(Painter& p, int x, int y, int w, int h, const Vec& data0, con
         std::string t = "x = " + niceNum(sx) + "   p = " + pctText(q);
         int tw = p.textWidth(t) + 10, th = p.textHeight() + 6;
         int bx = std::min(pl.x + pl.w - tw, std::max(pl.x, xx - tw / 2));
-        p.roundRect(bx, pl.y + 4, tw, th, 6, &col::white, &col::stripe);
+#ifndef MONTECALC_XLL
+        p.roundRect(bx, pl.y + 4, tw, th, 6, &col::white, &col::stripe);   // Excel: the label without a box
+#endif
         p.text(bx + 5, pl.y + 7, t, col::stripe, true);
     }
     return pl;
