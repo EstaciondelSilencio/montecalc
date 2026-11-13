@@ -90,6 +90,9 @@ if(MSVC)
   target_compile_options(montecalc PRIVATE /EHsc /utf-8 /permissive- /Zc:__cplusplus /W3 /wd4251 /wd4275 /bigobj /Zi)
   # symbols (.pdb next to the build) for thread stacks when a test hangs; the release stays optimized
   target_link_options(montecalc PRIVATE /DEBUG /OPT:REF /OPT:ICF)
+  # the C++ runtime inside the DLL (as the Excel add-in): no dependency on the msvcp140.dll that
+  # LibreOffice or Windows happens to have (code from current compilers fails with older copies)
+  set_property(TARGET montecalc PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
   set_property(TARGET montecalc PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")  # LibreOffice uses /MD
   find_library(LO_CPPU icppu PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
   find_library(LO_CPPUHELPER icppuhelper PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)

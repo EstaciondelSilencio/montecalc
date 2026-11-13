@@ -20,7 +20,9 @@ namespace css = com::sun::star;
 using Ctx = css::uno::Reference<css::uno::XComponentContext>;
 using Frame = css::uno::Reference<css::frame::XFrame>;
 
-void openWizard(const Ctx& ctx, const Frame& frame, const std::string& function = "");  // function: e.g. "Normal" (preselected)
+// function: e.g. "Normal" (preselected). An input variable in the selected cell opens for editing.
+// saveNow (macros, tests): saves into the selected cell at once and closes the window.
+void openWizard(const Ctx& ctx, const Frame& frame, const std::string& function = "", bool saveNow = false);  // function: e.g. "Normal" (preselected)
 void openFitWindow(const Ctx& ctx, const Frame& frame);
 // view: Histogram, Cumulative, Tornado, Spider, SpiderCum, Scatter, Variants, Decision, Statistics;
 // exportTo: file URL - the window is exported as PNG and closed (macros, tests)

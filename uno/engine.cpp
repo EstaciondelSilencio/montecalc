@@ -650,7 +650,7 @@ void Engine::execute(const std::string& cmd) {
         if (it != cmds.end()) (this->*(it->second))();
         else if (cmd == "SortAsc") cmdSort(true);
         else if (cmd == "SortDesc") cmdSort(false);
-        else if (cmd == "Wizard") openWizard(ctx_, frame_, argText(args_, "Function"));
+        else if (cmd == "Wizard") openWizard(ctx_, frame_, argText(args_, "Function"), argNum(args_, "Save", 0) != 0);
         else if (cmd == "Fit") openFitWindow(ctx_, frame_);
         else if (cmd == "Results") openResultWindow(ctx_, frame_, argText(args_, "Variable"), argText(args_, "View"), argText(args_, "ExportTo"));
         else if (cmd == "Correlogram") openCorrelogram(ctx_, frame_);

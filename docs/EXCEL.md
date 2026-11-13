@@ -47,7 +47,7 @@ shows the version).
 
 | Group | Commands |
 |---|---|
-| Model specification | Continuous, discrete and time-series distribution menus (each opens the wizard), Wizard, Insert correlation, Insert output, Register, Lock, Fit distribution |
+| Model specification | Continuous, discrete and time-series distribution menus (each opens the wizard; on a cell that holds a variable it opens that variable for editing), Wizard, Insert correlation, Insert output, Register, Lock, Fit distribution |
 | Information | Influence diagram, Functions menu (the `fMC_` functions by MC FLO category, plus the Function Wizard), Model, Show variables, AI mentor |
 | Simulation | Best / Real / Worst levels and Iterations (edit boxes), *Use correlations*, *Visualize*, *Memory Calculation* and *Preview window* check boxes, Multiple simulation (variants), Start, Reset, Settings |
 | Statistics | Variable drop-down, Show statistical parameters, Result window, Select variant |

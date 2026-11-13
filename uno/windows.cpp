@@ -956,13 +956,70 @@ public:
         addButton("close", "Close", x, y, w);
     }
     void afterShow(const std::string& function = "") {
+        auto matches = [](const mc::FloFunction* f, const std::string& n) {
+            std::string l = mc::lower(n);
+            return !l.empty() && (mc::lower(f->label) == l || mc::lower(f->name) == l || mc::lower(f->name) == "flosimula_" + l);
+        };
+        // the selected cell holds an input variable: edit it (its distribution, parameters, name, options)
+        readSelectedCell();
+        std::string want = !function.empty() ? function : existingFunc_;
         int sel = 1;
         for (size_t i = 0; i < funcs_.size(); ++i)
-            if (!function.empty() && (mc::lower(funcs_[i]->label) == mc::lower(function) || mc::lower(funcs_[i]->name) == mc::lower(function) ||
-                                      mc::lower(funcs_[i]->name) == "flosimula_" + mc::lower(function)))
-                sel = int(i);
+            if (matches(funcs_[i], want)) sel = int(i);
         select("func", sel);
         updateParams();
+        if (!existingFunc_.empty()) {
+            const auto* f = funcs_[size_t(sel)];
+            bool same = matches(f, existingFunc_);
+            // MC FLO order: parameters; Variable_name; Number; Min; Max; Round (the name is the first text argument)
+            size_t nameAt = existingArgs_.size();
+            for (size_t i = 0; i < existingArgs_.size(); ++i) {
+                bool isText;
+                mc::formula::unquote(existingArgs_[i], isText);
+                if (isText) { nameAt = i; break; }
+            }
+            if (same)
+                for (size_t i = 0; i < nameAt && i < 5 && i < f->params.size(); ++i) setText("e" + std::to_string(i), trim(existingArgs_[i]));
+            if (nameAt < existingArgs_.size()) {
+                bool isText;
+                setText("name", mc::formula::unquote(existingArgs_[nameAt], isText));
+                const char* opts[] = {"number", "min", "max", "round"};
+                for (size_t k = 0; k < 4 && nameAt + 1 + k < existingArgs_.size(); ++k) setText(opts[k], trim(existingArgs_[nameAt + 1 + k]));
+            }
+            setLabel("save", "Update the selected cell");
+            sample();
+        }
+    }
+
+    // the FLOsimula_ input in the selected cell (LibreOffice syntax), if any
+    void readSelectedCell() {
+        existingFunc_.clear();
+        existingArgs_.clear();
+        try {
+            ModelDoc d = docOf(frame_);
+            table::CellAddress a;
+            if (!d.valid() || !d.currentCell(a)) return;
+            std::string f = u8(d.cell(a).formula()), func;
+            std::vector<std::string> args;
+            size_t b, e;
+            if (!mc::formula::findCall(f, "FLOSIMULA_", func, args, b, e)) return;
+            for (auto* fn : funcs_)
+                if (mc::lower(fn->name) == mc::lower(func)) {
+                    existingFunc_ = fn->name;
+                    existingArgs_ = args;
+                    existingName_ = "";
+                    for (auto& x : args) {
+                        bool isText;
+                        std::string t = mc::formula::unquote(x, isText);
+                        if (isText) { existingName_ = t; break; }
+                    }
+                }
+        } catch (...) {
+        }
+    }
+    static std::string trim(const std::string& s) {
+        size_t a = s.find_first_not_of(' '), b = s.find_last_not_of(' ');
+        return a == std::string::npos ? std::string() : s.substr(a, b - a + 1);
     }
 
     void updateParams() {
@@ -1153,6 +1210,20 @@ public:
                 for (size_t i = 0; i < parts.size(); ++i) f += (i ? ";" : "") + parts[i];
                 f += ")";
             }
+            // editing: replace only the FLOsimula_ call, keep the rest of the cell's formula (e.g. "*2")
+            ModelDoc d = docOf(frame_);
+            table::CellAddress a;
+            if (d.valid() && d.currentCell(a)) {
+                std::string old = u8(d.cell(a).formula()), func;
+                std::vector<std::string> oldArgs;
+                size_t b, e;
+                if (mc::formula::findCall(old, "FLOSIMULA_", func, oldArgs, b, e)) {
+                    f = old.substr(0, b) + f.substr(1) + old.substr(e);
+                    if (!existingName_.empty() && mc::formula::sanitizeName(existingName_) != name)
+                        d.removeNamedRange("FLO_i_" + mc::formula::sanitizeName(existingName_));
+                    existingName_ = name;
+                }
+            }
             insertIntoCurrentCell(frame_, f, name, mc::VarKind::Input);
             return;
         }
@@ -1160,6 +1231,8 @@ public:
 
 private:
     std::vector<const mc::FloFunction*> funcs_;
+    std::string existingFunc_, existingName_;   // the input variable in the selected cell (edit mode)
+    std::vector<std::string> existingArgs_;
     Vec data_, real_;
     std::string error_;
     double stripe_ = 0;
@@ -1170,10 +1243,15 @@ private:
     int customSheet_ = 0;
 };
 
-void openWizard(const Ctx& ctx, const Frame& frame, const std::string& function) {
+void openWizard(const Ctx& ctx, const Frame& frame, const std::string& function, bool saveNow) {
     auto w = std::make_shared<WizardWindow>(ctx, frame);
     w->show();
     w->afterShow(function);
+    if (saveNow) {
+        w->button("save");
+        w->close();
+        return;
+    }
     CanvasWindow::keep(w);
 }
 

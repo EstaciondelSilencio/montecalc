@@ -72,6 +72,9 @@ std::string baseName(const std::string& funcName);   // strips "ORG.MONTECALC.MO
 // e.g. "FLOSIMULA_") and returns its base name and the raw text of its top-level arguments.
 bool findCall(const std::string& formula, const std::string& prefix, std::string& func,
               std::vector<std::string>& args);
+// the same, and where the call is: formula.substr(begin, end - begin) is "PREFIX_NAME(...)"
+bool findCall(const std::string& formula, const std::string& prefix, std::string& func,
+              std::vector<std::string>& args, size_t& begin, size_t& end);
 // "\"abc\"" -> abc (isString = true); other text is returned trimmed.
 std::string unquote(const std::string& s, bool& isString);
 // Name usable in a named range: invalid characters replaced by '_' (as MC FLO does).

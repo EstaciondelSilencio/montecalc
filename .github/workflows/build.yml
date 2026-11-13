@@ -75,6 +75,13 @@ jobs:
       - name: Build
         run: cmake --build build-win
         shell: cmd
+      - name: The extension needs no Visual C++ runtime DLL
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem build-win -Recurse -Filter montecalc.dll | Select-Object -First 1
+          $deps = dumpbin /dependents $dll.FullName | Out-String
+          Write-Host $deps
+          if ($deps -match "(?i)msvcp1|vcruntime1") { throw "montecalc.dll depends on the Visual C++ runtime DLLs" }
       - name: Unit tests
         run: ctest --test-dir build-win --output-on-failure
         shell: cmd

@@ -386,6 +386,12 @@ std::string baseName(const std::string& f) {
 }
 
 bool findCall(const std::string& f, const std::string& prefix, std::string& func, std::vector<std::string>& args) {
+    size_t b, e;
+    return findCall(f, prefix, func, args, b, e);
+}
+
+bool findCall(const std::string& f, const std::string& prefix, std::string& func, std::vector<std::string>& args, size_t& begin,
+              size_t& endPos) {
     std::string u = upper(f), pre = upper(prefix);
     size_t pos = 0;
     while ((pos = u.find(pre, pos)) != std::string::npos) {
@@ -413,7 +419,12 @@ bool findCall(const std::string& f, const std::string& prefix, std::string& func
             }
             if (c == '"') { str = true; cur += c; continue; }
             if (c == '(' || c == '{') ++depth;
-            if ((c == ')' || c == '}') && depth == 0) { args.push_back(cur); return true; }
+            if ((c == ')' || c == '}') && depth == 0) {
+                args.push_back(cur);
+                begin = start;
+                endPos = k + 1;
+                return true;
+            }
             if (c == ')' || c == '}') --depth;
             if ((c == ';' || c == ',') && depth == 0) { args.push_back(cur); cur.clear(); continue; }
             cur += c;

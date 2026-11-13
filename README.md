@@ -61,6 +61,10 @@ Manager*, the icon of the MC FLO sidebar deck and of *About MonteCalc*.
    draggable **magic stripe**, then *Save into the selected cell*: MonteCalc writes the MC FLO
    formula, e.g. `=FLOsimula_PERT(200000;350000;250000;"MarketSize")`. *Fit distribution*
    fits historical data instead (with a Q-Q plot of the selected fit).
+   To **change a variable**, select its cell and open the wizard: it shows the cell's
+   distribution, parameters, name and options; *Update the selected cell* replaces only the
+   `FLOsimula_` call (the rest of the formula, e.g. `*2`, stays). Choosing another distribution
+   from the menu keeps the name and options.
 2. **Insert correlation** opens the correlation window described in the guide:
    - pick Variable 1 and 2, the coefficient (type it, or use the slider) and the correlation
      type with the MC FLO codes (0 Normal, 1 Clayton, 2 rClayton, 3 Gumbel, 4 rGumbel,
