@@ -176,6 +176,9 @@ jobs:
             .\build-xll\xll_win_test.exe window $k 2
             if ($LASTEXITCODE -ne 0) { throw "window $k failed" }
           }
+          # the wedge from a cell to its result window (layered overlay)
+          .\build-xll\xll_win_test.exe window callout 3
+          if ($LASTEXITCODE -ne 0) { throw "the callout overlay is missing" }
           # typing into a MonteCalc window although the host's loop keeps keystrokes (as Excel's does)
           .\build-xll\xll_win_test.exe keys
           if ($LASTEXITCODE -ne 0) { throw "keystrokes do not reach the MonteCalc window" }

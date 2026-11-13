@@ -59,7 +59,12 @@ public:
     // false for windows without a painted canvas (the AI mentor): nothing is drawn behind the controls
     virtual bool hasCanvas() const { return true; }
     int panelW() const { return panelW_ - 8; }
-    void show();   // creates the peer and shows the window (modeless)
+    void show(bool activate = true);   // creates the peer and shows the window (modeless); activate = false: the sheet keeps the keyboard
+    void setTitle(const std::string& caption);
+    bool screenRect(int& x, int& y, int& w, int& h);   // the window on the screen (pixels)
+    void moveBy(int dx, int dy);   // the caption (the kind of window, title_, stays for the remembered geometry)
+    // MC FLO callout: a translucent wedge from the cell the window belongs to (Windows; see callout.hpp)
+    void setCallout(std::function<bool(int& x, int& y, int& w, int& h)> cellRect);
 
     // control access
     std::string text(const std::string& name);

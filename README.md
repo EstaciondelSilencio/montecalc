@@ -160,6 +160,12 @@ minimum size keeps every control visible. Charts are drawn off screen and copied
 so nothing flickers while resizing; each kind of window reopens with the size and position it
 had last. Zoom with Ctrl +/−/0 (starts at 125%). The sidebar panels stretch with the sidebar.
 
+**After a run, selecting a variable cell** (input, output or correlation) shows it in the result window,
+as in MC FLO: one window follows the selection, its caption names the cell, it opens beside the cell
+without taking the keyboard, and on Windows (Excel and LibreOffice) a translucent red wedge connects
+the framed cell with the window. *Settings → Show the result window when a variable cell is selected*
+turns it off.
+
 **Result window** (wiki "Output"):
 - variant choice at the top (multiple simulation) and *Store results* (result workbook);
 - histogram and cumulative curve with the magic stripe (drag it, or enter `x` or `;p`),

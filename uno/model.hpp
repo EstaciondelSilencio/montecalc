@@ -109,6 +109,9 @@ public:
 
     // Selection
     bool currentCell(css::table::CellAddress& a) const;
+    // the cell's rectangle on the screen (pixels); false when its sheet is not shown or it is scrolled away
+    bool cellScreenRect(const css::table::CellAddress& a, int& x, int& y, int& w, int& h) const;
+    bool documentScreenRect(int& x, int& y, int& w, int& h) const;   // the program window showing the document
     bool selectionRange(css::table::CellRangeAddress& r) const;
     void select(const css::table::CellAddress& a) const;
     void selectRange(const css::table::CellRangeAddress& r) const;

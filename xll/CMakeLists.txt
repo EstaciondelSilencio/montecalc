@@ -30,7 +30,7 @@ set(XLL_SRC ${CORE_SRC} "${ROOT}/uno/addin.cpp" "${ROOT}/uno/i18n.cpp" "${ROOT}/
 # ribbon, windows and commands (Windows only; shared with the LibreOffice extension)
 set(XLL_WIN_SRC
     "${ROOT}/uno/model.cpp" "${ROOT}/uno/engine.cpp" "${ROOT}/uno/windows.cpp" "${ROOT}/uno/influence.cpp" "${ROOT}/uno/deps.cpp"
-    "${ROOT}/uno/charts.cpp" "${ROOT}/uno/painter.cpp" "${ROOT}/uno/report.cpp" "${ROOT}/uno/mentor.cpp" "${ROOT}/uno/http.cpp"
+    "${ROOT}/uno/charts.cpp" "${ROOT}/uno/painter.cpp" "${ROOT}/uno/report.cpp" "${ROOT}/uno/mentor.cpp" "${ROOT}/uno/http.cpp" "${ROOT}/uno/callout.cpp"
     "${ROOT}/xll/com.cpp" "${ROOT}/xll/model_xl.cpp" "${ROOT}/xll/win32ui.cpp" "${ROOT}/xll/ribbon.cpp")
 set(XLL_WIN_LIBS ole32 oleaut32 uuid gdiplus oleacc shlwapi winhttp gdi32 user32 advapi32)
 

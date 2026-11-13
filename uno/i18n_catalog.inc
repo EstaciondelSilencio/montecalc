@@ -425,6 +425,7 @@
 {{"Simulation stopped after {} of {} iterations ({} s)", "Simulation nach {} von {} Iterationen angehalten ({} s)", "Simulaci\xc3""\xb3""n detenida tras {} de {} iteraciones ({} s)"}},
 {{"MonteCalc - Simulation preview", "MonteCalc - Simulationsvorschau", "MonteCalc - Vista previa de la simulaci\xc3""\xb3""n"}},
 {{"Preview window", "Vorschaufenster", "Ventana de vista previa"}},
+{{"Show the result window when a variable cell is selected", "Ergebnisfenster beim Ausw\xc3""\xa4""hlen einer Variablenzelle zeigen", "Mostrar la ventana de resultados al seleccionar una celda de variable"}},
 {{"Pause", "Pause", "Pausa"}},
 {{"Resume", "Fortsetzen", "Reanudar"}},
 {{"Stop", "Stopp", "Detener"}},

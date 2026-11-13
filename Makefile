@@ -95,7 +95,7 @@ xlltest: $(B)/xll/xll_test
 
 # the Windows add-in also has the ribbon, the windows and all commands (shared with the LibreOffice extension)
 XLL_WIN_SRC := $(XLL_SRC) uno/model.cpp uno/engine.cpp uno/windows.cpp uno/influence.cpp uno/deps.cpp uno/charts.cpp uno/painter.cpp \
-               uno/report.cpp uno/mentor.cpp uno/http.cpp xll/com.cpp xll/model_xl.cpp xll/win32ui.cpp xll/ribbon.cpp
+               uno/report.cpp uno/mentor.cpp uno/http.cpp uno/callout.cpp xll/com.cpp xll/model_xl.cpp xll/win32ui.cpp xll/ribbon.cpp
 XLL_WIN_LIBS := -lole32 -loleaut32 -luuid -lgdiplus -loleacc -lshlwapi -lwinhttp -lgdi32 -luser32 -ladvapi32
 MINGW := x86_64-w64-mingw32-g++
 

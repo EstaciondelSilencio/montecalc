@@ -531,6 +531,8 @@ CATALOG = [
      "Simulación detenida tras {} de {} iteraciones ({} s)"),
     ("MonteCalc - Simulation preview", "MonteCalc - Simulationsvorschau", "MonteCalc - Vista previa de la simulación"),
     ("Preview window", "Vorschaufenster", "Ventana de vista previa"),
+    ("Show the result window when a variable cell is selected", "Ergebnisfenster beim Auswählen einer Variablenzelle zeigen",
+     "Mostrar la ventana de resultados al seleccionar una celda de variable"),
     ("Pause", "Pause", "Pausa"),
     ("Resume", "Fortsetzen", "Reanudar"),
     ("Stop", "Stopp", "Detener"),

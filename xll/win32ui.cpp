@@ -24,6 +24,7 @@ using std::min;
 #include <cwchar>
 #include <deque>
 
+#include "../uno/callout.hpp"
 #include "../uno/canvaswin.hpp"
 #include "../uno/i18n.hpp"
 #include "../uno/model.hpp"
@@ -938,7 +939,7 @@ void removeKeyboardHook() {
 }
 } // namespace w32
 
-void CanvasWindow::show() {
+void CanvasWindow::show(bool activate) {
     Win32Window::registerClass();
     w32::installKeyboardHook();
     RECT r{0, 0, duX(width_), duY(height_)};
@@ -987,8 +988,34 @@ void CanvasWindow::show() {
         int x = o.left + ((o.right - o.left) - (me.right - me.left)) / 2, y = o.top + ((o.bottom - o.top) - (me.bottom - me.top)) / 3;
         SetWindowPos(h, nullptr, std::max(0, x), std::max(0, y), 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_NOACTIVATE);
     }
-    ShowWindow(h, SW_SHOW);
+    ShowWindow(h, activate ? SW_SHOW : SW_SHOWNOACTIVATE);
     UpdateWindow(h);
+}
+
+bool CanvasWindow::screenRect(int& x, int& y, int& w, int& h) {
+    RECT r;
+    if (!hwnd_ || !GetWindowRect(static_cast<HWND>(hwnd_), &r)) return false;
+    x = r.left;
+    y = r.top;
+    w = r.right - r.left;
+    h = r.bottom - r.top;
+    return true;
+}
+
+void CanvasWindow::moveBy(int dx, int dy) {
+    RECT r;
+    if (hwnd_ && GetWindowRect(static_cast<HWND>(hwnd_), &r))
+        SetWindowPos(static_cast<HWND>(hwnd_), nullptr, r.left + dx, r.top + dy, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
+void CanvasWindow::setTitle(const std::string& caption) {
+    if (hwnd_) SetWindowTextW(static_cast<HWND>(hwnd_), wide(caption).c_str());
+}
+
+void CanvasWindow::setCallout(std::function<bool(int&, int&, int&, int&)> cellRect) {
+    if (!hwnd_) return;
+    if (cellRect) callout::attach(hwnd_, std::move(cellRect));
+    else callout::detach(hwnd_);
 }
 
 // Moves / stretches the controls after a resize, following their anchors (as in LibreOffice).
@@ -1146,6 +1173,7 @@ void CanvasWindow::repaint() {
 
 void CanvasWindow::close() {
     if (closed_) return;
+    callout::detach(hwnd_);
     rememberGeometry();
     closedAt_ = std::chrono::steady_clock::now();
     closed_ = true;

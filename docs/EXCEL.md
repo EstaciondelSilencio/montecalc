@@ -72,6 +72,12 @@ every iteration, which Excel only allows on its main thread. Excel stays busy du
 only the MonteCalc windows respond. Turn the preview off with the *Preview window* check box
 or in *Settings…*.
 
+### After a simulation
+
+Select a cell with an input, output or correlation variable: the result window shows it at once, with a
+translucent red wedge from the cell to the window (as in MC FLO). One window follows the selection; it
+opens beside the cell and leaves the keyboard in the sheet. Turn it off in *Settings…*.
+
 ### Windows
 
 The windows are those of the LibreOffice version, drawn natively on Windows:

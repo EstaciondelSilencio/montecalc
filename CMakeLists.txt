@@ -96,7 +96,7 @@ if(MSVC)
   find_library(LO_CPPU icppu PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
   find_library(LO_CPPUHELPER icppuhelper PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
   find_library(LO_SAL isal PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
-  target_link_libraries(montecalc PRIVATE ${LO_CPPUHELPER} ${LO_CPPU} ${LO_SAL} winhttp)
+  target_link_libraries(montecalc PRIVATE ${LO_CPPUHELPER} ${LO_CPPU} ${LO_SAL} winhttp gdiplus user32 gdi32)   # gdiplus: the callout wedge
   set_target_properties(montecalc PROPERTIES PREFIX "" OUTPUT_NAME montecalc)  # montecalc.dll
   set(OXT_PLATFORM windows_x86_64)
 else()

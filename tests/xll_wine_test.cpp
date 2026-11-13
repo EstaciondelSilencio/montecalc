@@ -21,6 +21,7 @@
 #include "../core/runner.h"
 #include "../xll/ribbon.hpp"
 #include "../xll/win32ui.hpp"
+#include "../uno/callout.hpp"
 
 #include <cmath>
 #include <cstdio>
@@ -223,6 +224,24 @@ int main(int argc, char** argv) {
         else if (kind == "statistics") openResultWindow(ctx, frame, "NPV", "Statistics");
         else if (kind == "wizard") openWizard(ctx, frame, "PERT");
         else if (kind == "correlation") openCorrelationWindow(ctx, frame, "Price", "Share", -0.6, 0);
+        else if (kind == "callout") {   // the wedge from a (pretend) cell to the result window
+            openResultWindow(ctx, frame, "NPV", "Histogram");
+            HWND win = nullptr;
+            EnumThreadWindows(GetCurrentThreadId(), [](HWND h, LPARAM lp) -> BOOL {
+                wchar_t c[64] = {0};
+                GetClassNameW(h, c, 64);
+                if (std::wcscmp(c, L"MonteCalcWindow") == 0) { *reinterpret_cast<HWND*>(lp) = h; return FALSE; }
+                return TRUE;
+            }, reinterpret_cast<LPARAM>(&win));
+            if (win) {
+                SetWindowPos(win, nullptr, 380, 40, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+                callout::attach(win, [](int& x, int& y, int& w, int& h) { x = 90; y = 520; w = 80; h = 22; return true; });
+            }
+            pump(secs);
+            HWND ov = FindWindowW(L"MonteCalcCallout", nullptr);
+            std::printf("callout: window %s, overlay %s\n", win ? "ok" : "missing", ov && IsWindowVisible(ov) ? "shown" : "MISSING");
+            return win && ov && IsWindowVisible(ov) ? 0 : 1;
+        }
         else if (kind == "settings") {
             SetTimer(nullptr, 1, DWORD(secs) * 1000, closeForm);
             std::vector<FormField> f = {{"# iterations", "5000"}, {"Seed (0 = random, -1 = preview mode)", "2026"}, {"Worst case level", "0.05"},

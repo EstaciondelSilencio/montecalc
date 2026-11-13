@@ -837,6 +837,11 @@ RunResult runAllXl(const RunOptions& o) {
     if (o.dip && d.valid()) storeDip(d);
 #endif
     rr.summary = runSummary(o, rr);
+#ifdef _WIN32
+    // from now on selecting a variable cell shows its results, with the wedge to the cell (MC FLO)
+    if (montecalc::com::haveApplication())
+        montecalc::com::watchSelection([] { montecalc::resultWindowForSelection(Ctx(), Frame()); });
+#endif
     return rr;
 }
 

@@ -1,5 +1,11 @@
 // MonteCalc - modeless window with a painted canvas
 #include "canvaswin.hpp"
+#include "callout.hpp"
+#include <com/sun/star/accessibility/XAccessible.hpp>
+#include <com/sun/star/accessibility/XAccessibleComponent.hpp>
+#include <com/sun/star/accessibility/XAccessibleContext.hpp>
+#include <com/sun/star/lang/SystemDependent.hpp>
+#include <com/sun/star/awt/XSystemDependentWindowPeer.hpp>
 #include "i18n.hpp"
 #include "ui.hpp"
 #include "util.hpp"
@@ -323,7 +329,7 @@ std::map<std::string, awt::Rectangle>& geometries() {
     return g;
 }
 
-void CanvasWindow::show() {
+void CanvasWindow::show(bool activate) {
     auto smgr = ctx_->getServiceManager();
     dialog_.set(smgr->createInstanceWithContext("com.sun.star.awt.UnoControlDialog", ctx_), UNO_QUERY_THROW);
     dialog_->setModel(Reference<awt::XControlModel>(model_, UNO_QUERY_THROW));
@@ -377,6 +383,70 @@ void CanvasWindow::show() {
     }
     for (const auto& c : cc->getControls()) fitControlText(c);   // longer translations
     w->setVisible(true);
+    if (!activate && frame_.is()) {   // the sheet keeps the keyboard (window opened by a selection)
+        try {
+            frame_->getContainerWindow()->setFocus();
+        } catch (const uno::Exception&) {
+        }
+    }
+}
+
+bool CanvasWindow::screenRect(int& x, int& y, int& w, int& h) {
+    try {
+        Reference<accessibility::XAccessible> acc(dialog_.is() ? dialog_->getPeer() : Reference<awt::XWindowPeer>(), UNO_QUERY);
+        Reference<accessibility::XAccessibleComponent> comp(acc.is() ? acc->getAccessibleContext() : nullptr, UNO_QUERY);
+        if (!comp.is()) return false;
+        awt::Point p = comp->getLocationOnScreen();
+        awt::Size s = comp->getSize();
+        x = p.X;
+        y = p.Y;
+        w = s.Width;
+        h = s.Height;
+        return true;
+    } catch (const uno::Exception&) {
+        return false;
+    }
+}
+
+void CanvasWindow::moveBy(int dx, int dy) {
+    try {
+        Reference<awt::XWindow> w(dialog_, UNO_QUERY_THROW);
+        awt::Rectangle r = w->getPosSize();
+        w->setPosSize(r.X + dx, r.Y + dy, 0, 0, awt::PosSize::POS);
+    } catch (const uno::Exception&) {
+    }
+}
+
+void CanvasWindow::setTitle(const std::string& caption) {
+    try {
+        Reference<beans::XPropertySet>(model_, UNO_QUERY_THROW)->setPropertyValue("Title", Any(ou(caption)));
+    } catch (const uno::Exception&) {
+    }
+}
+
+#ifdef _WIN32
+static void* nativeWindow(const Reference<awt::XControl>& dialog) {
+    try {
+        Reference<awt::XSystemDependentWindowPeer> peer(dialog.is() ? dialog->getPeer() : Reference<awt::XWindowPeer>(), UNO_QUERY);
+        if (!peer.is()) return nullptr;
+        Sequence<sal_Int8> pid(16);
+        sal_Int64 v = 0;
+        if (peer->getWindowHandle(pid, lang::SystemDependent::SYSTEM_WIN32) >>= v) return reinterpret_cast<void*>(static_cast<intptr_t>(v));
+    } catch (const uno::Exception&) {
+    }
+    return nullptr;
+}
+#endif
+
+void CanvasWindow::setCallout(std::function<bool(int&, int&, int&, int&)> cellRect) {
+#ifdef _WIN32
+    void* h = nativeWindow(dialog_);
+    if (!h) return;
+    if (cellRect) callout::attach(h, std::move(cellRect));
+    else callout::detach(h);
+#else
+    (void)cellRect;   // the callout needs layered windows (Windows)
+#endif
 }
 
 std::string CanvasWindow::geometryKey() const {
@@ -547,6 +617,9 @@ void CanvasWindow::repaint() {
 
 void CanvasWindow::close() {
     if (closed_) return;
+#ifdef _WIN32
+    callout::detach(nativeWindow(dialog_));
+#endif
     rememberGeometry();
     closedAt_ = std::chrono::steady_clock::now();
     closed_ = true;

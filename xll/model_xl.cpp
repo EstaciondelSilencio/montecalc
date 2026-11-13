@@ -347,6 +347,45 @@ bool ModelDoc::selectionRange(table::CellRangeAddress& r) const {
     }
 }
 
+bool ModelDoc::documentScreenRect(int& x, int& y, int& w, int& h) const {
+    RECT r;
+    HWND main = w32::excelWindow();
+    if (!main || !GetWindowRect(main, &r)) return false;
+    x = r.left;
+    y = r.top;
+    w = r.right - r.left;
+    h = r.bottom - r.top;
+    return true;
+}
+
+bool ModelDoc::cellScreenRect(const table::CellAddress& a, int& x, int& y, int& w, int& h) const {
+    if (!valid()) return false;
+    try {
+        Disp app = com::application();
+        Disp win = app.obj("ActiveWindow");
+        auto names = sheetNames();
+        if (a.Sheet < 0 || a.Sheet >= int(names.size()) || app.obj("ActiveSheet").get("Name").str() != names[size_t(a.Sheet)]) return false;
+        // scrolled away?
+        Disp vis = win.obj("VisibleRange");
+        int r0 = int(vis.get("Row").num()), c0 = int(vis.get("Column").num());
+        int nr = int(vis.obj("Rows").get("Count").num()), nc = int(vis.obj("Columns").get("Count").num());
+        if (a.Row + 1 < r0 || a.Row + 1 >= r0 + nr || a.Column + 1 < c0 || a.Column + 1 >= c0 + nc) return false;
+        Disp rng = cell(a).impl()->range;
+        double l = rng.get("Left").num(), t = rng.get("Top").num(), rw = rng.get("Width").num(), rh = rng.get("Height").num();
+        // the pane converts sheet points to screen pixels, with zoom and scrolling
+        Disp pane = win.obj("ActivePane");
+        int x0 = int(pane.call("PointsToScreenPixelsX", {Var(l)}).num()), x1 = int(pane.call("PointsToScreenPixelsX", {Var(l + rw)}).num());
+        int y0 = int(pane.call("PointsToScreenPixelsY", {Var(t)}).num()), y1 = int(pane.call("PointsToScreenPixelsY", {Var(t + rh)}).num());
+        x = x0;
+        y = y0;
+        w = x1 - x0;
+        h = y1 - y0;
+        return w > 0 && h > 0;
+    } catch (...) {
+        return false;
+    }
+}
+
 bool ModelDoc::currentCell(table::CellAddress& a) const {
     table::CellRangeAddress r;
     if (!selectionRange(r)) return false;

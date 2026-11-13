@@ -673,6 +673,19 @@ public:
         updateXVisibility();
         showScatter(a, b);
     }
+    // another variable in the same window (the selection moved to another variable cell)
+    void showVariable(const std::string& name) {
+        int i = index(name);
+        if (i < 0) return;
+        cur_ = i;
+        select("var", cur_);
+        scatterX_.clear();
+        corrSelected_ = false;
+        updateXVisibility();
+        if (view_ == Scatter) setView(Histogram);
+        resetVariable();
+        repaint();
+    }
     void showScatter(const std::string& x, const std::string& y) {
         int iy = index(y);
         if (iy >= 0 && iy != cur_) { cur_ = iy; resetVariable(); }
@@ -871,6 +884,78 @@ std::shared_ptr<ResultWindow> correlationScatter(const Ctx& ctx, const Frame& fr
 }
 
 void openCorrelationScatter(const Ctx& ctx, const Frame& frame, const VarCell& v) { CanvasWindow::keep(correlationScatter(ctx, frame, v)); }
+
+// ---- the result window that follows the selection (MC FLO: selecting a variable cell after a run)
+namespace {
+std::weak_ptr<ResultWindow> g_selectionWindow;
+std::string g_selectionKey;   // sheet / column / row of the cell shown
+} // namespace
+
+bool resultWindowForSelection(const Ctx& ctx, const Frame& frame) {
+    auto& sim = mc::Simulation::instance();
+    if (!sim.hasResults() || sim.busy()) return false;
+    ModelDoc d = docOf(frame);
+    if (!d.valid() || d.property("MonteCalc.AutoResults", 1) == 0) return false;
+    table::CellRangeAddress r;
+    if (!d.selectionRange(r) || r.EndRow != r.StartRow || r.EndColumn != r.StartColumn) return false;
+    table::CellAddress a(r.Sheet, r.StartColumn, r.StartRow);
+    std::string key = std::to_string(a.Sheet) + "/" + std::to_string(a.Column) + "/" + std::to_string(a.Row);
+    auto open = g_selectionWindow.lock();
+    if (open && open->closed()) open.reset();
+    if (open && key == g_selectionKey) return true;   // the same cell again
+    // a cell with an MC FLO function of a variable that has results?
+    std::string f = u8(d.cell(a).formula()), func;
+    std::vector<std::string> args;
+    if (!mc::formula::findCall(f, "FLOSIMULA_", func, args)) return false;
+    VarCell found;
+    bool have = false;
+    for (auto& vc : d.scan())
+        if (vc.addr.Sheet == a.Sheet && vc.addr.Column == a.Column && vc.addr.Row == a.Row) { found = vc; have = true; break; }
+    if (!have) return false;
+    bool corr = found.kind == mc::VarKind::Correlation;
+    if (corr ? !(hasResults(found.corrA) && hasResults(found.corrB)) : !hasResults(found.name)) return false;
+    // one window follows the selection; a correlation shows the scatter of its two variables
+    if (!open) {
+        open = std::make_shared<ResultWindow>(ctx, frame, corr ? found.corrB : found.name);
+        open->show(false);   // the sheet keeps the keyboard
+        open->afterShow();
+        CanvasWindow::keep(open);
+        g_selectionWindow = open;
+    }
+    if (corr) open->showCorrelation(found.corrA, found.corrB);
+    else open->showVariable(found.name);
+    g_selectionKey = key;
+    open->setTitle(tr("MonteCalc - Results") + "  " + d.cellName(a, false) + "  (" + (corr ? found.corrA + " / " + found.corrB : found.name) + ")");
+    // the wedge from the cell to the window (MC FLO), following scrolling and moves
+    // beside the cell, not over it (to the right, else to the left)
+    {
+        int cx, cy, cw, ch, wx, wy, ww, wh, dx, dy, dw, dh;
+        if (d.cellScreenRect(a, cx, cy, cw, ch) && open->screenRect(wx, wy, ww, wh) && cx < wx + ww && cx + cw > wx && cy < wy + wh &&
+            cy + ch > wy) {
+            bool doc = d.documentScreenRect(dx, dy, dw, dh);
+            int left = doc ? dx : 0, right = doc ? dx + dw : cx + cw + 60 + ww;
+            int target = cx + cw + 60;                                     // right of the cell
+            if (target + ww > right) target = cx - 60 - ww;               // else left of it
+            if (target < left) target = std::max(left, right - ww);       // neither fits: inside the document window
+            open->moveBy(target - wx, 0);
+        }
+    }
+    open->setCallout([d, a](int& x, int& y, int& w, int& h) { return d.cellScreenRect(a, x, y, w, h); });
+    return true;
+}
+
+void openResultWindowAfterRun(const Ctx& ctx, const Frame& frame, const std::string& variable) {
+    // the window of the previous run lists that run's variables: a new one replaces it
+    if (auto old = g_selectionWindow.lock()) old->close();
+    g_selectionWindow.reset();
+    g_selectionKey.clear();
+    if (resultWindowForSelection(ctx, frame)) return;   // the selected cell holds a variable: with the wedge
+    auto w = std::make_shared<ResultWindow>(ctx, frame, variable);
+    w->show();
+    w->afterShow();
+    CanvasWindow::keep(w);
+    if (docOf(frame).property("MonteCalc.AutoResults", 1) != 0) g_selectionWindow = w;   // follows the selection from now on
+}
 
 void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& view, const std::string& exportTo,
                       const std::string& scatterX) {

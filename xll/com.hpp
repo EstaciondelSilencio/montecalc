@@ -13,6 +13,7 @@
 #include <ole2.h>
 
 #include <stdexcept>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -96,6 +97,10 @@ bool findApplication(HWND excelMain);   // through the workbook window (accessib
 
 // runs an XLL command (a registered macro, e.g. "MCFLO.Start") through Application.Run
 void runMacro(const std::string& name);
+
+// calls onChange whenever the selection changes in a worksheet (Application.SheetSelectionChange);
+// once is enough, later calls only replace the function
+void watchSelection(std::function<void()> onChange);
 
 } // namespace com
 } // namespace montecalc

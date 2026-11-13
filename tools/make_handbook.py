@@ -448,6 +448,8 @@ def build(out):
         ["Visualize simulation", "Let the spreadsheet show every iteration (slow).", "off"],
         ["Store results in a result workbook", "Write the result workbook after each run (7.4).", "off"],
         ["Use DIP", "Store the outputs as " + c("FLO_r_") + " arrays in the model.", "off"],
+        ["Show the result window when a variable cell is selected", "After a run, selecting a variable cell shows it in the result window, "
+                                                                     "with the wedge to the cell (7.1).", "on"],
         ["Language", "Auto, English, Deutsch, Español.", "Auto"],
     ], [44 * mm, 100 * mm, 26 * mm])
     s.h2("6.2  Start, preview, pause and stop")
@@ -483,7 +485,13 @@ def build(out):
     # ================================================================ 7 Results
     s.h1("7  Analysing the results")
     s.h2("7.1  The result window")
-    s.p("Open it with <b>Result window</b> (Statistics group), from the variable list, or after a run. Choose the variable at the top "
+    s.p("<b>After a simulation, select any cell that holds an input, output or correlation variable</b>: the result window shows it "
+        "at once, as in MC FLO. One window follows the selection; its caption names the cell (e.g. " + c("B30 (NPV)") + "), and on "
+        "Windows a translucent red wedge connects the framed cell with the window, so you always see where the window belongs. "
+        "The window opens beside the cell, the keyboard stays in the sheet, and the wedge follows when you move the window or scroll. "
+        "A correlation cell shows the scatter of its two variables. Selecting a cell without a variable leaves the window as it is. "
+        "Turn this off in <i>Settings</i> (<i>Show the result window when a variable cell is selected</i>).")
+    s.p("You can also open it with <b>Result window</b> (Statistics group) or from the variable list. Choose the variable at the top "
         "(" + c("[out]") + ", " + c("[in]") + " and " + c("[corr]") + " entries) and the view in the <i>View</i> list:")
     s.table([
         ["View", "Shows"],

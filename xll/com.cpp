@@ -2,6 +2,8 @@
 #ifdef _WIN32
 #include "com.hpp"
 
+#include <ocidl.h>
+
 #include <oleacc.h>
 
 #include <algorithm>
@@ -245,6 +247,67 @@ bool findApplication(HWND excelMain) {
 }
 
 void runMacro(const std::string& name) { application().call("Run", {Var(name)}); }
+
+// ---- Application events: SheetSelectionChange (the result window follows the selection)
+namespace {
+const IID DIID_AppEvents_ = {0x00024413, 0x0000, 0x0000, {0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46}};
+constexpr DISPID kSheetSelectionChange = 0x616;
+
+class AppEventSink : public IDispatch {
+public:
+    std::function<void()> onChange;
+    HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void** out) override {
+        if (!out) return E_POINTER;
+        if (riid == IID_IUnknown || riid == IID_IDispatch || riid == DIID_AppEvents_) {
+            *out = static_cast<IDispatch*>(this);
+            AddRef();
+            return S_OK;
+        }
+        *out = nullptr;
+        return E_NOINTERFACE;
+    }
+    ULONG STDMETHODCALLTYPE AddRef() override { return ++refs_; }
+    ULONG STDMETHODCALLTYPE Release() override { return refs_ > 1 ? --refs_ : 1; }   // lives as long as the add-in
+    HRESULT STDMETHODCALLTYPE GetTypeInfoCount(UINT* n) override {
+        if (n) *n = 0;
+        return S_OK;
+    }
+    HRESULT STDMETHODCALLTYPE GetTypeInfo(UINT, LCID, ITypeInfo**) override { return E_NOTIMPL; }
+    HRESULT STDMETHODCALLTYPE GetIDsOfNames(REFIID, LPOLESTR*, UINT, LCID, DISPID*) override { return E_NOTIMPL; }
+    HRESULT STDMETHODCALLTYPE Invoke(DISPID id, REFIID, LCID, WORD, DISPPARAMS*, VARIANT*, EXCEPINFO*, UINT*) override {
+        if (id == kSheetSelectionChange && onChange && !busy_) {
+            busy_ = true;   // a window opened here may change the selection again
+            try {
+                onChange();
+            } catch (...) {
+            }
+            busy_ = false;
+        }
+        return S_OK;
+    }
+
+private:
+    ULONG refs_ = 1;
+    bool busy_ = false;
+};
+
+AppEventSink* g_sink = nullptr;
+DWORD g_cookie = 0;
+} // namespace
+
+void watchSelection(std::function<void()> onChange) {
+    if (!g_sink) g_sink = new AppEventSink();
+    g_sink->onChange = std::move(onChange);
+    if (g_cookie || !haveApplication()) return;
+    IConnectionPointContainer* cpc = nullptr;
+    if (FAILED(application().ptr()->QueryInterface(IID_IConnectionPointContainer, reinterpret_cast<void**>(&cpc))) || !cpc) return;
+    IConnectionPoint* cp = nullptr;
+    if (SUCCEEDED(cpc->FindConnectionPoint(DIID_AppEvents_, &cp)) && cp) {
+        if (FAILED(cp->Advise(static_cast<IDispatch*>(g_sink), &g_cookie))) g_cookie = 0;
+        cp->Release();
+    }
+    cpc->Release();
+}
 
 } // namespace com
 } // namespace montecalc

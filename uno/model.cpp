@@ -30,6 +30,12 @@
 #include <com/sun/star/frame/Desktop.hpp>
 #include <com/sun/star/frame/XComponentLoader.hpp>
 #include <com/sun/star/awt/Rectangle.hpp>
+#include <com/sun/star/accessibility/AccessibleRole.hpp>
+#include <com/sun/star/accessibility/XAccessible.hpp>
+#include <com/sun/star/accessibility/XAccessibleComponent.hpp>
+#include <com/sun/star/accessibility/XAccessibleContext.hpp>
+#include <com/sun/star/accessibility/XAccessibleTable.hpp>
+#include <com/sun/star/awt/XWindow.hpp>
 #include <com/sun/star/chart/ChartAxisLabelPosition.hpp>
 #include <com/sun/star/chart/XAxisXSupplier.hpp>
 #include <com/sun/star/chart/XChartDocument.hpp>
@@ -498,6 +504,68 @@ bool ModelDoc::selectionRange(table::CellRangeAddress& r) const {
     Reference<sheet::XSheetCellRanges> multi(s, UNO_QUERY);
     if (multi.is() && multi->getRangeAddresses().getLength() > 0) { r = multi->getRangeAddresses()[0]; return true; }
     return false;
+}
+
+namespace {
+// the spreadsheet grid in the accessibility tree of the document window (role TABLE)
+Reference<accessibility::XAccessibleContext> findGrid(const Reference<accessibility::XAccessibleContext>& c, int depth) {
+    if (!c.is() || depth > 8) return {};
+    if (c->getAccessibleRole() == accessibility::AccessibleRole::TABLE) return c;
+    sal_Int64 n = std::min<sal_Int64>(c->getAccessibleChildCount(), 64);
+    for (sal_Int64 i = 0; i < n; ++i) {
+        Reference<accessibility::XAccessible> ch = c->getAccessibleChild(i);
+        if (!ch.is()) continue;
+        auto r = findGrid(ch->getAccessibleContext(), depth + 1);
+        if (r.is()) return r;
+    }
+    return {};
+}
+} // namespace
+
+bool ModelDoc::documentScreenRect(int& x, int& y, int& w, int& h) const {
+    try {
+        Reference<frame::XController> ctl = model_.is() ? model_->getCurrentController() : Reference<frame::XController>();
+        Reference<accessibility::XAccessible> acc(ctl.is() ? ctl->getFrame()->getContainerWindow() : Reference<awt::XWindow>(), UNO_QUERY);
+        Reference<accessibility::XAccessibleComponent> comp(acc.is() ? acc->getAccessibleContext() : nullptr, UNO_QUERY);
+        if (!comp.is()) return false;
+        awt::Point p = comp->getLocationOnScreen();
+        awt::Size s = comp->getSize();
+        x = p.X;
+        y = p.Y;
+        w = s.Width;
+        h = s.Height;
+        return w > 0 && h > 0;
+    } catch (const uno::Exception&) {
+        return false;
+    }
+}
+
+bool ModelDoc::cellScreenRect(const table::CellAddress& a, int& x, int& y, int& w, int& h) const {
+    try {
+        Reference<frame::XController> ctl = model_.is() ? model_->getCurrentController() : Reference<frame::XController>();
+        Reference<sheet::XSpreadsheetView> view(ctl, UNO_QUERY);
+        if (!view.is() || sheetIndex(u8(Reference<container::XNamed>(view->getActiveSheet(), UNO_QUERY_THROW)->getName())) != a.Sheet) return false;
+        Reference<accessibility::XAccessible> win(ctl->getFrame()->getComponentWindow(), UNO_QUERY);
+        if (!win.is()) return false;
+        auto grid = findGrid(win->getAccessibleContext(), 0);
+        Reference<accessibility::XAccessibleTable> table(grid, UNO_QUERY);
+        Reference<accessibility::XAccessibleComponent> gridComp(grid, UNO_QUERY);
+        if (!table.is() || !gridComp.is()) return false;
+        Reference<accessibility::XAccessible> cell = table->getAccessibleCellAt(a.Row, a.Column);
+        Reference<accessibility::XAccessibleComponent> comp(cell.is() ? cell->getAccessibleContext() : nullptr, UNO_QUERY);
+        if (!comp.is()) return false;
+        awt::Point p = comp->getLocationOnScreen(), g = gridComp->getLocationOnScreen();
+        awt::Size sz = comp->getSize(), gs = gridComp->getSize();
+        // scrolled away: outside the visible grid
+        if (p.X + sz.Width <= g.X || p.Y + sz.Height <= g.Y || p.X >= g.X + gs.Width || p.Y >= g.Y + gs.Height) return false;
+        x = p.X;
+        y = p.Y;
+        w = sz.Width;
+        h = sz.Height;
+        return w > 0 && h > 0;
+    } catch (const uno::Exception&) {
+        return false;
+    }
 }
 
 bool ModelDoc::currentCell(table::CellAddress& a) const {

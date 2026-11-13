@@ -30,6 +30,13 @@ void openFitWindow(const Ctx& ctx, const Frame& frame);
 // the scatter of its two variables; scatterX: show the scatter of scatterX against variable.
 void openResultWindow(const Ctx& ctx, const Frame& frame, const std::string& variable, const std::string& view = "",
                       const std::string& exportTo = "", const std::string& scatterX = "");
+// After a simulation: the selection is on a cell with an input, output or correlation variable -
+// the result window (one, following the selection) shows it, with a wedge pointing to the cell.
+// False when the cell holds no variable with results (or the option is off).
+bool resultWindowForSelection(const Ctx& ctx, const Frame& frame);
+// after a run: the result window for the selected cell's variable (else `variable`), which then
+// follows the selection; it replaces the window of the previous run
+void openResultWindowAfterRun(const Ctx& ctx, const Frame& frame, const std::string& variable);
 void openCorrelogram(const Ctx& ctx, const Frame& frame);
 void openInfluenceDiagram(const Ctx& ctx, const Frame& frame, const std::string& options = "", const std::string& exportTo = "");
 void openMentor(const Ctx& ctx, const Frame& frame);

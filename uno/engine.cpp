@@ -31,6 +31,9 @@
 #include <com/sun/star/frame/FeatureStateEvent.hpp>
 #include <com/sun/star/frame/XComponentLoader.hpp>
 #include <com/sun/star/frame/XController.hpp>
+#include <cppuhelper/implbase1.hxx>
+#include <com/sun/star/view/XSelectionSupplier.hpp>
+#include <com/sun/star/view/XSelectionChangeListener.hpp>
 #include <com/sun/star/frame/XStatusListener.hpp>
 #include <com/sun/star/frame/XStorable.hpp>
 #include <com/sun/star/awt/PopupMenu.hpp>
@@ -683,6 +686,7 @@ void Engine::cmdSettings() {
         {"Store results in a result workbook after each run", "", true, o.report},
         {"Use DIP (store outputs as FLO_r_ arrays in the model)", "", true, o.dip},
         {"Use correlations", "", true, o.s.useCorrelations},
+        {"Show the result window when a variable cell is selected", "", true, ModelDoc(m).property("MonteCalc.AutoResults", 1) != 0},
         {"Language (MonteCalc windows and messages)", languageSetting(), false, false, {"Auto", "English", "Deutsch", "Español"}},
     };
     if (!ask("MonteCalc - Settings", f)) return;
@@ -706,7 +710,8 @@ void Engine::cmdSettings() {
     if (!ok) err = "Please enter numbers only.";
     if (!err.empty() || !validateOptions(n, err)) { message("MonteCalc", err, true); return; }
     saveOptions(ModelDoc(m), n);
-    if (f[12].value != languageSetting()) setLanguageSetting(f[12].value);   // menus follow LibreOffice's language
+    ModelDoc(m).setProperty("MonteCalc.AutoResults", Any(f[12].checked ? 1.0 : 0.0));
+    if (f[13].value != languageSetting()) setLanguageSetting(f[13].value);   // menus follow LibreOffice's language
     auto& sim = mc::Simulation::instance();
     sim.setSettings(n.s);
     // seed -1: preview mode (every recalculation draws random values)
@@ -715,6 +720,40 @@ void Engine::cmdSettings() {
         ModelDoc(m).recalc();
     }
 }
+
+#ifndef MONTECALC_XLL
+namespace {
+// after a run the result window follows the selection of variable cells (MC FLO)
+class SelectionWatcher : public cppu::WeakImplHelper1<view::XSelectionChangeListener> {
+public:
+    SelectionWatcher(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame) : ctx_(ctx), frame_(frame) {}
+    void SAL_CALL selectionChanged(const lang::EventObject&) override {
+        Reference<frame::XFrame> f(frame_);
+        if (!f.is()) return;
+        try {
+            resultWindowForSelection(ctx_, f);
+        } catch (...) {
+        }
+    }
+    void SAL_CALL disposing(const lang::EventObject&) override {}
+
+private:
+    Reference<uno::XComponentContext> ctx_;
+    uno::WeakReference<frame::XFrame> frame_;
+};
+
+void watchSelection(const Reference<uno::XComponentContext>& ctx, const Reference<frame::XFrame>& frame) {
+    static std::vector<uno::WeakReference<frame::XController>> watched;
+    Reference<frame::XController> ctl = frame.is() ? frame->getController() : Reference<frame::XController>();
+    Reference<view::XSelectionSupplier> sup(ctl, UNO_QUERY);
+    if (!sup.is()) return;
+    for (auto& w : watched)
+        if (Reference<frame::XController>(w) == ctl) return;
+    watched.push_back(uno::WeakReference<frame::XController>(ctl));
+    sup->addSelectionChangeListener(new SelectionWatcher(ctx, frame));
+}
+} // namespace
+#endif
 
 void Engine::cmdRun() {
     auto m = model();
@@ -757,7 +796,10 @@ void Engine::cmdRun() {
         if (!outs.empty()) selected = outs[0];
     }
     if (!rr.warnings.empty()) message("MonteCalc", rr.summary);
-    openResultWindow(ctx_, frame_, selected);
+    openResultWindowAfterRun(ctx_, frame_, selected);
+#ifndef MONTECALC_XLL
+    watchSelection(ctx_, frame_);   // from now on: selecting a variable cell shows its results
+#endif
 }
 
 void Engine::cmdReset() {
