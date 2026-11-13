@@ -1065,6 +1065,9 @@ XLL_EXPORT int XLL_CALL xlAutoOpen() {
 
 XLL_EXPORT int XLL_CALL xlAutoClose() {
     if (g_menuShown) removeMenu();
+#ifdef _WIN32
+    montecalc::w32::removeKeyboardHook();   // the hook procedure lives in this DLL
+#endif
     return 1;
 }
 

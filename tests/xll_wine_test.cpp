@@ -5,6 +5,7 @@
 //   xll_wine_test window <kind> [sec]   opens a window (results, tornado, decision, scatter, wizard,
 //                                       correlation, statistics, settings) for <sec> seconds
 //   xll_wine_test preview [lang]          live preview with pause / resume / stop (worker threads)
+//   xll_wine_test keys                   typing into a window while the host loop ignores keystrokes
 //   xll_wine_test message                an information message (MC FLO logo)
 //   [lang]                              optional 4th argument: English, Deutsch or Espanol
 #ifndef NOMINMAX
@@ -155,6 +156,46 @@ int main(int argc, char** argv) {
                     completed ? "yes" : "no (stopped)", done, atPause, atResume, sim.iterations(), live.ctl.threads.load());
         // paused: no iteration finished while paused (the workers finish the iteration they were in)
         bool ok = !completed && done > 0 && done < st.iterations && sim.iterations() == done && atResume - atPause <= 8;
+        return ok ? 0 : 1;
+    }
+    if (mode == "keys") {   // keystrokes reach a MonteCalc window although the host loop ignores keys (as Excel's does)
+        Ctx ctx;
+        Frame frame;
+        openWizard(ctx, frame, "PERT");
+        HWND win = nullptr, edit = nullptr;
+        EnumThreadWindows(GetCurrentThreadId(), [](HWND h, LPARAM lp) -> BOOL {
+            wchar_t c[64] = {0};
+            GetClassNameW(h, c, 64);
+            if (std::wcscmp(c, L"MonteCalcWindow") == 0) { *reinterpret_cast<HWND*>(lp) = h; return FALSE; }
+            return TRUE;
+        }, reinterpret_cast<LPARAM>(&win));
+        // the name field: the last Edit before the Save button is fine; take the first empty one
+        for (HWND c = win ? FindWindowExW(win, nullptr, L"Edit", nullptr) : nullptr; c; c = FindWindowExW(win, c, L"Edit", nullptr))
+            if (GetWindowTextLengthW(c) == 0 && IsWindowEnabled(c)) { edit = c; break; }
+        if (!edit) { std::printf("keys: no edit field\n"); return 1; }
+        SetFocus(edit);
+        bool noHook = argc > 2 && std::string(argv[2]) == "nohook";   // the behaviour before the fix
+        if (noHook) w32::removeKeyboardHook();
+        for (wchar_t ch : std::wstring(L"4207")) {   // key presses only, as the keyboard sends them (characters come from TranslateMessage)
+            PostMessageW(edit, WM_KEYDOWN, WPARAM(ch), 1);
+            PostMessageW(edit, WM_KEYUP, WPARAM(ch), 0xC0000001);
+        }
+        // the host's loop: keyboard messages are its own business (Excel types them into the cell)
+        int swallowed = 0;
+        DWORD end = GetTickCount() + 1500;
+        MSG m;
+        while (GetTickCount() < end) {
+            while (PeekMessageW(&m, nullptr, 0, 0, PM_REMOVE)) {
+                if (m.message >= WM_KEYFIRST && m.message <= WM_KEYLAST) { ++swallowed; continue; }
+                TranslateMessage(&m);
+                DispatchMessageW(&m);
+            }
+            Sleep(10);
+        }
+        wchar_t buf[64] = {0};
+        GetWindowTextW(edit, buf, 64);
+        bool ok = noHook ? std::wstring(buf).empty() && swallowed > 0 : std::wstring(buf) == L"4207" && swallowed == 0;
+        std::printf("keys: field \"%ls\", keystrokes left to the host %d: %s\n", buf, swallowed, ok ? "ok" : "FAILED");
         return ok ? 0 : 1;
     }
     if (mode == "message") {   // information message with the MC FLO logo

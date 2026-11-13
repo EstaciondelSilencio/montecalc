@@ -880,8 +880,46 @@ void CanvasWindow::rememberGeometry() {
     geometries()[geometryKey()] = r;
 }
 
+namespace {
+// MonteCalc's windows are modeless and live on Excel's thread, so Excel's own message loop sees
+// their keystrokes first and types them into the selected cell. A hook on that thread delivers the
+// keyboard messages of MonteCalc's windows itself (Tab moves between the fields) and leaves Excel
+// an empty message. Forms and message boxes have their own loops and are left alone.
+HHOOK g_keyHook = nullptr;
+
+LRESULT CALLBACK keyboardHook(int code, WPARAM wp, LPARAM lp) {
+    if (code == HC_ACTION && wp == PM_REMOVE) {
+        MSG* m = reinterpret_cast<MSG*>(lp);
+        if (m && m->hwnd && m->message >= WM_KEYFIRST && m->message <= WM_KEYLAST) {
+            HWND root = GetAncestor(m->hwnd, GA_ROOT);
+            wchar_t cls[64] = {0};
+            if (root) GetClassNameW(root, cls, 64);
+            if (std::wcscmp(cls, kClass) == 0) {
+                if (!(m->message == WM_KEYDOWN && m->wParam == VK_TAB && IsDialogMessageW(root, m))) {
+                    TranslateMessage(m);
+                    DispatchMessageW(m);
+                }
+                m->message = WM_NULL;   // Excel gets nothing to do
+            }
+        }
+    }
+    return CallNextHookEx(g_keyHook, code, wp, lp);
+}
+} // namespace
+
+namespace w32 {
+void installKeyboardHook() {
+    if (!g_keyHook) g_keyHook = SetWindowsHookExW(WH_GETMESSAGE, keyboardHook, nullptr, GetCurrentThreadId());
+}
+void removeKeyboardHook() {
+    if (g_keyHook) UnhookWindowsHookEx(g_keyHook);
+    g_keyHook = nullptr;
+}
+} // namespace w32
+
 void CanvasWindow::show() {
     Win32Window::registerClass();
+    w32::installKeyboardHook();
     RECT r{0, 0, duX(width_), duY(height_)};
     DWORD style = WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, ex = 0;
     AdjustWindowRectEx(&r, style, FALSE, ex);

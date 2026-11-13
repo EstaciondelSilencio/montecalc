@@ -176,6 +176,9 @@ jobs:
             .\build-xll\xll_win_test.exe window $k 2
             if ($LASTEXITCODE -ne 0) { throw "window $k failed" }
           }
+          # typing into a MonteCalc window although the host's loop keeps keystrokes (as Excel's does)
+          .\build-xll\xll_win_test.exe keys
+          if ($LASTEXITCODE -ne 0) { throw "keystrokes do not reach the MonteCalc window" }
           # live preview on worker threads: pause, resume, stop keep the completed iterations
           .\build-xll\xll_win_test.exe preview | Tee-Object -Variable out
           if ($LASTEXITCODE -ne 0) { throw "preview test failed: $out" }

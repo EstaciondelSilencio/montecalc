@@ -21,6 +21,9 @@ HICON logoIcon(bool smallIcon);
 int messageBox(HWND owner, const std::wstring& text, const std::wstring& title, bool error, UINT buttons = MB_OK);
 std::string pathOfUrl(const std::string& url);
 bool copyToClipboard(const std::string& text);
+// keystrokes of MonteCalc's modeless windows reach them, not Excel's selected cell (installed by show())
+void installKeyboardHook();
+void removeKeyboardHook();
 // converts an HTML file with Microsoft Word: kind "word" (.docx) or "pdf"; "" if Word is not available
 std::string convertHtml(const std::string& htmlPath, const std::string& kind);
 } // namespace w32
