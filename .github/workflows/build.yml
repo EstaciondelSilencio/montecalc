@@ -45,18 +45,32 @@ jobs:
       - name: Download LibreOffice and the LibreOffice SDK (latest stable)
         shell: pwsh
         run: |
-          $base = "https://download.documentfoundation.org/libreoffice/stable/"
-          $versions = (Invoke-WebRequest -UseBasicParsing $base).Links.href |
+          # the main server, then mirrors; each request retried (the servers answer 502 at times)
+          function Get-Page($url) {
+            for ($i = 1; $i -le 4; $i++) {
+              try { return Invoke-WebRequest -UseBasicParsing -MaximumRetryCount 3 -RetryIntervalSec 10 $url } catch { Write-Host "$url : $_"; Start-Sleep 20 }
+            }
+            return $null
+          }
+          $base = $null
+          foreach ($b in "https://download.documentfoundation.org/libreoffice/stable/",
+                         "https://mirror.cyberbits.eu/tdf/libreoffice/stable/",
+                         "https://ftp.gwdg.de/pub/tdf/libreoffice/stable/") {
+            if (Get-Page $b) { $base = $b; break }
+          }
+          if (-not $base) { throw "no LibreOffice download server answers" }
+          Write-Host "server: $base"
+          $versions = (Get-Page $base).Links.href |
             Where-Object { $_ -match '^\d+\.\d+\.\d+/$' } | ForEach-Object { $_.TrimEnd('/') } |
             Sort-Object { [version]$_ }
           $ver = $versions[-1]
           $dir = "$base$ver/win/x86_64/"
-          $links = (Invoke-WebRequest -UseBasicParsing $dir).Links.href
+          $links = (Get-Page $dir).Links.href
           $main = $links | Where-Object { $_ -match '^LibreOffice_[\d.]+_Win_x86-64\.msi$' } | Select-Object -First 1
           $sdk  = $links | Where-Object { $_ -match '^LibreOffice_[\d.]+_Win_x86-64_sdk\.msi$' } | Select-Object -First 1
           Write-Host "LibreOffice $ver : $main, $sdk"
-          Invoke-WebRequest -UseBasicParsing "$dir$main" -OutFile lo.msi
-          Invoke-WebRequest -UseBasicParsing "$dir$sdk" -OutFile lo_sdk.msi
+          Invoke-WebRequest -UseBasicParsing -MaximumRetryCount 4 -RetryIntervalSec 15 "$dir$main" -OutFile lo.msi
+          Invoke-WebRequest -UseBasicParsing -MaximumRetryCount 4 -RetryIntervalSec 15 "$dir$sdk" -OutFile lo_sdk.msi
           # administrative extraction (no installation needed)
           Start-Process msiexec -Wait -ArgumentList "/a", "lo.msi", "/qn", "TARGETDIR=C:\lo"
           Start-Process msiexec -Wait -ArgumentList "/a", "lo_sdk.msi", "/qn", "TARGETDIR=C:\lo"
