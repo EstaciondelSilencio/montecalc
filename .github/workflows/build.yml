@@ -42,6 +42,11 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
+      - uses: actions/cache@v4
+        with:
+          path: lo-cache
+          key: lo-msi-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: lo-msi-${{ runner.os }}-
       - name: Download LibreOffice and the LibreOffice SDK (latest stable)
         shell: pwsh
         run: |
@@ -52,10 +57,11 @@ jobs:
             }
             return $null
           }
+          $servers = "https://download.documentfoundation.org/libreoffice/stable/",
+                     "https://ftp.gwdg.de/pub/tdf/libreoffice/stable/",
+                     "https://mirror.cyberbits.eu/tdf/libreoffice/stable/"
           $base = $null
-          foreach ($b in "https://download.documentfoundation.org/libreoffice/stable/",
-                         "https://mirror.cyberbits.eu/tdf/libreoffice/stable/",
-                         "https://ftp.gwdg.de/pub/tdf/libreoffice/stable/") {
+          foreach ($b in $servers) {
             if (Get-Page $b) { $base = $b; break }
           }
           if (-not $base) { throw "no LibreOffice download server answers" }
@@ -69,8 +75,22 @@ jobs:
           $main = $links | Where-Object { $_ -match '^LibreOffice_[\d.]+_Win_x86-64\.msi$' } | Select-Object -First 1
           $sdk  = $links | Where-Object { $_ -match '^LibreOffice_[\d.]+_Win_x86-64_sdk\.msi$' } | Select-Object -First 1
           Write-Host "LibreOffice $ver : $main, $sdk"
-          Invoke-WebRequest -UseBasicParsing -MaximumRetryCount 4 -RetryIntervalSec 15 "$dir$main" -OutFile lo.msi
-          Invoke-WebRequest -UseBasicParsing -MaximumRetryCount 4 -RetryIntervalSec 15 "$dir$sdk" -OutFile lo_sdk.msi
+          # the installers: cached between runs, else from the first server that delivers them
+          New-Item -ItemType Directory -Force lo-cache | Out-Null
+          foreach ($f in @(@($main, "lo.msi"), @($sdk, "lo_sdk.msi"))) {
+            $cached = Join-Path lo-cache $f[0]
+            if (-not (Test-Path $cached)) {
+              foreach ($srv in $servers) {
+                $root = "$srv$ver/"
+                try {
+                  Invoke-WebRequest -UseBasicParsing -TimeoutSec 900 -MaximumRetryCount 2 -RetryIntervalSec 15 "${root}win/x86_64/$($f[0])" -OutFile $cached
+                  break
+                } catch { Write-Host "$srv : $_"; Remove-Item -ErrorAction SilentlyContinue $cached }
+              }
+            }
+            if (-not (Test-Path $cached)) { throw "could not download $($f[0])" }
+            Copy-Item $cached $f[1]
+          }
           # administrative extraction (no installation needed)
           Start-Process msiexec -Wait -ArgumentList "/a", "lo.msi", "/qn", "TARGETDIR=C:\lo"
           Start-Process msiexec -Wait -ArgumentList "/a", "lo_sdk.msi", "/qn", "TARGETDIR=C:\lo"
