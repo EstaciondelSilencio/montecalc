@@ -93,7 +93,6 @@ if(MSVC)
   # the C++ runtime inside the DLL (as the Excel add-in): no dependency on the msvcp140.dll that
   # LibreOffice or Windows happens to have (code from current compilers fails with older copies)
   set_property(TARGET montecalc PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded")
-  set_property(TARGET montecalc PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")  # LibreOffice uses /MD
   find_library(LO_CPPU icppu PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
   find_library(LO_CPPUHELPER icppuhelper PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
   find_library(LO_SAL isal PATHS "${LO_SDK_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
