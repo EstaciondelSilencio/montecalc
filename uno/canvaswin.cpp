@@ -87,12 +87,12 @@ public:
         if (!w_ || w_->closed_) return;
         try {
             if (!w_->hasCanvas()) return;
-            Reference<awt::XDevice> dev(w_->dialog_->getPeer(), UNO_QUERY);
+            Reference<awt::XDevice> dev(w_->peer_, UNO_QUERY);
             if (!dev.is()) return;
             Reference<awt::XGraphics> g = dev->createGraphics();
             int cw, ch;
             w_->canvasSize(cw, ch);
-            awt::Rectangle r = Reference<awt::XWindow>(w_->dialog_, UNO_QUERY_THROW)->getPosSize();
+            awt::Rectangle r = Reference<awt::XWindow>(w_->peer_, UNO_QUERY_THROW)->getPosSize();
             int pw = std::max(50, int(r.Width) - w_->panelPixels()), ph = std::max(50, int(r.Height));
             // draw off screen and copy in one step: no flicker and no half-drawn charts while resizing
             if (!tk_.is()) tk_.set(awt::Toolkit::create(w_->ctx_), UNO_QUERY);
@@ -336,6 +336,7 @@ void CanvasWindow::show(bool activate) {
     Reference<awt::XWindowPeer> parent;
     if (frame_.is()) parent.set(frame_->getContainerWindow(), UNO_QUERY);
     dialog_->createPeer(Reference<awt::XToolkit>(awt::Toolkit::create(ctx_), UNO_QUERY_THROW), parent);
+    peer_ = dialog_->getPeer();
     auto* l = new WindowListener(this);
     listener_ = static_cast<cppu::OWeakObject*>(l);
     Reference<awt::XWindow> w(dialog_, UNO_QUERY_THROW);
@@ -490,7 +491,7 @@ void CanvasWindow::relayout() {
         relayouting_ = false;
         r = w->getPosSize();
     }
-    Reference<awt::XUnitConversion> uc(dialog_, UNO_QUERY);
+    Reference<awt::XUnitConversion> uc(peer_.is() ? Reference<uno::XInterface>(peer_) : Reference<uno::XInterface>(dialog_), UNO_QUERY);
     if (!uc.is()) return;
     awt::Size d = uc->convertSizeToLogic(awt::Size(r.Width - baseWpx_, r.Height - baseHpx_), util::MeasureUnit::APPFONT);
     int dW = d.Width, dH = d.Height;
@@ -590,7 +591,8 @@ int CanvasWindow::panelPixels() {
 }
 
 void CanvasWindow::canvasSize(int& w, int& h) {
-    awt::Rectangle r = Reference<awt::XWindow>(dialog_, UNO_QUERY_THROW)->getPosSize();
+    Reference<awt::XWindow> win(peer_.is() ? Reference<uno::XInterface>(peer_) : Reference<uno::XInterface>(dialog_), UNO_QUERY_THROW);
+    awt::Rectangle r = win->getPosSize();
     w = std::max(50, int((int(r.Width) - panelPixels()) / zoom_));
     h = std::max(50, int(int(r.Height) / zoom_));
 }

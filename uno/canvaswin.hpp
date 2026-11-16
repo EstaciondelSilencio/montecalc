@@ -120,6 +120,9 @@ private:
     css::uno::Reference<css::lang::XMultiServiceFactory> model_;
     css::uno::Reference<css::container::XNameContainer> container_;
     css::uno::Reference<css::awt::XControl> dialog_;
+    // the native window behind dialog_: painting asks it, not the dialog control, whose lock a command
+    // started by a script may hold while it waits for LibreOffice's thread (deadlock on Windows)
+    css::uno::Reference<css::awt::XWindowPeer> peer_;
     css::uno::Reference<css::uno::XInterface> listener_;
     css::uno::Reference<css::awt::XControl> control(const std::string& name);
     std::vector<std::string> buttons_, lists_, checks_, sliders_, watched_;
