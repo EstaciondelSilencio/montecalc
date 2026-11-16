@@ -2,19 +2,13 @@
 #include "deps.hpp"
 #include "util.hpp"
 
-#ifndef MONTECALC_XLL
 #include <com/sun/star/text/XText.hpp>
-#else
-#include "../xll/uno_shim.hpp"
-#endif
 
 #include <deque>
 
 using namespace com::sun::star;
 using com::sun::star::uno::Reference;
-#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY_THROW;
-#endif
 
 namespace montecalc {
 

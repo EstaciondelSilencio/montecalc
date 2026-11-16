@@ -16,7 +16,6 @@
 #include "../core/formula.h"
 #include "../core/stats.h"
 
-#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/Key.hpp>
 #include <com/sun/star/beans/XPropertySet.hpp>
 #include <com/sun/star/container/XIndexAccess.hpp>
@@ -25,9 +24,6 @@
 #include <com/sun/star/table/CellContentType.hpp>
 #include <com/sun/star/table/XColumnRowRange.hpp>
 #include <com/sun/star/text/XText.hpp>
-#else
-#include "../xll/uno_shim.hpp"
-#endif
 
 #include <algorithm>
 #include <array>
@@ -47,10 +43,8 @@ using namespace com::sun::star;
 using com::sun::star::uno::Any;
 using com::sun::star::uno::Reference;
 using com::sun::star::uno::Sequence;
-#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY;
 using com::sun::star::uno::UNO_QUERY_THROW;
-#endif
 
 namespace montecalc {
 

@@ -1,5 +1,4 @@
-// MonteCalc - the iterations of a run and its summary, shared by the LibreOffice extension and
-// the Excel add-in (no user interface here: the Excel test program on Linux links it too)
+// MonteCalc - the iterations of a run and its summary (no user interface here)
 #include "engine.hpp"
 
 #include "../core/stats.h"

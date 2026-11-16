@@ -11,12 +11,8 @@
 #include "../core/formula.h"
 #include "../core/stats.h"
 
-#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/Key.hpp>
 #include <com/sun/star/table/CellContentType.hpp>
-#else
-#include "../xll/uno_shim.hpp"
-#endif
 
 #include <algorithm>
 #include <cctype>

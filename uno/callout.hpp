@@ -1,7 +1,7 @@
 // MonteCalc - the MC FLO "callout": a translucent wedge from a spreadsheet cell to the result window
 // that was opened for it, so one sees which cell the window belongs to.
 //
-// Windows only (Excel and LibreOffice on Windows): a transparent, click-through layered window just
+// Windows only (LibreOffice on Windows): a transparent, click-through layered window just
 // behind the result window. It follows the window when it moves and the cell when the sheet scrolls,
 // and hides while the cell is out of view or another program is in front.
 #pragma once

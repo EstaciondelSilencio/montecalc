@@ -2,9 +2,6 @@
 // named ranges (FLO_i_ / FLO_c_ / FLO_o_), selection and cell helpers.
 #pragma once
 
-#ifdef MONTECALC_XLL
-#include "../xll/uno_shim.hpp"
-#else
 #include <com/sun/star/frame/XFrame.hpp>
 #include <com/sun/star/frame/XModel.hpp>
 #include <com/sun/star/sheet/XSpreadsheet.hpp>
@@ -13,7 +10,6 @@
 #include <com/sun/star/table/CellRangeAddress.hpp>
 #include <com/sun/star/table/XCell.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
-#endif
 
 #include "../core/flofuncs.h"
 #include "../core/formula.h"
@@ -43,7 +39,7 @@ struct VarCell {
 enum class CellType { Empty, Value, Text, Formula };
 
 // One cell of the model. Formulas use LibreOffice syntax in both programs ("; " separators,
-// Sheet.A1 references); the Excel version converts to and from Excel's syntax.
+// Sheet.A1 references).
 std::string u8s(const rtl::OUString& s);   // = u8() (util.hpp)
 
 class Cell {
@@ -59,34 +55,19 @@ public:
     void setFormula(const rtl::OUString& f) const { setFormula(u8s(f)); }
     CellType type() const;
     int error() const;   // 0 = no error
-#ifdef MONTECALC_XLL
-    explicit Cell(std::shared_ptr<struct XlCellImpl> c) : c_(std::move(c)) {}
-    std::shared_ptr<struct XlCellImpl> impl() const { return c_; }
-private:
-    std::shared_ptr<struct XlCellImpl> c_;
-#else
     explicit Cell(const css::uno::Reference<css::table::XCell>& c) : c_(c) {}
     css::uno::Reference<css::table::XCell> xcell() const { return c_; }
 private:
     css::uno::Reference<css::table::XCell> c_;
-#endif
 };
 
 class ModelDoc {
 public:
-#ifdef MONTECALC_XLL
-    ModelDoc();   // the active workbook in Excel
-    explicit ModelDoc(const css::uno::Reference<css::frame::XModel>&) : ModelDoc() {}
-    bool valid() const;
-    css::uno::Reference<css::frame::XModel> model() const { return {}; }
-    std::shared_ptr<struct XlDocImpl> impl() const { return x_; }
-#else
     explicit ModelDoc(const css::uno::Reference<css::frame::XModel>& m);
     bool valid() const { return doc_.is(); }
     css::uno::Reference<css::frame::XModel> model() const { return model_; }
     css::uno::Reference<css::sheet::XSpreadsheetDocument> doc() const { return doc_; }
     css::uno::Reference<css::sheet::XSpreadsheet> sheet(int i) const;
-#endif
     // a new, empty document (model check, result workbook)
     static ModelDoc newDocument(const css::uno::Reference<css::uno::XComponentContext>& ctx, bool hidden);
 
@@ -133,7 +114,7 @@ public:
     void setComment(const css::table::CellAddress& a, const std::string& text) const;
     // FLO_r_ ranges: name for column col, rows row0..row1 of a sheet
     void setNamedArea(const std::string& name, int sheet, int col, int row0, int row1);
-    // settings stored with the document (LibreOffice: user-defined properties, Excel: hidden names)
+    // settings stored with the document (user-defined document properties)
     double property(const std::string& name, double def) const;
     std::string propertyText(const std::string& name) const;
     void setProperty(const std::string& name, const css::uno::Any& value) const;   // empty Any removes it
@@ -148,7 +129,7 @@ public:
     // ranges: first = categories / x, others = values; position and size in 1/100 mm
     void addChart(int sheet, const std::string& name, ChartKind kind, const std::vector<css::table::CellRangeAddress>& ranges, int x, int y, int w,
                   int h, const std::string& title, bool legend = false) const;
-    void saveAs(const std::string& url) const;   // the result workbook (Excel: .xlsx)
+    void saveAs(const std::string& url) const;   // the result workbook
     void close() const;
     // a key identifying the document (per-document state, e.g. the replayed iteration)
     const void* key() const;
@@ -159,12 +140,8 @@ public:
                                      const css::table::CellAddress& a) const;
 
 private:
-#ifdef MONTECALC_XLL
-    std::shared_ptr<struct XlDocImpl> x_;
-#else
     css::uno::Reference<css::frame::XModel> model_;
     css::uno::Reference<css::sheet::XSpreadsheetDocument> doc_;
-#endif
 };
 
 // Colours used to mark MC FLO cells (as described in the manual)

@@ -4,7 +4,6 @@
 
 #include "../core/flofuncs.h"
 
-#ifndef MONTECALC_XLL
 #include <com/sun/star/beans/XPropertySet.hpp>
 #include <com/sun/star/container/XEnumeration.hpp>
 #include <com/sun/star/container/XEnumerationAccess.hpp>
@@ -55,7 +54,6 @@
 #include <com/sun/star/sheet/XSpreadsheets.hpp>
 #include <com/sun/star/table/XColumnRowRange.hpp>
 #include <com/sun/star/table/XTableColumns.hpp>
-#endif
 
 #include <algorithm>
 #include <cmath>
@@ -64,16 +62,13 @@
 using namespace com::sun::star;
 using com::sun::star::uno::Any;
 using com::sun::star::uno::Reference;
-#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY;
 using com::sun::star::uno::UNO_QUERY_THROW;
-#endif
 
 namespace montecalc {
 
 std::string u8s(const OUString& s) { return u8(s); }
 
-#ifndef MONTECALC_XLL
 // ================================================================ LibreOffice backend
 ModelDoc::ModelDoc(const Reference<frame::XModel>& m) : model_(m), doc_(m, UNO_QUERY) {}
 
@@ -309,7 +304,6 @@ ModelDoc ModelDoc::newDocument(const Reference<uno::XComponentContext>& ctx, boo
     Reference<frame::XModel> m(loader->loadComponentFromURL("private:factory/scalc", "_blank", 0, seq<beans::PropertyValue>({h})), UNO_QUERY_THROW);
     return ModelDoc(m);
 }
-#endif   // LibreOffice backend
 
 std::string ModelDoc::cellName(const table::CellAddress& a, bool withSheet) const {
     std::string s = mc::formula::columnName(a.Column) + std::to_string(a.Row + 1);
@@ -439,7 +433,6 @@ std::vector<VarCell> ModelDoc::scan() const {
     return out;
 }
 
-#ifndef MONTECALC_XLL
 // ---------------------------------------------------------------- named ranges
 static Reference<sheet::XNamedRanges> namedRangesOf(const Reference<sheet::XSpreadsheetDocument>& doc) {
     Reference<beans::XPropertySet> ps(doc, UNO_QUERY_THROW);
@@ -621,7 +614,6 @@ void ModelDoc::recalc() const {
     if (c.is()) c->calculateAll();
 }
 
-#endif   // LibreOffice backend
 
 // ---------------------------------------------------------------- formula source
 namespace {

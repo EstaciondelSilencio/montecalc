@@ -1,5 +1,5 @@
 // MonteCalc - result workbook (Summary, Statistics, Sensitivity, Variants, Data).
-// Written through ModelDoc, so it is the same in LibreOffice and in Excel.
+// Written through ModelDoc.
 #include "report.hpp"
 #include "model.hpp"
 #include "util.hpp"

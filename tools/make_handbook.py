@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""MonteCalc user handbook (PDF, English) for the LibreOffice extension and the Excel add-in.
+"""MonteCalc user handbook (PDF, English) for the LibreOffice Calc extension.
 
     python3 tools/make_handbook.py [out.pdf]        (default: docs/MonteCalc_Handbook.pdf)
 
@@ -130,9 +130,13 @@ class Story(list):
         self.append(t)
         self.append(Spacer(1, 8))
 
+    figures = 0
+
     def figure(self, path, width_mm, caption):
         if not os.path.exists(path):
             return
+        Story.figures += 1
+        caption = f"Figure {Story.figures} – " + re.sub(r"^Figure \d+ – ", "", caption)
         from PIL import Image as PILImage
         w, h = PILImage.open(path).size
         width = width_mm * mm
@@ -145,7 +149,7 @@ class Story(list):
 class Handbook(BaseDocTemplate):
     def __init__(self, filename):
         super().__init__(filename, pagesize=A4, leftMargin=20 * mm, rightMargin=20 * mm, topMargin=22 * mm, bottomMargin=20 * mm,
-                         title="MonteCalc User Handbook", author="MonteCalc", subject=f"MonteCalc {VERSION}: LibreOffice Calc and Microsoft Excel",
+                         title="MonteCalc User Handbook", author="MonteCalc", subject=f"MonteCalc {VERSION} for LibreOffice Calc",
                          creator="tools/make_handbook.py")
         frame = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="body")
         self.addPageTemplates([PageTemplate(id="cover", frames=[frame], onPage=self.cover_page),
@@ -176,7 +180,7 @@ class Handbook(BaseDocTemplate):
         canv.setFont("Sans", 7.5)
         canv.setFillColor(GREY)
         canv.drawString(20 * mm, A4[1] - 12 * mm, "MonteCalc User Handbook")
-        canv.drawRightString(A4[0] - 20 * mm, A4[1] - 12 * mm, f"Version {VERSION} · LibreOffice Calc and Microsoft Excel")
+        canv.drawRightString(A4[0] - 20 * mm, A4[1] - 12 * mm, f"Version {VERSION} · LibreOffice Calc")
         canv.line(20 * mm, 13 * mm, A4[0] - 20 * mm, 13 * mm)
         canv.drawRightString(A4[0] - 20 * mm, 9 * mm, str(doc.page))
         canv.restoreState()
@@ -197,11 +201,11 @@ def build(out):
     s.append(Paragraph("MonteCalc", ParagraphStyle("t", parent=base, fontName="Sans-Bold", fontSize=34, leading=40, alignment=TA_CENTER, textColor=BLUE)))
     s.append(Paragraph("User Handbook", ParagraphStyle("t2", parent=base, fontSize=19, leading=26, alignment=TA_CENTER, textColor=GREY)))
     s.append(Spacer(1, 8 * mm))
-    s.append(Paragraph("Monte Carlo simulation for LibreOffice Calc and Microsoft Excel<br/>following the MC FLO workflow",
+    s.append(Paragraph("Monte Carlo simulation for LibreOffice Calc<br/>following the MC FLO workflow",
                        ParagraphStyle("t3", parent=base, fontSize=12, leading=17, alignment=TA_CENTER)))
     s.append(Spacer(1, 50 * mm))
     s.append(Paragraph(f"Version {VERSION} · November 2026", ParagraphStyle("t4", parent=base, fontSize=10, alignment=TA_CENTER, textColor=GREY)))
-    s.append(Paragraph("LibreOffice extension (.oxt) · Excel add-in (.xll, 64-bit and 32-bit)",
+    s.append(Paragraph("LibreOffice extension (.oxt) for Windows and Linux",
                        ParagraphStyle("t5", parent=base, fontSize=9, alignment=TA_CENTER, textColor=GREY)))
     s.append(NextPageTemplate("body"))
     s.append(PageBreak())
@@ -223,21 +227,15 @@ def build(out):
     s.p("MonteCalc follows the workflow, function names and conventions of <b>MC FLO</b> (user guide and wiki on "
         "www.mcflosim.ch). Models written for MC FLO calculate in MonteCalc. MonteCalc is an independent implementation; "
         "it contains no MC FLO code and is not affiliated with MC FLOsim. The name MC FLO is used only to describe compatibility.")
-    s.h2("1.1  Two editions, one program")
-    s.p("MonteCalc comes in two editions built from the same source code. The functions, the windows, the commands and "
-        "the results are the same; a model gives the same results for the same seed in both.")
+    s.h2("1.1  Requirements")
     s.table([
-        ["", "LibreOffice Calc", "Microsoft Excel"],
-        ["File", c("MonteCalc-windows_x86_64.oxt") + " / " + c("MonteCalc-linux_x86_64.oxt"),
-         c("MonteCalc-Excel-x64.xll") + " (64-bit Office) / " + c("MonteCalc-Excel-x86.xll") + " (32-bit Office)"],
-        ["Requires", "LibreOffice 7.6 or later (64-bit)", "Excel 2010 or later, Windows"],
-        ["Commands", "MC FLO sidebar deck, MC FLO menu and toolbar, Extension tab (tabbed interface)", "MC FLO ribbon tab"],
-        ["Argument separator", c(";") + " (e.g. " + c("=FLOsimula_Normal(100;15;\"Demand\")") + ")",
-         c(",") + " in English Excel, " + c(";") + " in German or Spanish Excel"],
-        ["Result workbook", c(".ods"), c(".xlsx")],
-    ], [30 * mm, 70 * mm, 70 * mm])
-    s.p("In this handbook formulas are written with " + c(";") + " as in LibreOffice and in German or Spanish Excel. "
-        "In English Excel type " + c(",") + " instead.")
+        ["", ""],
+        ["File", c("MonteCalc-windows_x86_64.oxt") + " (Windows) / " + c("MonteCalc-linux_x86_64.oxt") + " (Linux)"],
+        ["Requires", "LibreOffice 7.6 or later (64-bit)"],
+        ["Commands", "MC FLO sidebar deck, MC FLO menu and toolbar, Extension tab (tabbed interface)"],
+        ["Argument separator", c(";") + " (e.g. " + c("=FLOsimula_Normal(100;15;\"Demand\")") + ")"],
+        ["Result workbook", c(".ods")],
+    ], [36 * mm, 134 * mm], header=False)
     s.h2("1.2  What you can do with MonteCalc")
     s.bullets([
         "<b>Model uncertain inputs</b> with 33 distributions (20 continuous, 8 discrete, 5 time series, including your own data), optionally truncated, rounded or summed.",
@@ -266,33 +264,19 @@ def build(out):
     ])
     s.p("To update, remove the old version in the Extension Manager, add the new one and restart LibreOffice. "
         "To uninstall, select MonteCalc in the Extension Manager and choose <b>Remove</b>.")
-    s.h2("2.2  Excel add-in")
-    s.steps([
-        "Find out whether your Office is 64-bit or 32-bit: <i>File → Account → About Excel</i>; the first line ends in “64-bit” or “32-bit”. "
-        "Download " + c("MonteCalc-Excel-x64.xll") + " for 64-bit or " + c("MonteCalc-Excel-x86.xll") + " for 32-bit Office.",
-        "Windows may block downloaded add-ins: right-click the file, choose <i>Properties</i>, tick <b>Unblock</b> and click OK.",
-        "In Excel go to <b>File → Options → Add-ins</b>, choose <i>Manage: Excel Add-ins → Go… → Browse…</i>, select the .xll file and confirm. "
-        "The add-in now loads every time Excel starts.",
-        "Excel shows the <b>MC FLO</b> ribbon tab. Open " + c("business_case.xlsx") + " and click <b>Start</b> in the Simulation group.",
-    ])
-    s.p("No Visual C++ runtime or other installation is needed; the add-in registers its ribbon for the current user only "
-        "(no administrator rights). To update, replace the .xll file and restart Excel. To remove it, untick it in the Add-ins dialog.")
-    s.note("<b>If the MC FLO tab does not appear:</b> open <i>File → Options → Add-ins → Manage: COM Add-ins → Go…</i> and tick "
-           "<b>MonteCalc</b>. All commands are also on the <b>Add-ins</b> tab (MC FLO menu) as a fallback.")
-    s.h2("2.3  Language")
+    s.h2("2.2  Language")
     s.p("Windows, dialogs, messages, ribbon labels and chart captions are available in English, German and Spanish. "
         "<b>Auto</b> follows the language of LibreOffice or of Windows. To choose another language use <b>Settings… → Language</b> "
-        "(LibreOffice) or <b>Other → Language</b> on the Excel ribbon. The choice is stored in "
-        + c("Documents\\MC_FLO_language.txt") + " and shared by both editions.")
+        ". The choice is stored in " + c("Documents\\MC_FLO_language.txt") + ".")
     s.p("Function names (" + c("FLOsimula_…") + ", " + c("fMC_…") + "), variable names and the sheets of the result workbook are "
         "the same in every language, so a model works in every language version.")
-    s.h2("2.4  AI mentor (optional)")
+    s.h2("2.3  AI mentor (optional)")
     s.p("The AI mentor needs an Anthropic API key. Put it into " + c("Documents\\MC_FLO_API.txt") + " or type it into the mentor window. "
         "The mentor sends the structure and the statistics of your model, never the cell contents.")
 
     # ================================================================ 3 Quick start
     s.h1("3  Quick start: a product launch")
-    s.p("The example workbook " + c("business_case") + " (.ods for LibreOffice, .xlsx for Excel, attached to every release) "
+    s.p("The example workbook " + c("business_case") + " (attached to every release) "
         "evaluates the launch of a new product over five years. Open it and follow these steps.")
     s.h3("The inputs (cells B4 to B10)")
     s.table([
@@ -460,23 +444,20 @@ def build(out):
     s.bullets([
         "<b>Pause</b> holds the simulation; the bar turns yellow and <b>Resume</b> continues it.",
         "<b>Stop</b> ends the run early. The completed iterations become the result (the summary says "
-        "“Simulation stopped after N of M iterations”); a multiple simulation skips the remaining variants. In Excel, <b>Esc</b> also stops.",
+        "“Simulation stopped after N of M iterations”); a multiple simulation skips the remaining variants.",
         "After the run, a summary lists the mean, standard deviation and the worst, real and best case of every output, and the result "
         "window opens for the selected variable.",
         "<b>Reset</b> forgets the results.",
     ])
-    s.figure(os.path.join(SHOTS, "preview.png"), 135, "Figure 4 – Preview window during a run on four threads")
-    s.figure(os.path.join(SHOTS, "paused.png"), 135, "Figure 5 – The same run paused: the bar turns yellow, the button reads Resume")
-    s.figure(os.path.join(SHOTS, "lo_preview.png"), 160, "Figure 6 – The preview window in LibreOffice Calc, in front of the example model")
+    s.figure(os.path.join(SHOTS, "lo_preview.png"), 160, "The preview window during a run, in front of the example model")
     s.h2("6.3  Memory Calculation and multiple cores")
-    s.p("Normally every iteration recalculates the spreadsheet. LibreOffice and Excel allow that only on their main thread, so one "
+    s.p("Normally every iteration recalculates the spreadsheet. LibreOffice allows that only on its main thread, so one "
         "processor core does the work. With <b>Memory Calculation</b>, MonteCalc reads the formulas of the model once and evaluates "
         "them with its own engine, which is several times faster and runs the iterations on <b>all processor cores</b>. The results "
         "do not depend on the number of cores: the same seed gives the same iterations.")
     s.bullets([
         "If the model uses a function the engine does not know, MonteCalc says so and recalculates the spreadsheet instead.",
         "Models whose time series continue from one iteration to the next run in order on one core.",
-        "In Excel the workbook is busy during a run; only the MonteCalc windows respond.",
     ])
     s.h2("6.4  Seeds and reproducibility")
     s.p("With a seed other than 0, every run repeats the same iterations, so results can be compared after a change of the model. "
@@ -514,7 +495,7 @@ def build(out):
     s.p("The buttons store the results in a result workbook, export the chart as an image, store it as a cell comment, "
         "start a new run and zoom (also Ctrl +, Ctrl −, Ctrl 0). All windows can be resized; they reopen with their last size.")
     s.figure(os.path.join(SHOTS, "tornado.png"), 140, "Figure 7 – Tornado chart: the NPV with each input at its lowest and highest 10%")
-    s.figure(os.path.join(SHOTS, "scatter.png"), 140, "Figure 8 – Scatter / regression of the NPV against Price, with the dynamic sensitivity below")
+    s.figure(os.path.join(SHOTS, "scatter.png"), 140, "Scatter / regression of the NPV against its strongest driver, UnitCost, with the dynamic sensitivity below")
     s.figure(os.path.join(SHOTS, "decision.png"), 140, "Figure 9 – Decision matrix: which drivers threaten the target, and how much")
     s.figure(os.path.join(SHOTS, "statistics.png"), 140, "Figure 10 – Statistics view")
     s.h2("7.2  Result functions in your cells")
@@ -531,17 +512,17 @@ def build(out):
     ], [80 * mm, 90 * mm])
     s.p("The <b>Functions</b> menu (Information group) lists every " + c("fMC_") + " function by category and writes the chosen one "
         "into the selected empty cell; the Function Wizard (" + c("fx") + ") shows a description of each function and argument. "
-        "Appendix A lists all functions. Functions that return a table spill automatically in Microsoft 365 and Excel 2021 and in LibreOffice "
-        "when entered as array formula (Ctrl+Shift+Enter); in older Excel versions select the output range and confirm with Ctrl+Shift+Enter.")
+        "Appendix A lists all functions. Functions that return a table are entered as array formulas: "
+        "select the output range and confirm with Ctrl+Shift+Enter.")
     s.h2("7.3  Analysing a single iteration")
-    s.p("Enter an iteration number in <b>Choose iteration</b> and click <b>Analyze iteration</b> (Excel: <i>Replay</i>): the input "
+    s.p("Enter an iteration number in <b>Choose iteration</b> and click <b>Analyze iteration</b>: the input "
         "values of that iteration are written into the model, so you can follow how the result came about. <b>Expected values</b> "
         "restores the formulas.")
     s.h2("7.4  The result workbook")
     s.p("<b>Store results</b> writes a result workbook with the sheets <i>Data</i> (all iterations, write-protected), <i>Summary</i> "
         "(scenarios, 5% steps, 1% extremes), <i>Statistics</i> (histogram, cumulative curve, confidence interval of the mean), "
         "<i>Sensitivity</i> (tornado) and <i>Variants</i>. <b>Change histogram</b> sets the number of bins; <b>Close and save results</b> "
-        "saves it as " + c("<model>_dd_mm_yyyy_hh_mm_ss_MC_FLO") + " (.ods in LibreOffice, .xlsx in Excel). "
+        "saves it as " + c("<model>_dd_mm_yyyy_hh_mm_ss_MC_FLO") + " (.ods). "
         "<b>Calc correlations</b> adds a regression sheet for an X- and Y-variable: enter a new X in I4 to get the estimate in I5 and "
         "the 95% forecast interval in K5/L5.")
     s.h2("7.5  Influence diagram")
@@ -558,25 +539,7 @@ def build(out):
 
     # ================================================================ 8 Interface reference
     s.h1("8  Interface reference")
-    s.h2("8.1  Excel: the MC FLO ribbon tab")
-    s.table([
-        ["Group", "Commands"],
-        ["Model specification", "Continuous, discrete and time-series distribution menus (each opens the wizard; on a cell that holds a "
-                                "variable it opens that variable), Wizard, Insert correlation, Insert output, Register, Lock, Fit distribution"],
-        ["Information", "Influence diagram, Functions (the " + c("fMC_") + " functions by category, plus the Function Wizard), Model, "
-                        "Show variables, AI mentor"],
-        ["Simulation", "Best / Real / Worst levels and Iterations, check boxes Use correlations, Visualize, Memory Calculation and "
-                       "Preview window, Multiple simulation, Start, Reset, Settings"],
-        ["Statistics", "Variable drop-down, Show statistical parameters, Result window, Select variant"],
-        ["Correlations", "X / Y drop-downs, Calc correlations, Correlogram"],
-        ["Iteration", "Iteration number, Replay, Expected values"],
-        ["Results", "Close and save results, Store results, Change histogram"],
-        ["Other", "Sort ascending / descending, Model check, Forecast tool, Batch, Hide / load formulas, Variables, FLO_Context sheet, "
-                  "Preview (random values), Language, About MonteCalc (also the large MC FLO logo button)"],
-    ], [34 * mm, 136 * mm])
-    s.p("The commands are also macros (" + c("MCFLO.Start") + ", " + c("MCFLO.Reset") + ", " + c("MCFLO.Settings") + ", …) that VBA "
-        "can call with " + c('Application.Run "MCFLO.Start"') + ".")
-    s.h2("8.2  LibreOffice: sidebar, menu, toolbar and tab")
+    s.h2("8.1  Sidebar, menu, toolbar and tab")
     s.p("LibreOffice extensions cannot add a ribbon tab of their own, so the same groups appear in four places that run the same commands:")
     s.bullets([
         "the <b>MC FLO sidebar deck</b> (icon at the right edge), one panel per group, with the input fields of the Simulation group;",
@@ -586,41 +549,21 @@ def build(out):
     ])
     s.figure(os.path.join(OLD_SHOTS, "mcflo_interface.png"), 165, "Figure 12 – LibreOffice Calc with the MC FLO sidebar deck (right), the "
              "Extension tab (top) and the correlation window")
-    s.h2("8.3  Keyboard")
+    s.h2("8.2  Keyboard")
     s.table([
         ["Keys", "Where", "Action"],
         ["Ctrl +, Ctrl −, Ctrl 0", "all chart windows", "zoom in, zoom out, reset"],
         ["Tab", "all windows", "next field"],
-        ["Esc", "Excel, during a run", "stop the simulation (keeps the completed iterations)"],
         ["F5, Ctrl+R/L/S/E/F/T/G/D/I/H/K/J, Ctrl+M", "influence diagram", "the commands of its context menu"],
     ], [52 * mm, 42 * mm, 76 * mm])
 
     # ================================================================ 9 Differences
-    s.h1("9  Differences between the editions")
-    s.table([
-        ["Topic", "LibreOffice", "Excel"],
-        ["Commands", "sidebar deck, menu, toolbar, Extension tab", "MC FLO ribbon tab (Add-ins tab as fallback)"],
-        ["Formula separator", c(";"), c(",") + " (English) or " + c(";") + " (German, Spanish); MonteCalc handles both"],
-        ["Result workbook", ".ods", ".xlsx"],
-        ["Function descriptions", "in the Function Wizard, in the chosen language", "in the Function Wizard, in English (categories in the chosen language)"],
-        ["During a run", "LibreOffice keeps redrawing; the preview window responds", "Excel is busy; only the MonteCalc windows respond"],
-    ], [36 * mm, 64 * mm, 70 * mm])
-    s.p("Everything else – functions, windows, settings, results – is the same code in both editions.")
-
-    # ================================================================ 10 Troubleshooting
-    s.h1("10  Troubleshooting")
+    s.h1("9  Troubleshooting")
     faq = [
         ("LibreOffice shows #NAME? for every MonteCalc function.",
          "LibreOffice has not loaded the extension. Restart LibreOffice completely (on Windows including the Quickstarter in the "
          "system tray). If it persists, check in <i>Tools → Extension Manager</i> that MonteCalc is installed and enabled, remove "
          "and add it again, and make sure you installed the file for your system (Windows or Linux, 64-bit)."),
-        ("Excel does not show the MC FLO tab.",
-         "Enable <b>MonteCalc</b> under <i>File → Options → Add-ins → Manage: COM Add-ins</i>. All commands are also on the "
-         "<b>Add-ins</b> tab. If Excel refuses to load the .xll, unblock the file (Properties → Unblock) and check that you use the "
-         "64-bit file for 64-bit Office and the 32-bit file for 32-bit Office."),
-        ("A formula entered with commas shows the wrong values (German or Spanish Excel).",
-         "Excel in German or Spanish uses " + c(";") + " between arguments. " + c("=FLOsimula_PERT(0,5;1;0,8;\"Share\")") + " is "
-         "correct there; in the MonteCalc windows you may type decimal commas, they are converted."),
         ("A function returns -1 or an error after opening the workbook.",
          "Result functions (" + c("fMC_…") + ") need a simulation and return −1 until one has run. Run <b>Start</b>."),
         ("The simulation is slow.",
@@ -633,9 +576,6 @@ def build(out):
         ("A correlation is refused.",
          "The pair is already correlated in another cell, or one of the inputs is already part of an Archimedean or asymmetric "
          "correlation (these are bivariate). The correlation window explains which."),
-        ("Saving from the wizard or the correlation window fails in Excel.",
-         "Make sure no cell is being edited in Excel (press Esc in the sheet) and try again. The error message shows the formula "
-         "Excel refused and Excel's own description; please include it when reporting a problem."),
     ]
     for q, a in faq:
         s.append(KeepTogether([Paragraph(q, S["h3"]), Paragraph(a, S["body"])]))
@@ -644,7 +584,7 @@ def build(out):
     s.append(PageBreak())
     s.h1("Appendix A  Function reference")
     s.p(f"All {len(gf.F)} functions of MonteCalc, generated from the table that also generates the add-ins. Arguments in "
-        "[brackets] are optional. Separate arguments with " + c(";") + " (" + c(",") + " in English Excel).")
+        "[brackets] are optional. Separate arguments with " + c(";") + ".")
     for key, title in gf.SECTIONS:
         items = [f for f in gf.F if f[5] == key]
         if not items:
@@ -670,13 +610,13 @@ def build(out):
     s.h1("Appendix B  Files and names")
     s.table([
         ["File or name", "Purpose"],
-        [c("Documents\\MC_FLO_language.txt"), "the chosen language (shared by both editions)"],
+        [c("Documents\\MC_FLO_language.txt"), "the chosen language"],
         [c("Documents\\MC_FLO_API.txt"), "the Anthropic API key of the AI mentor"],
         [c("Documents\\MC_FLO_mentor.txt"), "the mentor's answer language and your instructions"],
         [c("FLO_i_ / FLO_o_ / FLO_c_ <name>"), "named ranges of inputs, outputs and correlations"],
         [c("FLO_r_<name>"), "stored results of an output (Use DIP)"],
-        [c("MonteCalc_…"), "hidden names in an Excel workbook holding the settings (LibreOffice: document properties)"],
-        [c("<model>_dd_mm_yyyy_hh_mm_ss_MC_FLO.ods / .xlsx"), "saved result workbook"],
+        [c("MonteCalc.…"), "user-defined document properties holding the settings"],
+        [c("<model>_dd_mm_yyyy_hh_mm_ss_MC_FLO.ods"), "saved result workbook"],
     ], [70 * mm, 100 * mm])
     s.p("On Linux, " + c("Documents") + " is the Documents folder in your home directory.", "small")
 

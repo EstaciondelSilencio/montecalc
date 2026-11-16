@@ -1,13 +1,9 @@
 // MonteCalc - result workbook (Summary, Statistics, Sensitivity, Variants, Data)
 #pragma once
 
-#ifndef MONTECALC_XLL
 #include <com/sun/star/frame/XModel.hpp>
 #include <com/sun/star/lang/XComponent.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
-#else
-#include "../xll/uno_shim.hpp"
-#endif
 
 #include <string>
 

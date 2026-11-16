@@ -1,12 +1,8 @@
 // MonteCalc - small UI helpers: message boxes and a programmatic form dialog
 #pragma once
 
-#ifdef MONTECALC_XLL
-#include "../xll/uno_shim.hpp"
-#else
 #include <com/sun/star/frame/XFrame.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
-#endif
 
 #include <string>
 #include <vector>
@@ -31,12 +27,10 @@ struct FormField {
 
 // Makes a button, check box or one-line label show its whole text: when the text is wider
 // than the control (a longer translation), the font is reduced in small steps (to 75 % at most).
-#ifndef MONTECALC_XLL
 void fitControlText(const css::uno::Reference<css::uno::XInterface>& control);
-#endif
 
 // Lets the user interface work during a long computation on the calling thread (preview window,
-// pause / stop buttons). In Excel only MonteCalc's own windows get mouse and keyboard input.
+// pause / stop buttons).
 void processEvents(const css::uno::Reference<css::uno::XComponentContext>& ctx);
 // false when a command runs on another thread than the program's windows (LibreOffice on
 // Windows, commands started by scripts): that thread paints by itself, processEvents does nothing

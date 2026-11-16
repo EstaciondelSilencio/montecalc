@@ -1,12 +1,8 @@
 // MonteCalc - small string helpers shared by the UNO components
 #pragma once
 
-#ifdef MONTECALC_XLL
-#include "../xll/uno_shim.hpp"
-#else
 #include <com/sun/star/uno/Sequence.hxx>
 #include <rtl/ustring.hxx>
-#endif
 
 #include <initializer_list>
 
@@ -29,10 +25,6 @@ com::sun::star::uno::Sequence<T> seq(std::initializer_list<T> l) {
 
 // identity for code that may get a std::string where an OUString was before (model Cell)
 inline const std::string& u8(const std::string& s) { return s; }
-#ifdef MONTECALC_XLL
-inline std::string u8(const rtl::OUString& s) { return s.utf8(); }
-inline rtl::OUString ou(const std::string& s) { return rtl::OUString(s); }
-#else
 inline std::string u8(const rtl::OUString& s) {
     return rtl::OUStringToOString(s, RTL_TEXTENCODING_UTF8).getStr();
 }
@@ -40,7 +32,6 @@ inline std::string u8(const rtl::OUString& s) {
 inline rtl::OUString ou(const std::string& s) {
     return rtl::OStringToOUString(rtl::OString(s.c_str(), s.size()), RTL_TEXTENCODING_UTF8);
 }
-#endif
 
 // ---- platform helpers (Windows and POSIX) ----
 inline std::string envOr(const char* name, const std::string& def) {

@@ -2,23 +2,19 @@
 #include "painter.hpp"
 #include "util.hpp"
 
-#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/FontDescriptor.hpp>
 #include <com/sun/star/awt/FontWeight.hpp>
 #include <com/sun/star/awt/SimpleFontMetric.hpp>
 #include <com/sun/star/awt/XDevice.hpp>
 #include <com/sun/star/awt/XFont.hpp>
 
-#endif
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
 
-#ifndef MONTECALC_XLL
 using namespace com::sun::star;
 using com::sun::star::uno::Reference;
 using com::sun::star::uno::Sequence;
-#endif
 
 namespace montecalc {
 
@@ -32,7 +28,6 @@ Color Color::mix(const Color& o, double t) const {
     return {int(r + (o.r - r) * t), int(g + (o.g - g) * t), int(b + (o.b - b) * t)};
 }
 
-#ifndef MONTECALC_XLL
 // ============================================================ screen
 
 ScreenPainter::ScreenPainter(const Reference<awt::XGraphics>& g) : g_(g) {
@@ -149,7 +144,6 @@ int ScreenPainter::textHeight(int size) {
     return it != sizedH_.end() ? it->second : charH_;
 }
 
-#endif   // LibreOffice screen painter
 
 // ============================================================ SVG
 

@@ -8,16 +8,12 @@
 #include "windows.hpp"
 
 #include <random>
-#ifdef MONTECALC_XLL
-#include "../xll/com.hpp"
-#endif
 
 #include "../core/fitting.h"
 #include "../core/flofuncs.h"
 #include "../core/formula.h"
 #include "../core/stats.h"
 
-#ifndef MONTECALC_XLL
 #include <com/sun/star/awt/Toolkit.hpp>
 #include <com/sun/star/awt/XToolkitExperimental.hpp>
 #include <com/sun/star/beans/PropertyAttribute.hpp>
@@ -65,9 +61,6 @@
 #include <com/sun/star/container/XEnumeration.hpp>
 #include <com/sun/star/container/XEnumerationAccess.hpp>
 #include <cppuhelper/supportsservice.hxx>
-#else
-#include "../xll/uno_shim.hpp"
-#endif
 
 #include <algorithm>
 #include <chrono>
@@ -83,10 +76,8 @@ using namespace com::sun::star;
 using com::sun::star::uno::Any;
 using com::sun::star::uno::Reference;
 using com::sun::star::uno::Sequence;
-#ifndef MONTECALC_XLL
 using com::sun::star::uno::UNO_QUERY;
 using com::sun::star::uno::UNO_QUERY_THROW;
-#endif
 
 namespace montecalc {
 
@@ -339,7 +330,6 @@ void storeDip(const ModelDoc& d0) {
     }
 }
 
-#ifndef MONTECALC_XLL
 namespace {
 
 struct Recorder {
@@ -494,11 +484,9 @@ RunResult runSimulation(const Reference<uno::XComponentContext>& ctx, const Refe
     return rr;
 }
 
-#endif   // LibreOffice simulation driver (Excel: xll/xll.cpp)
 
 // ============================================================ UNO plumbing
 
-#ifndef MONTECALC_XLL
 
 void Engine::initialize(const Sequence<Any>& args) {
     if (args.getLength() > 0) args[0] >>= frame_;
@@ -533,9 +521,6 @@ Reference<frame::XModel> Engine::model() {
     if (!frame_.is() || !frame_->getController().is()) return {};
     return frame_->getController()->getModel();
 }
-#else
-Reference<frame::XModel> Engine::model() { return {}; }   // ModelDoc: the active workbook
-#endif
 
 void Engine::message(const std::string& title, const std::string& text, bool error) {
     if (silent_) {
@@ -564,7 +549,6 @@ bool Engine::ask(const std::string& title, std::vector<FormField>& fields) {
     return showForm(ctx_, title, fields);
 }
 
-#ifndef MONTECALC_XLL
 void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>& args) {
     args_ = args;
     i18nSetContext(ctx_);
@@ -594,42 +578,7 @@ void Engine::dispatch(const util::URL& url, const Sequence<beans::PropertyValue>
     silent_ = argNum(args_, "Silent", 0) != 0;
     execute(cmd);
 }
-#endif
 
-#ifdef MONTECALC_XLL
-void Engine::run(const std::string& command, const std::vector<beans::PropertyValue>& args, bool silent) {
-    args_ = Sequence<beans::PropertyValue>(sal_Int32(args.size()));
-    for (size_t i = 0; i < args.size(); ++i) args_[sal_Int32(i)] = args[i];
-    silent_ = silent || argNum(args_, "Silent", 0) != 0;
-    std::string cmd = command, query;
-    size_t qm = cmd.find('?');   // "Wizard?Function=Normal" as in the LibreOffice menus
-    if (qm != std::string::npos) {
-        query = cmd.substr(qm + 1);
-        cmd = cmd.substr(0, qm);
-        std::vector<beans::PropertyValue> extra(args.begin(), args.end());
-        size_t pos = 0;
-        while (pos <= query.size()) {
-            size_t amp = query.find('&', pos);
-            std::string kv = query.substr(pos, amp == std::string::npos ? std::string::npos : amp - pos);
-            size_t eq = kv.find('=');
-            if (eq != std::string::npos) {
-                beans::PropertyValue p;
-                p.Name = ou(kv.substr(0, eq));
-                std::string val = kv.substr(eq + 1);
-                bool ok;
-                double num = parseNumber(val, ok);
-                p.Value = ok ? Any(num) : Any(ou(val));
-                extra.push_back(p);
-            }
-            if (amp == std::string::npos) break;
-            pos = amp + 1;
-        }
-        args_ = Sequence<beans::PropertyValue>(sal_Int32(extra.size()));
-        for (size_t i = 0; i < extra.size(); ++i) args_[sal_Int32(i)] = extra[i];
-    }
-    execute(cmd);
-}
-#endif
 
 void Engine::execute(const std::string& cmd) {
     try {
@@ -721,7 +670,6 @@ void Engine::cmdSettings() {
     }
 }
 
-#ifndef MONTECALC_XLL
 namespace {
 // after a run the result window follows the selection of variable cells (MC FLO)
 class SelectionWatcher : public cppu::WeakImplHelper1<view::XSelectionChangeListener> {
@@ -753,7 +701,6 @@ void watchSelection(const Reference<uno::XComponentContext>& ctx, const Referenc
     sup->addSelectionChangeListener(new SelectionWatcher(ctx, frame));
 }
 } // namespace
-#endif
 
 void Engine::cmdRun() {
     auto m = model();
@@ -797,9 +744,7 @@ void Engine::cmdRun() {
     }
     if (!rr.warnings.empty()) message("MonteCalc", rr.summary);
     openResultWindowAfterRun(ctx_, frame_, selected);
-#ifndef MONTECALC_XLL
     watchSelection(ctx_, frame_);   // from now on: selecting a variable cell shows its results
-#endif
 }
 
 void Engine::cmdReset() {
@@ -826,13 +771,6 @@ void Engine::cmdSaveResults() {
     std::time_t t = std::time(nullptr);
     char stamp[64];
     std::strftime(stamp, sizeof stamp, "%d_%m_%Y_%H_%M_%S", std::localtime(&t));
-#ifdef MONTECALC_XLL
-    std::string url = dir + base + "_" + stamp + "_MC_FLO.xlsx";
-    ModelDoc d(m);
-    d.saveAs(url);
-    message("MonteCalc", "Results saved as " + url);
-    if (!silent_) d.close();
-#else
     std::string url = dir + base + "_" + stamp + "_MC_FLO.ods";
     Reference<frame::XStorable> st(m, UNO_QUERY_THROW);
     beans::PropertyValue pv;
@@ -842,7 +780,6 @@ void Engine::cmdSaveResults() {
     Reference<util::XCloseable> cl(m, UNO_QUERY);
     message("MonteCalc", "Results saved as " + url);
     if (cl.is() && !silent_) cl->close(true);
-#endif
 }
 
 void Engine::cmdReplay() {
@@ -1451,9 +1388,6 @@ const std::vector<FunctionCategory>& functionMenu() {
     return m;
 }
 
-#ifdef MONTECALC_XLL
-void Engine::cmdFunctions() { message("MonteCalc", "Use the Functions menu of the MC FLO tab.", false); }
-#else
 void Engine::cmdFunctions() {
     // a popup menu with one submenu per category, opened at the top left of the sheet
     Reference<awt::XPopupMenu> menu = awt::PopupMenu::create(ctx_);
@@ -1476,13 +1410,12 @@ void Engine::cmdFunctions() {
     if (c >= cats.size() || k >= cats[c].functions.size()) return;
     insertFunction(cats[c].functions[k]);
 }
-#endif
 
 void Engine::cmdInsertFunction() { insertFunction(argText(args_, "Name")); }
 
 void Engine::insertFunction(const std::string& name) {
     // writes =fMC_...() into the selected empty cell and opens LibreOffice's Function Wizard on it,
-    // which shows the description and one field per argument (MC FLO opens Excel's dialog)
+    // which shows the description and one field per argument
     if (name.empty()) return;
     ModelDoc d(model());
     table::CellAddress a;
@@ -1491,21 +1424,13 @@ void Engine::insertFunction(const std::string& name) {
     if (!u8(c.formula()).empty()) { message("MonteCalc - Insert function", "Select an empty cell for the function.", true); return; }
     c.setFormula(ou("=" + name + "()"));
     if (silent_) return;
-#ifdef MONTECALC_XLL
-    com::application().obj("Dialogs", {com::Var(450)}).call("Show");   // xlDialogFunctionWizard
-#else
     Reference<frame::XDispatchHelper> h = frame::DispatchHelper::create(ctx_);
     h->executeDispatch(Reference<frame::XDispatchProvider>(frame_, UNO_QUERY_THROW), ".uno:FunctionDialog", "", 0, {});
-#endif
 }
 
 void Engine::cmdAbout() {
     message("About MonteCalc",
-#ifdef MONTECALC_XLL
-            "MonteCalc - Monte Carlo simulation for Microsoft Excel, following the MC FLO workflow.\n\n"
-#else
             "MonteCalc - Monte Carlo simulation for LibreOffice Calc, following the MC FLO workflow.\n\n"
-#endif
             "1. Model uncertain inputs with FLOsimula_ functions (Choose Wizard or Fit distribution).\n"
             "2. Insert correlations and output variables; Register variables.\n"
             "3. Start the simulation and analyse the result window, the result workbook or the fMC_ functions.");

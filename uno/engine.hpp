@@ -1,7 +1,6 @@
 // MonteCalc - simulation engine and MC FLO commands (protocol handler for "org.montecalc:")
 #pragma once
 
-#ifndef MONTECALC_XLL
 #include <com/sun/star/frame/XDispatch.hpp>
 #include <com/sun/star/frame/XDispatchProvider.hpp>
 #include <com/sun/star/frame/XFrame.hpp>
@@ -10,9 +9,6 @@
 #include <com/sun/star/lang/XServiceInfo.hpp>
 #include <com/sun/star/uno/XComponentContext.hpp>
 #include <cppuhelper/implbase4.hxx>
-#else
-#include "../xll/uno_shim.hpp"
-#endif
 
 #include "../core/formula.h"
 #include "../core/runner.h"
@@ -78,7 +74,7 @@ struct LiveRun {
     std::function<void()> idle;
 };
 
-// The iterations of one run (prepared simulation), shared by LibreOffice and Excel.
+// The iterations of one run (prepared simulation).
 // mem: Memory Calculation model (null: recalc evaluates one iteration by recalculating the
 // spreadsheet on this thread). With a model, iteration 0 runs on this thread; then, unless
 // the model keeps state from one iteration to the next (time series), the other iterations run
@@ -95,14 +91,6 @@ void closePreview(LiveRun& live);    // after the run
 RunResult runSimulation(const css::uno::Reference<css::uno::XComponentContext>& ctx,
                         const css::uno::Reference<css::frame::XFrame>& frame, const RunOptions& o);
 
-#ifdef MONTECALC_XLL
-// Excel: the MC FLO commands, run by the ribbon and the windows
-class Engine {
-public:
-    Engine() = default;
-    // e.g. run("Wizard", {{"Function", "Normal"}}); silent: no dialogs (arguments give the values)
-    void run(const std::string& command, const std::vector<css::beans::PropertyValue>& args = {}, bool silent = false);
-#else
 class Engine : public cppu::WeakImplHelper4<css::frame::XDispatchProvider, css::frame::XDispatch,
                                             css::lang::XInitialization, css::lang::XServiceInfo> {
 public:
@@ -120,7 +108,6 @@ public:
     sal_Bool SAL_CALL supportsService(const OUString& s) override;
     css::uno::Sequence<OUString> SAL_CALL getSupportedServiceNames() override;
     static css::uno::Sequence<OUString> serviceNames();
-#endif
 
 private:
     void execute(const std::string& cmd);   // the command table (both programs)
