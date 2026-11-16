@@ -121,6 +121,58 @@ def connect():
     raise RuntimeError("could not connect to soffice")
 
 
+MCFLO_SHEET = """<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+<row r="1"><c r="A1"><f>FLOsimula_PERT(80,140,100,"Vol")</f><v>0</v></c></row>
+<row r="2"><c r="A2"><f>_xll.FLOsimula_PERT(80,140,100,"Vol2")</f><v>0</v></c></row>
+<row r="3"><c r="A3"><f>A1*2+FLOsimula_output("Out")</f><v>0</v></c></row>
+<row r="4"><c r="A4"><f>fMC_Average("Out")</f><v>0</v></c></row>
+</sheetData></worksheet>"""
+
+
+def mcflo_xlsx_round_trip(desktop):
+    """an Excel workbook as MC FLO writes it opens with working formulas and is saved with MC FLO's spelling"""
+    import re
+    import zipfile
+    parts = {
+        "[Content_Types].xml": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+        '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>'
+        '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>'
+        '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>',
+        "_rels/.rels": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>',
+        "xl/workbook.xml": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+        'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Model" sheetId="1" r:id="rId1"/></sheets></workbook>',
+        "xl/_rels/workbook.xml.rels": '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>',
+        "xl/worksheets/sheet1.xml": MCFLO_SHEET,
+    }
+    work = tempfile.mkdtemp()
+    src, out = os.path.join(work, "mcflo.xlsx"), os.path.join(work, "saved.xlsx")
+    with zipfile.ZipFile(src, "w") as z:
+        for n, t in parts.items():
+            z.writestr(n, t)
+    doc = desktop.loadComponentFromURL(pathlib.Path(src).as_uri(), "_blank", 0, (prop("Hidden", True),))
+    doc.calculateAll()
+    sh = doc.Sheets.getByIndex(0)
+    vals = [(sh.getCellByPosition(0, r).getError(), sh.getCellByPosition(0, r).getValue()) for r in range(4)]
+    # (fMC_Average may report "no such result" here; it must not be #NAME?, error 525)
+    check(all(e == 0 for e, _ in vals[:3]) and vals[3][0] != 525 and abs(vals[0][1] - 103.333) < 0.01 and abs(vals[2][1] - 206.667) < 0.01,
+          f"MC FLO names (FLOsimula_PERT, _xll.FLOsimula_PERT, FLOsimula_output, fMC_Average) work after opening: {vals}")
+    check(not doc.isModified(), "opening an MC FLO workbook does not mark it as changed")
+    doc.storeAsURL(pathlib.Path(out).as_uri(), (prop("FilterName", "Calc Office Open XML"),))
+    doc.close(True)
+    formulas = re.findall(r"<f[^>]*>(.*?)</f>", zipfile.ZipFile(out).read("xl/worksheets/sheet1.xml").decode())
+    check(formulas[:4] == ['FLOsimula_PERT(80,140,100,&quot;Vol&quot;)', 'FLOsimula_PERT(80,140,100,&quot;Vol2&quot;)',
+                           'A1*2+FLOsimula_output(&quot;Out&quot;)', 'fMC_Average(&quot;Out&quot;)'],
+          f"saved as .xlsx with MC FLO's spelling: {formulas}")
+    doc = desktop.loadComponentFromURL(pathlib.Path(out).as_uri(), "_blank", 0, (prop("Hidden", True),))
+    doc.calculateAll()
+    check(abs(doc.Sheets.getByIndex(0).getCellByPosition(0, 0).getValue() - 103.333) < 0.01, "the saved workbook opens again")
+    doc.close(True)
+    shutil.rmtree(work, ignore_errors=True)
+
+
 def run_tests(ctx):
     smgr = ctx.ServiceManager
     desktop = smgr.createInstanceWithContext("com.sun.star.frame.Desktop", ctx)
@@ -513,6 +565,9 @@ def run_tests(ctx):
         rows = {ctxs.getCellByPosition(0, r).getString(): ctxs.getCellByPosition(12, r).getString() for r in range(4, 20)}
         check("Volume" in rows.get("Revenue", "") and "Price" in rows.get("Revenue", ""), f"dependencies traced through intermediate cells: {rows.get('Revenue')}")
         doc.Sheets.removeByName("FLO_Context")
+
+    print("MC FLO workbooks (.xlsx): MC FLO's function names")
+    mcflo_xlsx_round_trip(desktop)
 
     print("save / reload")
     path = tempfile.mktemp(suffix=".ods")

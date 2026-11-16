@@ -83,6 +83,25 @@ Manager*, the icon of the MC FLO sidebar deck and of *About MonteCalc*.
 5. Analyse in the result window (histogram, tornado chart, decision matrix, …), the result workbook (*Store results*), the `fmc_` functions,
    the influence diagram (**Variables**) or the AI mentor.
 
+### MC FLO workbooks (.xlsx)
+
+MonteCalc reads and writes Excel workbooks with MC FLO's own function names, so models move
+between MC FLO in Excel and MonteCalc in LibreOffice unchanged:
+
+- **Opening** an `.xlsx` (or `.xls`) file: Calc does not recognise MC FLO's spelling
+  (`FLOsimula_PERT`, also `_xll.FLOsimula_PERT`) by itself and would show `#NAME?`. MonteCalc turns
+  every MC FLO function call into a working MonteCalc call right after loading; the document is not
+  marked as changed.
+- **Saving** as `.xlsx`: Calc would write its internal names (`ORG.MONTECALC.MONTECALC.FLOSIMULA_PERT`);
+  MonteCalc rewrites the saved file with MC FLO's exact spelling, e.g.
+  `FLOsimula_PERT(200000,350000,250000,"MarketSize")`, `FLOsimula_output("NPV")`,
+  `fMC_Average("NPV")`.
+
+Inside Calc, function names are always shown in capitals (`FLOSIMULA_PERT`): that is Calc's own
+display of every function and cannot be changed by an extension. Calc accepts any spelling when you
+type a formula. The conversion is done by a job of the extension (`registry/Jobs.xcu`,
+`uno/mcflo_names.cpp`) on the document events *OnLoadFinished* and *OnSave(As)Done*.
+
 ### Languages: English, German, Spanish
 
 As in MC FLO, the user interface is available in English, German and Spanish: windows,

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- MC FLO function names in Excel files: after opening, MC FLO's names become working MonteCalc calls;
+     after saving as .xlsx, the file gets MC FLO's spelling (uno/mcflo_names.cpp) -->
+<oor:component-data xmlns:oor="http://openoffice.org/2001/registry" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                    oor:name="Jobs" oor:package="org.openoffice.Office">
+  <node oor:name="Jobs">
+    <node oor:name="MonteCalcMcFloNames" oor:op="replace">
+      <prop oor:name="Service"><value>org.montecalc.McFloNamesJob</value></prop>
+    </node>
+  </node>
+  <node oor:name="Events">
+    <node oor:name="OnLoad" oor:op="fuse">
+      <node oor:name="JobList">
+        <node oor:name="MonteCalcMcFloNames" oor:op="replace"/>
+      </node>
+    </node>
+    <node oor:name="OnLoadFinished" oor:op="fuse">
+      <node oor:name="JobList">
+        <node oor:name="MonteCalcMcFloNames" oor:op="replace"/>
+      </node>
+    </node>
+    <node oor:name="OnSaveDone" oor:op="fuse">
+      <node oor:name="JobList">
+        <node oor:name="MonteCalcMcFloNames" oor:op="replace"/>
+      </node>
+    </node>
+    <node oor:name="OnSaveAsDone" oor:op="fuse">
+      <node oor:name="JobList">
+        <node oor:name="MonteCalcMcFloNames" oor:op="replace"/>
+      </node>
+    </node>
+  </node>
+</oor:component-data>

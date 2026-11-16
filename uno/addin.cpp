@@ -1,5 +1,7 @@
 // MonteCalc - Calc add-in exposing the MC FLO model and tool functions
 #include "addin.hpp"
+
+#include <com/sun/star/sheet/LocalizedName.hpp>
 #include "util.hpp"
 #include "model.hpp"
 
@@ -1375,6 +1377,27 @@ OUString MonteCalcAddIn::getProgrammaticFuntionName(const OUString& aDisplayName
 OUString MonteCalcAddIn::getDisplayFunctionName(const OUString& prog) {
     const FuncInfo* f = findFunc(prog);
     return f ? OUString::createFromAscii(f->name) : OUString();
+}
+
+const std::vector<std::pair<std::string, std::string>>& mcfloFunctionNames() {
+    static const std::vector<std::pair<std::string, std::string>> names = [] {
+        std::vector<std::pair<std::string, std::string>> v;
+        for (const auto& f : functionTable()) v.push_back({f.prog, f.name});
+        return v;
+    }();
+    return names;
+}
+
+Sequence<sheet::LocalizedName> MonteCalcAddIn::getCompatibilityNames(const OUString& prog) {
+    const FuncInfo* f = findFunc(prog);
+    if (!f) return {};
+    // MC FLO uses the same names in every language version of Excel
+    OUString name = OUString::createFromAscii(f->name);
+    const char* locales[][2] = {{"en", "US"}, {"de", "DE"}, {"de", "CH"}, {"es", "ES"}, {"fr", "FR"}, {"it", "IT"}};
+    Sequence<sheet::LocalizedName> r(sizeof locales / sizeof locales[0]);
+    for (sal_Int32 i = 0; i < r.getLength(); ++i)
+        r.getArray()[i] = sheet::LocalizedName(lang::Locale(OUString::createFromAscii(locales[i][0]), OUString::createFromAscii(locales[i][1]), OUString()), name);
+    return r;
 }
 
 OUString MonteCalcAddIn::getFunctionDescription(const OUString& prog) {

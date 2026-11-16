@@ -1,6 +1,7 @@
 // MonteCalc - UNO component registration
 #include "addin.hpp"
 #include "engine.hpp"
+#include "mcflo_names.hpp"
 #include "sidebar.hpp"
 
 #include <cppuhelper/implementationentry.hxx>
@@ -22,6 +23,11 @@ Reference<uno::XInterface> SAL_CALL createEngine(const Reference<uno::XComponent
 Reference<uno::XInterface> SAL_CALL createPanelFactory(const Reference<uno::XComponentContext>& ctx) {
     return static_cast<cppu::OWeakObject*>(new montecalc::PanelFactory(ctx));
 }
+Reference<uno::XInterface> SAL_CALL createNamesJob(const Reference<uno::XComponentContext>& ctx) {
+    return static_cast<cppu::OWeakObject*>(new montecalc::McFloNamesJob(ctx));
+}
+OUString SAL_CALL namesJobImplName() { return OUString::createFromAscii(montecalc::kNamesJobImplName); }
+Sequence<OUString> SAL_CALL namesJobServices() { return montecalc::McFloNamesJob::serviceNames(); }
 OUString SAL_CALL panelImplName() { return OUString::createFromAscii(montecalc::kPanelFactoryImplName); }
 Sequence<OUString> SAL_CALL panelServices() { return montecalc::PanelFactory::serviceNames(); }
 OUString SAL_CALL addInImplName() { return OUString::createFromAscii(montecalc::kAddInImplName); }
@@ -33,6 +39,7 @@ const cppu::ImplementationEntry entries[] = {
     {createAddIn, addInImplName, addInServices, cppu::createSingleComponentFactory, nullptr, 0},
     {createEngine, engineImplName, engineServices, cppu::createSingleComponentFactory, nullptr, 0},
     {createPanelFactory, panelImplName, panelServices, cppu::createSingleComponentFactory, nullptr, 0},
+    {createNamesJob, namesJobImplName, namesJobServices, cppu::createSingleComponentFactory, nullptr, 0},
     {nullptr, nullptr, nullptr, nullptr, nullptr, 0}};
 
 } // namespace

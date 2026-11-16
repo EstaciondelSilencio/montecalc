@@ -7,4 +7,5 @@
   <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/CalcWindowState.xcu"/>
   <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/Sidebar.xcu"/>
   <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/Factories.xcu"/>
+  <manifest:file-entry manifest:media-type="application/vnd.sun.star.configuration-data" manifest:full-path="registry/Jobs.xcu"/>
 </manifest:manifest>

@@ -8,6 +8,9 @@
     <implementation name="org.montecalc.Engine">
       <service name="com.sun.star.frame.ProtocolHandler"/>
     </implementation>
+    <implementation name="org.montecalc.McFloNamesJob">
+      <service name="org.montecalc.McFloNamesJob"/>
+    </implementation>
     <implementation name="org.montecalc.PanelFactory">
       <service name="com.sun.star.ui.UIElementFactory"/>
     </implementation>

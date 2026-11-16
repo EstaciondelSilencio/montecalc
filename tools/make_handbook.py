@@ -338,7 +338,18 @@ def build(out):
     ], [28 * mm, 142 * mm])
     s.p("Example: " + c('=FLOsimula_Normal(25;2;"Price";;18;32)') + " is a normal distribution with mean 25 and standard deviation 2, "
         "truncated to 18…32 (Number left empty).")
-    s.h2("4.3  Modes of the spreadsheet")
+    s.h2("4.3  MC FLO workbooks (.xlsx)")
+    s.p("MonteCalc reads and writes Excel workbooks with MC FLO's own function names, so a model moves between MC FLO in "
+        "Excel and MonteCalc unchanged.")
+    s.bullets([
+        "<b>Opening</b> an .xlsx file made with MC FLO: every MC FLO call (" + c("FLOsimula_PERT(…)") + ", also " + c("_xll.FLOsimula_PERT(…)")
+        + ") works at once. Without MonteCalc, Calc would show " + c("#NAME?") + ". The document is not marked as changed.",
+        "<b>Saving</b> as .xlsx: the file gets MC FLO's exact spelling, e.g. " + c('FLOsimula_PERT(200000,350000,250000,"MarketSize")') + ", "
+        + c('FLOsimula_output("NPV")') + " and " + c('fMC_Average("NPV")') + ", so MC FLO in Excel reads it directly.",
+        "Inside Calc, function names are always shown in capitals (" + c("FLOSIMULA_PERT") + "): this is how Calc displays every "
+        "function. You may type any spelling, e.g. " + c("=FLOsimula_PERT(…)") + ".",
+    ])
+    s.h2("4.4  Modes of the spreadsheet")
     s.table([
         ["Mode", "The input cells show"],
         ["Expected values (normal state)", "the expected value of each distribution"],
@@ -564,6 +575,9 @@ def build(out):
          "LibreOffice has not loaded the extension. Restart LibreOffice completely (on Windows including the Quickstarter in the "
          "system tray). If it persists, check in <i>Tools → Extension Manager</i> that MonteCalc is installed and enabled, remove "
          "and add it again, and make sure you installed the file for your system (Windows or Linux, 64-bit)."),
+        ("An MC FLO workbook (.xlsx) shows #NAME? in LibreOffice.",
+         "MonteCalc converts MC FLO's function names when the file is opened. Check that MonteCalc is installed and enabled "
+         "(<i>Tools → Extension Manager</i>) and open the file again."),
         ("A function returns -1 or an error after opening the workbook.",
          "Result functions (" + c("fMC_…") + ") need a simulation and return −1 until one has run. Run <b>Start</b>."),
         ("The simulation is slow.",
